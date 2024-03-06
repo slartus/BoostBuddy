@@ -20,7 +20,7 @@ class AuthRepository(
                 append("device_id", "560424b1-9a82-40f8-a7bd-88275ce27b4b")
                 append("device_os", "android")
                 append("grant_type", "refresh_token")
-                append("refresh_token", "refreshToken")
+                append("refresh_token", refreshToken)
             }))
         }.body<AuthResponse>()
         return Auth(
