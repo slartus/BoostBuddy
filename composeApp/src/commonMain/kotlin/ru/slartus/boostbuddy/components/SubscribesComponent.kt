@@ -3,6 +3,9 @@ package ru.slartus.boostbuddy.components
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
+import ru.slartus.boostbuddy.data.Inject
+import ru.slartus.boostbuddy.data.repositories.SettingsRepository
+import ru.slartus.boostbuddy.data.repositories.SubscribesRepository
 
 
 interface SubscribesComponent {
@@ -20,6 +23,9 @@ class SubscribesComponentImpl(
     private val onItemSelected: (item: String) -> Unit,
 ) : SubscribesComponent, ComponentContext by componentContext {
     private val scope = coroutineScope()
+    private val settingsRepository by Inject.lazy<SettingsRepository>()
+    private val subscribesRepository by Inject.lazy<SubscribesRepository>()
+
     override val model: Value<SubscribesComponent.Model> =
         MutableValue(SubscribesComponent.Model(items = List(100) { "Item $it" }))
 

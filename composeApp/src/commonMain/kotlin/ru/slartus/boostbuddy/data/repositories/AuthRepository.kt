@@ -14,11 +14,11 @@ class AuthRepository(
     private val httpClient: HttpClient
 ) {
     suspend fun refreshToken(accessToken: String, refreshToken: String): Auth {
-        val response = httpClient.post {
+        val response = httpClient.post("https://api.boosty.to/oauth/token/") {
             header(HttpHeaders.Authorization, "Bearer $accessToken")
             setBody(FormDataContent(Parameters.build {
-                append("device_id", "560424b1-9a82-40f8-a7bd-88275ce27b4b")
-                append("device_os", "android")
+                append("device_id", "560424b1-9a82-40f8-a7bd-88275ce27b4a")
+                append("device_os", "web")
                 append("grant_type", "refresh_token")
                 append("refresh_token", refreshToken)
             }))
