@@ -5,7 +5,7 @@
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <application
         android:name=".AndroidApp"
-        android:icon="@android:drawable/ic_menu_compass"
+        android:icon="@drawable/ic_launcher"
         android:label="BoostBuddy"
         android:theme="@style/Theme.AppCompat.DayNight.NoActionBar.FullScreen">
         <activity
