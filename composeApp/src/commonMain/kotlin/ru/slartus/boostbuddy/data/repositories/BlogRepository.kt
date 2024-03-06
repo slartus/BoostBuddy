@@ -8,11 +8,13 @@ import io.ktor.client.request.parameter
 import io.ktor.http.HttpHeaders
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import ru.slartus.boostbuddy.utils.Response
+import ru.slartus.boostbuddy.utils.fetchOrError
 
 class BlogRepository(
     private val httpClient: HttpClient,
 ) {
-    suspend fun getData(accessToken: String, url: String): List<Post> {
+    suspend fun getData(accessToken: String, url: String): Response<List<Post>> = fetchOrError {
         val response: PostResponse =
             httpClient.get("https://api.boosty.to/v1/blog/$url/post/") {
                 header(HttpHeaders.Authorization, "Bearer $accessToken")
@@ -22,8 +24,9 @@ class BlogRepository(
                 parameter("reply_limit", "1")
             }.body()
 
-        return response.data?.mapNotNull { it.mapToPostOrNull() } ?: emptyList()
+        response.data?.mapNotNull { it.mapToPostOrNull() } ?: emptyList()
     }
+
 }
 
 data class Post(

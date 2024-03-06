@@ -9,6 +9,8 @@ import ru.slartus.boostbuddy.data.repositories.Blog
 import ru.slartus.boostbuddy.data.repositories.BlogRepository
 import ru.slartus.boostbuddy.data.repositories.Post
 import ru.slartus.boostbuddy.data.repositories.SettingsRepository
+import ru.slartus.boostbuddy.utils.Response
+import ru.slartus.boostbuddy.utils.messageOrThrow
 
 interface BlogComponent {
     val state: Value<BlogViewState>
@@ -50,19 +52,26 @@ class BlogComponentImpl(
     override var state: Value<BlogViewState> = _state
 
     init {
-        fetchBlog()
+        subscribeToken()
     }
 
-    private fun fetchBlog() {
+    private fun subscribeToken() {
+        scope.launch {
+            settingsRepository.tokenFlow.collect { token ->
+                if (token != null)
+                    fetchBlog(token)
+            }
+        }
+    }
+
+    private fun fetchBlog(token: String) {
         _state.value = BlogViewState.loading(blog)
         scope.launch {
-            val token = settingsRepository.getAccessToken().orEmpty()
-            runCatching {
-                val items = blogRepository.getData(accessToken = token, url = blog.blogUrl)
-                _state.value = BlogViewState.loaded(blog, items)
-            }.onFailure {
-                it.printStackTrace()
-                _state.value = BlogViewState.error(blog, it.toString())
+            when (val response = blogRepository.getData(accessToken = token, url = blog.blogUrl)) {
+                is Response.Error -> _state.value =
+                    BlogViewState.error(blog, response.exception.messageOrThrow())
+
+                is Response.Success -> _state.value = BlogViewState.loaded(blog, response.data)
             }
         }
     }
