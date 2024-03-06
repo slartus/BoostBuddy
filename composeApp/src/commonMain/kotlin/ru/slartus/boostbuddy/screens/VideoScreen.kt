@@ -15,6 +15,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
 import ru.slartus.boostbuddy.components.VideoComponent
+import ru.slartus.boostbuddy.utils.KeepScreenOnEffect
 import ru.slartus.boostbuddy.widgets.VideoPlayer
 
 @Composable
@@ -24,7 +25,7 @@ fun VideoScreen(component: VideoComponent) {
     val playerUrl by remember(state.playerUrl) {
         mutableStateOf(state.playerUrl?.url)
     }
-
+    KeepScreenOnEffect()
     Box(modifier = Modifier.fillMaxSize().background(Color.Black)) {
         playerUrl?.let { url ->
             VideoPlayer(
