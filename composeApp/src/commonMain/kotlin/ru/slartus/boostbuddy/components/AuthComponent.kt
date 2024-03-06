@@ -9,12 +9,10 @@ import ru.slartus.boostbuddy.data.Inject
 import ru.slartus.boostbuddy.data.repositories.AuthResponse
 import ru.slartus.boostbuddy.data.repositories.SettingsRepository
 import ru.slartus.boostbuddy.data.repositories.putAccessToken
-import ru.slartus.boostbuddy.data.repositories.putWebCookie
 
 
 interface AuthComponent {
     fun onCookiesChanged(cookies: String)
-
 }
 
 class AuthComponentImpl(
@@ -34,10 +32,8 @@ class AuthComponentImpl(
                     parseCookies(cookies).entries.firstOrNull { it.key == "auth" } ?: return@launch
                 val json = authCookie.value.decodeURLQueryComponent()
                 val auth = Json.decodeFromString<AuthResponse>(json)
-                if (auth.accessToken != null && auth.refreshToken != null) {
+                if (auth.accessToken != null) {
                     settingsRepository.putAccessToken(auth.accessToken)
-                    settingsRepository.putString("refreshToken", auth.refreshToken)
-                    settingsRepository.putWebCookie(cookies)
                     onLogined()
                 }
             }.onFailure { it.printStackTrace() }

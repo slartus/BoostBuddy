@@ -17,7 +17,7 @@ kotlinx-datetime = "0.5.0"
 multiplatformSettings = "1.1.1"
 sqlDelight = "2.0.1"
 kodein = "7.20.2" # https://github.com/kosi-libs/Kodein
-exoplayer = "2.19.1" # https://github.com/google/ExoPlayer
+exoplayer = "1.2.1" # https://github.com/androidx/media
 
 [libraries]
 
@@ -45,13 +45,13 @@ sqlDelight-driver-android = { module = "app.cash.sqldelight:android-driver", ver
 sqlDelight-driver-native = { module = "app.cash.sqldelight:native-driver", version.ref = "sqlDelight" }
 sqlDelight-driver-js = { module = "app.cash.sqldelight:web-worker-driver", version.ref = "sqlDelight" }
 
-exoplayer-core = { module = "com.google.android.exoplayer:exoplayer-core", version.ref = "exoplayer" }
-exoplayer-dash = { module = "com.google.android.exoplayer:exoplayer-dash", version.ref = "exoplayer" }
-exoplayer-ui = { module = "com.google.android.exoplayer:exoplayer-ui", version.ref = "exoplayer" }
-exoplayer-hls = { module = "com.google.android.exoplayer:exoplayer-hls", version.ref = "exoplayer" }
-exoplayer-rtsp = { module = "com.google.android.exoplayer:exoplayer-rtsp", version.ref = "exoplayer" }
-exoplayer-smoothstreaming = { module = "com.google.android.exoplayer:exoplayer-smoothstreaming", version.ref = "exoplayer" }
-exoplayer-transformer = { module = "com.google.android.exoplayer:exoplayer-transformer", version.ref = "exoplayer" }
+exoplayer-core = { module = "androidx.media3:media3-exoplayer", version.ref = "exoplayer" }
+exoplayer-dash = { module = "androidx.media3:media3-exoplayer-dash", version.ref = "exoplayer" }
+exoplayer-ui = { module = "androidx.media3:media3-ui", version.ref = "exoplayer" }
+exoplayer-hls = { module = "androidx.media3:media3-exoplayer-hls", version.ref = "exoplayer" }
+#exoplayer-rtsp = { module = "com.google.android.exoplayer:exoplayer-rtsp", version.ref = "exoplayer" }
+#exoplayer-smoothstreaming = { module = "com.google.android.exoplayer:exoplayer-smoothstreaming", version.ref = "exoplayer" }
+#exoplayer-transformer = { module = "com.google.android.exoplayer:exoplayer-transformer", version.ref = "exoplayer" }
 
 
 kodein-core = { module = "org.kodein.di:kodein-di", version.ref = "kodein" }
