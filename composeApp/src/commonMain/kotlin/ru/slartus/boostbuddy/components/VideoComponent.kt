@@ -12,8 +12,8 @@ interface VideoComponent {
 
 data class VideoViewState(
     val postData: PostData
-){
-    val playerUrl: PlayerUrl? = postData.videoUrls?.firstOrNull()
+) {
+    val playerUrl: PlayerUrl? = postData.videoUrls?.firstOrNull { it.type == "hls" }
 }
 
 class VideoComponentImpl(
