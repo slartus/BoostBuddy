@@ -16,8 +16,8 @@ fun VideoScreen(component: VideoComponent) {
         mutableStateOf(state.playerUrl?.url)
     }
 
-    if (playerUrl != null) {
-        VideoPlayer(playerUrl!!)
+    playerUrl?.let {
+        VideoPlayer(url = it, title = state.postData.title)
     }
 
 }

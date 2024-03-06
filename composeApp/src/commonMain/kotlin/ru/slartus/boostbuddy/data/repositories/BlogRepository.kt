@@ -36,6 +36,7 @@ data class Post(
 
 @Serializable
 data class PostData(
+    val title: String,
     val videoUrls: List<PlayerUrl>? = null
 )
 
@@ -61,6 +62,7 @@ private fun PostResponse.Post.mapToPostOrNull(): Post? {
 
 private fun PostResponse.PostData.mapToPostDataOrNull(): PostData? {
     return PostData(
+        title = title.orEmpty(),
         videoUrls = playerUrls
             ?.map {
                 PlayerUrl(it.type ?: return null, it.url ?: return null)
@@ -84,6 +86,7 @@ private data class PostResponse(
 
     @Serializable
     data class PostData(
+        val title: String? = null,
         val type: String? = null,//image, text, link, ok_video
         val url: String? = null,
         val playerUrls: List<PlayerUrl>? = null

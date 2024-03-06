@@ -31,7 +31,7 @@ import androidx.media3.ui.PlayerView
 
 @UnstableApi
 @Composable
-actual fun VideoPlayer(url: String) {
+actual fun VideoPlayer(url: String, title: String) {
     // Get the current context
     val context = LocalContext.current
 
@@ -39,7 +39,7 @@ actual fun VideoPlayer(url: String) {
     val visible = remember { mutableStateOf(true) }
 
     // Mutable state to hold the video title
-    val videoTitle = remember { mutableStateOf("video.name") }
+    val videoTitle = remember { mutableStateOf(title) }
 
     // Create a list of MediaItems for the ExoPlayer
     val mediaItems = arrayListOf<MediaItem>()
@@ -48,7 +48,7 @@ actual fun VideoPlayer(url: String) {
             .setUri(url)
             .setMediaId("video.id.toString()")
             .setTag(url)
-            .setMediaMetadata(MediaMetadata.Builder().setDisplayTitle("video.name").build())
+            .setMediaMetadata(MediaMetadata.Builder().setDisplayTitle(title).build())
             .build()
     )
 
@@ -85,8 +85,7 @@ actual fun VideoPlayer(url: String) {
             }
         }.onFailure {
             error = it.toString()
-        }
-            .getOrNull()
+        }.getOrNull()
     }
 
     error?.let {
