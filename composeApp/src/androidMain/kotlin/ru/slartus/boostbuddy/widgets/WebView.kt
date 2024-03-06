@@ -51,8 +51,6 @@ actual fun WebView(url: String, onCookieChange: (String) -> Unit) {
                         view: WebView,
                         request: WebResourceRequest
                     ): Boolean {
-                        val cookie = CookieManager.getInstance().getCookie(request.url.toString())
-                        Log.e("cookie", cookie)
                         return false
                     }
 

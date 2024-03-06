@@ -66,6 +66,14 @@ kotlin {
             implementation(libs.kotlinx.coroutines.android)
             implementation(libs.ktor.client.okhttp)
             implementation(libs.sqlDelight.driver.android)
+
+            implementation(libs.exoplayer.core)
+            implementation(libs.exoplayer.dash)
+            implementation(libs.exoplayer.ui)
+            implementation(libs.exoplayer.hls)
+            implementation(libs.exoplayer.rtsp)
+            implementation(libs.exoplayer.smoothstreaming)
+            implementation(libs.exoplayer.transformer)
         }
 
         iosMain.dependencies {

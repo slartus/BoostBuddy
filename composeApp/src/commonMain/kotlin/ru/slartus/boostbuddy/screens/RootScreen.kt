@@ -19,6 +19,7 @@ fun RootScreen(component: RootComponent, modifier: Modifier = Modifier) {
             is RootComponent.Child.AuthChild -> AuthScreen(child.component)
             is RootComponent.Child.SubscribesChild -> SubscribesScreen(child.component)
             is RootComponent.Child.BlogChild -> BlogScreen(child.component)
+            is RootComponent.Child.VideoChild -> VideoScreen(child.component)
         }
     }
 }

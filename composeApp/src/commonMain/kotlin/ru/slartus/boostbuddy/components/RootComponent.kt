@@ -10,6 +10,7 @@ import com.arkivanov.decompose.router.stack.push
 import com.arkivanov.decompose.value.Value
 import kotlinx.serialization.Serializable
 import ru.slartus.boostbuddy.data.repositories.Blog
+import ru.slartus.boostbuddy.data.repositories.PostData
 
 interface RootComponent {
     val stack: Value<ChildStack<*, Child>>
@@ -22,6 +23,7 @@ interface RootComponent {
         class AuthChild(val component: AuthComponent) : Child()
         class SubscribesChild(val component: SubscribesComponent) : Child()
         class BlogChild(val component: BlogComponent) : Child()
+        class VideoChild(val component: VideoComponent) : Child()
     }
 }
 
@@ -55,6 +57,13 @@ class RootComponentImpl(
                     config
                 )
             )
+
+            is Config.VideoConfig -> RootComponent.Child.VideoChild(
+                videoComponent(
+                    componentContext,
+                    config
+                )
+            )
         }
 
     private fun authComponent(componentContext: ComponentContext): AuthComponent =
@@ -82,9 +91,20 @@ class RootComponentImpl(
         BlogComponentImpl(
             componentContext = componentContext,
             blog = config.blog,
-            onItemSelected = {
-                //navigation.push(Config.BlogConfig(blog = it.blog))
+            onItemSelected = { post ->
+                post.data.find { (it.videoUrls?.size ?: 0) > 0 }?.let { postData ->
+                    navigation.push(Config.VideoConfig(postData = postData))
+                }
             }
+        )
+
+    private fun videoComponent(
+        componentContext: ComponentContext,
+        config: Config.VideoConfig
+    ): VideoComponent =
+        VideoComponentImpl(
+            componentContext = componentContext,
+            postData = config.postData
         )
 
     override fun onBackClicked(toIndex: Int) {
@@ -101,5 +121,8 @@ class RootComponentImpl(
 
         @Serializable
         data class BlogConfig(val blog: Blog) : Config
+
+        @Serializable
+        data class VideoConfig(val postData: PostData) : Config
     }
 }

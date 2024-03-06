@@ -34,10 +34,12 @@ data class Post(
     val data: List<PostData>
 )
 
+@Serializable
 data class PostData(
     val videoUrls: List<PlayerUrl>? = null
 )
 
+@Serializable
 data class PlayerUrl(
     val type: String,
     val url: String
