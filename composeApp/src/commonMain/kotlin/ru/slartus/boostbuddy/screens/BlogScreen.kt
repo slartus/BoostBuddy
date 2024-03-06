@@ -12,28 +12,31 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
-import ru.slartus.boostbuddy.components.SubscribesComponent
+import ru.slartus.boostbuddy.components.BlogComponent
+import ru.slartus.boostbuddy.components.BlogViewState
 import ru.slartus.boostbuddy.components.SubscribesViewState
 import ru.slartus.boostbuddy.data.repositories.Blog
+import ru.slartus.boostbuddy.data.repositories.Post
 
 @Composable
-fun SubscribesScreen(component: SubscribesComponent) {
+fun BlogScreen(component: BlogComponent) {
     val state = component.state.subscribeAsState().value
 
     Column {
         Text(
             modifier = Modifier.fillMaxWidth().padding(16.dp),
-            text = "Подписки"
+            text = state.blog.title
         )
         when (val progressState = state.progressProgressState) {
-            SubscribesViewState.ProgressState.Error -> Text(text = "Ошибка")
-            SubscribesViewState.ProgressState.Init,
-            SubscribesViewState.ProgressState.Loading -> Text(text = "Загрузка")
-            is SubscribesViewState.ProgressState.Loaded -> {
+            BlogViewState.ProgressState.Error -> Text(text = "Ошибка")
+            BlogViewState.ProgressState.Init,
+            BlogViewState.ProgressState.Loading -> Text(text = "Загрузка")
+
+            is BlogViewState.ProgressState.Loaded -> {
                 Text(text = "Загружено ${progressState.items.size}")
                 LazyColumn(modifier = Modifier.fillMaxSize()) {
                     items(progressState.items) { item ->
-                        BlogView(item.blog, onClick = { component.onItemClicked(item) })
+                        PostView(item, onClick = { component.onItemClicked(item) })
                     }
                 }
             }
@@ -41,12 +44,13 @@ fun SubscribesScreen(component: SubscribesComponent) {
     }
 }
 
+
 @Composable
-private fun BlogView(blog: Blog, onClick: () -> Unit) {
+private fun PostView(post: Post, onClick: () -> Unit) {
     Text(
         modifier = Modifier.fillMaxWidth()
             .clickable { onClick() }
             .padding(16.dp),
-        text = blog.title
+        text = post.title
     )
 }

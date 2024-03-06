@@ -16,8 +16,9 @@ fun RootScreen(component: RootComponent, modifier: Modifier = Modifier) {
         animation = stackAnimation(fade()),
     ) {
         when (val child = it.instance) {
-            is RootComponent.Child.AuthChild -> AuthScreen(component = child.component)
-            is RootComponent.Child.SubscribesChild -> SubscribesScreen(component = child.component)
+            is RootComponent.Child.AuthChild -> AuthScreen(child.component)
+            is RootComponent.Child.SubscribesChild -> SubscribesScreen(child.component)
+            is RootComponent.Child.BlogChild -> BlogScreen(child.component)
         }
     }
 }

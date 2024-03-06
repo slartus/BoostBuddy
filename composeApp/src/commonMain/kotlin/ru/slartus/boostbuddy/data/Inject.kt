@@ -8,6 +8,7 @@ import org.kodein.di.direct
 import org.kodein.di.instance
 import ru.slartus.boostbuddy.data.ktor.buildHttpClient
 import ru.slartus.boostbuddy.data.repositories.AuthRepository
+import ru.slartus.boostbuddy.data.repositories.BlogRepository
 import ru.slartus.boostbuddy.data.repositories.SettingsRepository
 import ru.slartus.boostbuddy.data.repositories.SubscribesRepository
 import ru.slartus.boostbuddy.data.settings.SettingsFactory
@@ -36,5 +37,6 @@ fun createDependenciesTree(platformConfiguration: PlatformConfiguration) {
         bindSingleton { SettingsFactory(platformConfiguration = instance()).createDefault() }
         bindSingleton { SettingsRepository(settings = instance()) }
         bindSingleton { SubscribesRepository(httpClient = instance()) }
+        bindSingleton { BlogRepository(httpClient = instance()) }
     }
 }

@@ -9,6 +9,7 @@ import ru.slartus.boostbuddy.data.Inject
 import ru.slartus.boostbuddy.data.repositories.AuthResponse
 import ru.slartus.boostbuddy.data.repositories.SettingsRepository
 import ru.slartus.boostbuddy.data.repositories.putAccessToken
+import ru.slartus.boostbuddy.data.repositories.putWebCookie
 
 
 interface AuthComponent {
@@ -36,6 +37,7 @@ class AuthComponentImpl(
                 if (auth.accessToken != null && auth.refreshToken != null) {
                     settingsRepository.putAccessToken(auth.accessToken)
                     settingsRepository.putString("refreshToken", auth.refreshToken)
+                    settingsRepository.putWebCookie(cookies)
                     onLogined()
                 }
             }.onFailure { it.printStackTrace() }

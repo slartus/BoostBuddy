@@ -8,9 +8,8 @@ import com.arkivanov.decompose.router.stack.pop
 import com.arkivanov.decompose.router.stack.popTo
 import com.arkivanov.decompose.router.stack.push
 import com.arkivanov.decompose.value.Value
-import com.arkivanov.essenty.parcelable.Parcelable
-import com.arkivanov.essenty.parcelable.Parcelize
-
+import kotlinx.serialization.Serializable
+import ru.slartus.boostbuddy.data.repositories.Blog
 
 interface RootComponent {
     val stack: Value<ChildStack<*, Child>>
@@ -22,6 +21,7 @@ interface RootComponent {
     sealed class Child {
         class AuthChild(val component: AuthComponent) : Child()
         class SubscribesChild(val component: SubscribesComponent) : Child()
+        class BlogChild(val component: BlogComponent) : Child()
     }
 }
 
@@ -31,12 +31,12 @@ class RootComponentImpl(
 
     private val navigation = StackNavigation<Config>()
 
-
     override val stack: Value<ChildStack<*, RootComponent.Child>> =
         childStack(
             source = navigation,
-            initialConfiguration = Config.Auth, // The initial child component is List
-            handleBackButton = true, // Automatically pop from the stack on back button presses
+            serializer = Config.serializer(),
+            initialConfiguration = Config.Auth,
+            handleBackButton = true,
             childFactory = ::child,
         )
 
@@ -45,6 +45,12 @@ class RootComponentImpl(
             is Config.Auth -> RootComponent.Child.AuthChild(authComponent(componentContext))
             is Config.Subscribes -> RootComponent.Child.SubscribesChild(
                 subscribesComponent(
+                    componentContext
+                )
+            )
+
+            is Config.BlogConfig -> RootComponent.Child.BlogChild(
+                blogComponent(
                     componentContext,
                     config
                 )
@@ -61,14 +67,23 @@ class RootComponentImpl(
             },
         )
 
-    private fun subscribesComponent(
-        componentContext: ComponentContext,
-        config: Config.Subscribes
-    ): SubscribesComponent =
+    private fun subscribesComponent(componentContext: ComponentContext): SubscribesComponent =
         SubscribesComponentImpl(
             componentContext = componentContext,
             onItemSelected = {
-                // navigation.push(Config.Details(item = item))
+                navigation.push(Config.BlogConfig(blog = it.blog))
+            }
+        )
+
+    private fun blogComponent(
+        componentContext: ComponentContext,
+        config: Config.BlogConfig
+    ): BlogComponent =
+        BlogComponentImpl(
+            componentContext = componentContext,
+            blog = config.blog,
+            onItemSelected = {
+                //navigation.push(Config.BlogConfig(blog = it.blog))
             }
         )
 
@@ -76,9 +91,15 @@ class RootComponentImpl(
         navigation.popTo(index = toIndex)
     }
 
-    @Parcelize
-    private sealed interface Config : Parcelable {
+    @Serializable
+    private sealed interface Config {
+        @Serializable
         data object Auth : Config
+
+        @Serializable
         data object Subscribes : Config
+
+        @Serializable
+        data class BlogConfig(val blog: Blog) : Config
     }
 }

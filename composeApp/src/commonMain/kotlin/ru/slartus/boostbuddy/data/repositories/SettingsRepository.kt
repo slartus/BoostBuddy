@@ -20,3 +20,7 @@ class SettingsRepository(
 suspend fun SettingsRepository.getAccessToken(): String? = getString("access_token")
 
 suspend fun SettingsRepository.putAccessToken(value: String) = putString("access_token", value)
+
+suspend fun SettingsRepository.getWebCookie(): String? = getString("web_cookie")
+
+suspend fun SettingsRepository.putWebCookie(value: String) = putString("web_cookie", value)

@@ -5,7 +5,6 @@ import io.ktor.client.call.body
 import io.ktor.client.request.get
 import io.ktor.client.request.header
 import io.ktor.http.HttpHeaders
-import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 class SubscribesRepository(
@@ -26,7 +25,7 @@ private fun SubscribesResponse.Data.toSubscribeItemOrNull(): SubscribeItem? {
     val blog = Blog(
         title = responseBlog.title ?: return null,
         blogUrl = responseBlog.blogUrl ?: return null,
-        coverUrl = responseBlog.blogUrl ?: return null,
+        coverUrl = responseBlog.coverUrl ?: return null,
     )
     return SubscribeItem(blog)
 }
@@ -35,6 +34,7 @@ data class SubscribeItem(
     val blog: Blog
 )
 
+@Serializable
 data class Blog(
     val title: String,
     val blogUrl: String,
@@ -50,7 +50,7 @@ private data class SubscribesResponse(
 ) {
 
     @Serializable
-    internal data class Flags(
+    data class Flags(
         val hasTargets: Boolean? = null,
         val hasSubscriptionLevels: Boolean? = null,
         val showPostDonations: Boolean? = null,
@@ -61,7 +61,7 @@ private data class SubscribesResponse(
     )
 
     @Serializable
-    internal data class Owner(
+    data class Owner(
         val name: String? = null,
         val hasAvatar: Boolean? = null,
         val avatarUrl: String? = null,
@@ -69,7 +69,7 @@ private data class SubscribesResponse(
     )
 
     @Serializable
-    internal data class Blog(
+    data class Blog(
         val flags: Flags? = null,
         val title: String? = null,
         val owner: Owner? = null,
@@ -79,7 +79,7 @@ private data class SubscribesResponse(
     )
 
     @Serializable
-    internal data class Data(
+    data class Data(
         val isArchived: Boolean? = null,
         val price: Int? = null,
         val customPrice: Int? = null,

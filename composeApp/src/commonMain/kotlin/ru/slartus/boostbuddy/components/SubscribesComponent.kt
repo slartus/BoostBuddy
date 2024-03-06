@@ -19,8 +19,24 @@ interface SubscribesComponent {
 }
 
 data class SubscribesViewState(
-    val items: List<SubscribeItem>,
-)
+    val progressProgressState: ProgressState,
+) {
+    companion object {
+        internal fun init(): SubscribesViewState = SubscribesViewState(ProgressState.Init)
+        internal fun loading(): SubscribesViewState = SubscribesViewState(ProgressState.Loading)
+        internal fun loaded(items: List<SubscribeItem>): SubscribesViewState =
+            SubscribesViewState(ProgressState.Loaded(items))
+
+        internal fun error(): SubscribesViewState = SubscribesViewState(ProgressState.Error)
+    }
+
+    sealed class ProgressState {
+        data object Init : ProgressState()
+        data object Loading : ProgressState()
+        data class Loaded(val items: List<SubscribeItem>) : ProgressState()
+        data object Error : ProgressState()
+    }
+}
 
 class SubscribesComponentImpl(
     componentContext: ComponentContext,
@@ -30,27 +46,25 @@ class SubscribesComponentImpl(
     private val settingsRepository by Inject.lazy<SettingsRepository>()
     private val subscribesRepository by Inject.lazy<SubscribesRepository>()
 
-    private val _state: MutableStateFlow<SubscribesViewState> = MutableStateFlow(
-        SubscribesViewState(
-            emptyList()
-        )
-    )
+    private val _state = MutableValue(SubscribesViewState.init())
+    override var state: Value<SubscribesViewState> = _state
 
-    override val state: Value<SubscribesViewState> =
-        _state.asValue(initialValue = _state.value, lifecycle = lifecycle)
 
     init {
         fetchSubscribes()
     }
 
     private fun fetchSubscribes() {
+        _state.value = SubscribesViewState.loading()
         scope.launch {
             val token = settingsRepository.getAccessToken() ?: unauthorizedError()
             runCatching {
                 val items = subscribesRepository.getSubscribes(token)
-                _state.value = state.value.copy(items = items)
+
+                _state.value = SubscribesViewState.loaded(items)
             }.onFailure {
                 it.printStackTrace()
+                _state.value = SubscribesViewState.error()
             }
         }
     }
