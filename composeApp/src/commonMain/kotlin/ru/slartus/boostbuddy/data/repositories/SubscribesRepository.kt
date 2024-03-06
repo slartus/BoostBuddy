@@ -8,7 +8,6 @@ import io.ktor.http.HttpHeaders
 import kotlinx.serialization.Serializable
 import ru.slartus.boostbuddy.utils.Response
 import ru.slartus.boostbuddy.utils.fetchOrError
-import ru.slartus.boostbuddy.utils.toServerException
 
 class SubscribesRepository(
     private val httpClient: HttpClient
@@ -33,7 +32,12 @@ private fun SubscribesResponse.Data.toSubscribeItemOrNull(): SubscribeItem? {
     val blog = Blog(
         title = responseBlog.title ?: return null,
         blogUrl = responseBlog.blogUrl ?: return null,
-        coverUrl = responseBlog.coverUrl ?: return null,
+        owner = responseBlog.owner?.let {
+            Owner(
+                name = it.name ?: return null,
+                avatarUrl = it.avatarUrl ?: return null
+            )
+        } ?: return null,
     )
     return SubscribeItem(blog)
 }
@@ -46,8 +50,15 @@ data class SubscribeItem(
 data class Blog(
     val title: String,
     val blogUrl: String,
-    val coverUrl: String? = null,
+    val owner: Owner,
 )
+
+@Serializable
+data class Owner(
+    val name: String,
+    val avatarUrl: String?,
+)
+
 
 @Serializable
 private data class SubscribesResponse(
