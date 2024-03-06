@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment.Companion.CenterVertically
@@ -18,18 +19,20 @@ import ru.slartus.boostbuddy.components.AuthComponent
 
 @Composable
 fun AuthScreen(component: AuthComponent) {
-    Column(modifier = Modifier.fillMaxSize()) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(16.dp),
-            verticalAlignment = CenterVertically
-        ) {
-            CircularProgressIndicator(modifier = Modifier.size(24.dp))
-            Spacer(modifier = Modifier.padding(8.dp))
-            Text(
-                text = "Ожидание авторизационной куки"
-            )
-        }
+    Scaffold {
+        Column(modifier = Modifier.fillMaxSize()) {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(16.dp),
+                verticalAlignment = CenterVertically
+            ) {
+                CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                Spacer(modifier = Modifier.padding(8.dp))
+                Text(
+                    text = "Ожидание авторизационной куки"
+                )
+            }
 
-        WebView("https://boosty.to", onCookieChange = component::onCookiesChanged)
+            WebView("https://boosty.to", onCookieChange = component::onCookiesChanged)
+        }
     }
 }
