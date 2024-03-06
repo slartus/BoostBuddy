@@ -18,7 +18,9 @@ fun LifecycleOwner.coroutineScope(
     context: CoroutineContext = Dispatchers.Main.immediate,
 ): CoroutineScope =
     CoroutineScope(context = context).also { scope ->
-        lifecycle.doOnDestroy(scope::cancel)
+        lifecycle.doOnDestroy{
+            scope.cancel()
+        }
     }
 
 fun <T : Any> StateFlow<T>.asValue(

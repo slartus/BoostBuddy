@@ -3,7 +3,6 @@ package ru.slartus.boostbuddy.components
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 import ru.slartus.boostbuddy.data.Inject
 import ru.slartus.boostbuddy.data.repositories.SettingsRepository
@@ -27,14 +26,15 @@ data class SubscribesViewState(
         internal fun loaded(items: List<SubscribeItem>): SubscribesViewState =
             SubscribesViewState(ProgressState.Loaded(items))
 
-        internal fun error(): SubscribesViewState = SubscribesViewState(ProgressState.Error)
+        internal fun error(description: String): SubscribesViewState =
+            SubscribesViewState(ProgressState.Error(description))
     }
 
     sealed class ProgressState {
         data object Init : ProgressState()
         data object Loading : ProgressState()
         data class Loaded(val items: List<SubscribeItem>) : ProgressState()
-        data object Error : ProgressState()
+        data class Error(val description: String) : ProgressState()
     }
 }
 
@@ -64,7 +64,7 @@ class SubscribesComponentImpl(
                 _state.value = SubscribesViewState.loaded(items)
             }.onFailure {
                 it.printStackTrace()
-                _state.value = SubscribesViewState.error()
+                _state.value = SubscribesViewState.error(it.toString())
             }
         }
     }

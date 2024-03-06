@@ -26,7 +26,7 @@ fun SubscribesScreen(component: SubscribesComponent) {
             text = "Подписки"
         )
         when (val progressState = state.progressProgressState) {
-            SubscribesViewState.ProgressState.Error -> Text(text = "Ошибка")
+            is SubscribesViewState.ProgressState.Error -> Text(text = progressState.description)
             SubscribesViewState.ProgressState.Init,
             SubscribesViewState.ProgressState.Loading -> Text(text = "Загрузка")
             is SubscribesViewState.ProgressState.Loaded -> {

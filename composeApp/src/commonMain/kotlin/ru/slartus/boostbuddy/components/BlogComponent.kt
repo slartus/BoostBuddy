@@ -26,14 +26,15 @@ data class BlogViewState(
         internal fun loaded(blog: Blog, items: List<Post>): BlogViewState =
             BlogViewState(blog, ProgressState.Loaded(items))
 
-        internal fun error(blog: Blog): BlogViewState = BlogViewState(blog, ProgressState.Error)
+        internal fun error(blog: Blog, description: String): BlogViewState =
+            BlogViewState(blog, ProgressState.Error(description))
     }
 
     sealed class ProgressState {
         data object Init : ProgressState()
         data object Loading : ProgressState()
         data class Loaded(val items: List<Post>) : ProgressState()
-        data object Error : ProgressState()
+        data class Error(val description: String) : ProgressState()
     }
 }
 
@@ -62,7 +63,7 @@ class BlogComponentImpl(
                 _state.value = BlogViewState.loaded(blog, items)
             }.onFailure {
                 it.printStackTrace()
-                _state.value = BlogViewState.error(blog)
+                _state.value = BlogViewState.error(blog, it.toString())
             }
         }
     }

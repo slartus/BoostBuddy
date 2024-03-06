@@ -10,7 +10,6 @@ import ru.slartus.boostbuddy.data.repositories.AuthResponse
 import ru.slartus.boostbuddy.data.repositories.SettingsRepository
 import ru.slartus.boostbuddy.data.repositories.putAccessToken
 
-
 interface AuthComponent {
     fun onCookiesChanged(cookies: String)
 }

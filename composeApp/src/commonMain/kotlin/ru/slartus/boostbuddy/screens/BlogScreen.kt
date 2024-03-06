@@ -28,7 +28,7 @@ fun BlogScreen(component: BlogComponent) {
             text = state.blog.title
         )
         when (val progressState = state.progressProgressState) {
-            BlogViewState.ProgressState.Error -> Text(text = "Ошибка")
+            is BlogViewState.ProgressState.Error -> Text(text = progressState.description)
             BlogViewState.ProgressState.Init,
             BlogViewState.ProgressState.Loading -> Text(text = "Загрузка")
 

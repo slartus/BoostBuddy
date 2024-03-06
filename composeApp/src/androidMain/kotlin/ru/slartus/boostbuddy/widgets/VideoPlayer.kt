@@ -28,10 +28,11 @@ import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
+import ru.slartus.boostbuddy.components.VideoState
 
 @UnstableApi
 @Composable
-actual fun VideoPlayer(url: String, title: String) {
+actual fun VideoPlayer(url: String, title: String, onVideoStateChange: (VideoState) -> Unit) {
     // Get the current context
     val context = LocalContext.current
 
@@ -76,9 +77,11 @@ actual fun VideoPlayer(url: String, title: String) {
 
                     override fun onPlaybackStateChanged(playbackState: Int) {
                         super.onPlaybackStateChanged(playbackState)
-                        // Callback when the video playback state changes to STATE_ENDED
-                        if (playbackState == ExoPlayer.STATE_ENDED) {
-                            // isVideoEnded.invoke(true)
+                        when (playbackState) {
+                            ExoPlayer.STATE_IDLE -> onVideoStateChange(VideoState.Idle)
+                            ExoPlayer.STATE_BUFFERING -> onVideoStateChange(VideoState.Buffering)
+                            ExoPlayer.STATE_READY -> onVideoStateChange(VideoState.Ready)
+                            ExoPlayer.STATE_ENDED -> onVideoStateChange(VideoState.Ended)
                         }
                     }
                 })
@@ -126,27 +129,24 @@ actual fun VideoPlayer(url: String, title: String) {
             }
         })
 
-        // Column Composable to contain the video player
-        Column(modifier = Modifier.background(Color.Black)) {
-            AndroidView(
-                modifier = Modifier.fillMaxSize(),
-                factory = {
-                    // AndroidView to embed a PlayerView into Compose
-                    PlayerView(context).apply {
-                        player = exoPlayer
-                        layoutParams = FrameLayout.LayoutParams(
-                            ViewGroup.LayoutParams.MATCH_PARENT,
-                            ViewGroup.LayoutParams.MATCH_PARENT
-                        )
-                        // Set resize mode to fill the available space
-                        resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FIXED_WIDTH
-                        // Hide unnecessary player controls
-                        setShowNextButton(false)
-                        setShowPreviousButton(false)
-                        setShowFastForwardButton(false)
-                        setShowRewindButton(false)
-                    }
-                })
-        }
+        AndroidView(
+            modifier = Modifier.fillMaxSize(),
+            factory = {
+                // AndroidView to embed a PlayerView into Compose
+                PlayerView(context).apply {
+                    player = exoPlayer
+                    layoutParams = FrameLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.MATCH_PARENT
+                    )
+                    // Set resize mode to fill the available space
+                    resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FIXED_WIDTH
+                    // Hide unnecessary player controls
+                    setShowNextButton(false)
+                    setShowPreviousButton(false)
+                    setShowFastForwardButton(false)
+                    setShowRewindButton(false)
+                }
+            })
     }
 }

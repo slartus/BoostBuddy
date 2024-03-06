@@ -2,8 +2,9 @@ package ru.slartus.boostbuddy.widgets
 
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import ru.slartus.boostbuddy.components.VideoState
 
 @Composable
-actual fun VideoPlayer(url: String, title: String){
+actual fun VideoPlayer(url: String, title: String, onVideoStateChange: (VideoState) -> Unit) {
     Text(text = "Not implemented")
 }
