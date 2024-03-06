@@ -7,7 +7,7 @@
         android:name=".AndroidApp"
         android:icon="@drawable/ic_launcher"
         android:label="BoostBuddy"
-        android:theme="@style/Theme.AppCompat.DayNight.NoActionBar.FullScreen">
+        android:theme="@style/Theme.AppCompat.DayNight.NoActionBar">
         <activity
             android:name=".AppActivity"
             android:configChanges="orientation|screenSize|screenLayout|keyboardHidden"
