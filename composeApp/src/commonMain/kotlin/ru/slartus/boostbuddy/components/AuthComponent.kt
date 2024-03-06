@@ -1,6 +1,7 @@
 package ru.slartus.boostbuddy.components
 
 import com.arkivanov.decompose.ComponentContext
+import com.arkivanov.essenty.backhandler.BackCallback
 import io.ktor.http.decodeURLQueryComponent
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
@@ -8,7 +9,6 @@ import kotlinx.serialization.json.Json
 import ru.slartus.boostbuddy.data.Inject
 import ru.slartus.boostbuddy.data.repositories.AuthResponse
 import ru.slartus.boostbuddy.data.repositories.SettingsRepository
-import ru.slartus.boostbuddy.data.repositories.putAccessToken
 
 interface AuthComponent {
     fun onCookiesChanged(cookies: String)
@@ -23,6 +23,23 @@ class AuthComponentImpl(
     private var checkCookiesJob: Job? = null
     private val settingsRepository by Inject.lazy<SettingsRepository>()
 
+    init {
+        clearToken()
+        backHandler.register(object : BackCallback() {
+            override fun onBack() {
+                scope.launch {
+
+                }
+            }
+        })
+    }
+
+    private fun clearToken() {
+        scope.launch {
+            settingsRepository.putAccessToken(null)
+        }
+    }
+
     override fun onCookiesChanged(cookies: String) {
         checkCookiesJob?.cancel()
         checkCookiesJob = scope.launch {
@@ -31,7 +48,7 @@ class AuthComponentImpl(
                     parseCookies(cookies).entries.firstOrNull { it.key == "auth" } ?: return@launch
                 val json = authCookie.value.decodeURLQueryComponent()
                 val auth = Json.decodeFromString<AuthResponse>(json)
-                if (auth.accessToken != null) {
+                if (auth.accessToken != null && auth.accessToken != settingsRepository.getAccessToken()) {
                     settingsRepository.putAccessToken(auth.accessToken)
                     onLogined()
                 }

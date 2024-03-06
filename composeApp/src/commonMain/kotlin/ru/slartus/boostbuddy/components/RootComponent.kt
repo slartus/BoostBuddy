@@ -6,6 +6,7 @@ import com.arkivanov.decompose.router.stack.StackNavigation
 import com.arkivanov.decompose.router.stack.childStack
 import com.arkivanov.decompose.router.stack.pop
 import com.arkivanov.decompose.router.stack.popTo
+import com.arkivanov.decompose.router.stack.popWhile
 import com.arkivanov.decompose.router.stack.push
 import com.arkivanov.decompose.value.Value
 import kotlinx.serialization.Serializable
@@ -37,10 +38,14 @@ class RootComponentImpl(
         childStack(
             source = navigation,
             serializer = Config.serializer(),
-            initialConfiguration = Config.Auth,
+            initialConfiguration = Config.Subscribes,
             handleBackButton = true,
             childFactory = ::child,
         )
+
+    fun showAuthorizeComponent() {
+        navigation.push(Config.Auth)
+    }
 
     private fun child(config: Config, componentContext: ComponentContext): RootComponent.Child =
         when (config) {
@@ -70,9 +75,7 @@ class RootComponentImpl(
         AuthComponentImpl(
             componentContext = componentContext,
             onLogined = {
-                navigation.pop {
-                    navigation.push(Config.Subscribes)
-                }
+                navigation.popWhile { it is Config.Auth }
             },
         )
 

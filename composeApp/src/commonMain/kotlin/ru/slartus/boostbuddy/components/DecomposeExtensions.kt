@@ -8,6 +8,7 @@ import com.arkivanov.essenty.lifecycle.doOnDestroy
 import com.arkivanov.essenty.lifecycle.subscribe
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
@@ -15,10 +16,10 @@ import kotlinx.coroutines.launch
 import kotlin.coroutines.CoroutineContext
 
 fun LifecycleOwner.coroutineScope(
-    context: CoroutineContext = Dispatchers.Main.immediate,
+    context: CoroutineContext = Dispatchers.Main.immediate + SupervisorJob(),
 ): CoroutineScope =
     CoroutineScope(context = context).also { scope ->
-        lifecycle.doOnDestroy{
+        lifecycle.doOnDestroy {
             scope.cancel()
         }
     }
@@ -42,7 +43,9 @@ fun <T : Any> Flow<T>.asValue(
     var scope: CoroutineScope? = null
 
     lifecycle.subscribe(
-        onStart = { scope = CoroutineScope(context).apply { launch { collect { value.value = it } } } },
+        onStart = {
+            scope = CoroutineScope(context).apply { launch { collect { value.value = it } } }
+        },
         onStop = {
             scope?.cancel()
             scope = null

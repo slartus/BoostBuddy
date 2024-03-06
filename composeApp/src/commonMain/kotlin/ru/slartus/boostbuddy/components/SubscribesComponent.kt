@@ -8,7 +8,8 @@ import ru.slartus.boostbuddy.data.Inject
 import ru.slartus.boostbuddy.data.repositories.SettingsRepository
 import ru.slartus.boostbuddy.data.repositories.SubscribeItem
 import ru.slartus.boostbuddy.data.repositories.SubscribesRepository
-import ru.slartus.boostbuddy.data.repositories.getAccessToken
+import ru.slartus.boostbuddy.utils.Response
+import ru.slartus.boostbuddy.utils.messageOrThrow
 import ru.slartus.boostbuddy.utils.unauthorizedError
 
 
@@ -49,22 +50,35 @@ class SubscribesComponentImpl(
     private val _state = MutableValue(SubscribesViewState.init())
     override var state: Value<SubscribesViewState> = _state
 
-
     init {
-        fetchSubscribes()
+        checkToken()
+        subscribeToken()
     }
 
-    private fun fetchSubscribes() {
+    private fun checkToken() {
+        scope.launch {
+            if (settingsRepository.getAccessToken() == null)
+                unauthorizedError()
+        }
+    }
+
+    private fun subscribeToken() {
+        scope.launch {
+            settingsRepository.tokenFlow.collect { token ->
+                if (token != null)
+                    fetchSubscribes(token)
+            }
+        }
+    }
+
+    private fun fetchSubscribes(token: String) {
         _state.value = SubscribesViewState.loading()
         scope.launch {
-            val token = settingsRepository.getAccessToken() ?: unauthorizedError()
-            runCatching {
-                val items = subscribesRepository.getSubscribes(token)
+            when (val response = subscribesRepository.getSubscribes(token)) {
+                is Response.Error -> _state.value =
+                    SubscribesViewState.error(response.exception.messageOrThrow())
 
-                _state.value = SubscribesViewState.loaded(items)
-            }.onFailure {
-                it.printStackTrace()
-                _state.value = SubscribesViewState.error(it.toString())
+                is Response.Success -> _state.value = SubscribesViewState.loaded(response.data)
             }
         }
     }

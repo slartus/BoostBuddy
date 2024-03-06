@@ -12,6 +12,7 @@ import ru.slartus.boostbuddy.data.repositories.BlogRepository
 import ru.slartus.boostbuddy.data.repositories.SettingsRepository
 import ru.slartus.boostbuddy.data.repositories.SubscribesRepository
 import ru.slartus.boostbuddy.data.settings.SettingsFactory
+import ru.slartus.boostbuddy.utils.GlobalExceptionHandlersChain
 import ru.slartus.boostbuddy.utils.PlatformConfiguration
 
 object Inject {
@@ -31,6 +32,7 @@ object Inject {
 
 fun createDependenciesTree(platformConfiguration: PlatformConfiguration) {
     Inject.createDependenciesTree {
+        bindSingleton { GlobalExceptionHandlersChain() }
         bindSingleton { platformConfiguration }
         bindSingleton { buildHttpClient(true) }
         bindSingleton { AuthRepository(httpClient = instance()) }

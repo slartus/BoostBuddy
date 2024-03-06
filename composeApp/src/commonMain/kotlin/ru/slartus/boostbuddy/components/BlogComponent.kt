@@ -9,7 +9,6 @@ import ru.slartus.boostbuddy.data.repositories.Blog
 import ru.slartus.boostbuddy.data.repositories.BlogRepository
 import ru.slartus.boostbuddy.data.repositories.Post
 import ru.slartus.boostbuddy.data.repositories.SettingsRepository
-import ru.slartus.boostbuddy.data.repositories.getAccessToken
 
 interface BlogComponent {
     val state: Value<BlogViewState>
