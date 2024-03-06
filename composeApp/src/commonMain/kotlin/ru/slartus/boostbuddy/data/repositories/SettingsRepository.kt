@@ -16,3 +16,7 @@ class SettingsRepository(
         settings.putString(key, value)
     }
 }
+
+suspend fun SettingsRepository.getAccessToken(): String? = getString("access_token")
+
+suspend fun SettingsRepository.putAccessToken(value: String) = putString("access_token", value)

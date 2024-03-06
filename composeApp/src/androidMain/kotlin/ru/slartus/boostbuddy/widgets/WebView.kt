@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.viewinterop.AndroidView
+import ru.slartus.boostbuddy.data.ktor.USER_AGENT
 
 @Composable
 actual fun WebView(url: String, onCookieChange: (String) -> Unit) {
@@ -20,8 +21,7 @@ actual fun WebView(url: String, onCookieChange: (String) -> Unit) {
             WebView(context).apply {
                 settings.apply {
                     javaScriptEnabled = true
-                    userAgentString =
-                        "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Mobile Safari/537.36"
+                    userAgentString = USER_AGENT
                 }
                 webViewClient = object : WebViewClient() {
                     override fun onReceivedHttpAuthRequest(

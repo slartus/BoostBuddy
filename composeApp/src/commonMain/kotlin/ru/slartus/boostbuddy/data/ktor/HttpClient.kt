@@ -2,6 +2,13 @@ package ru.slartus.boostbuddy.data.ktor
 
 import io.ktor.client.HttpClient
 import io.ktor.client.plugins.HttpTimeout
+import io.ktor.client.plugins.UserAgent
+import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
+import io.ktor.serialization.kotlinx.json.json
+import kotlinx.serialization.json.Json
+
+const val USER_AGENT =
+    "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Mobile Safari/537.36"
 
 fun buildHttpClient(
     isDebug: Boolean,
@@ -17,4 +24,14 @@ fun buildHttpClient(
         socketTimeoutMillis = 30000
     }
 
+    install(UserAgent) {
+        agent = USER_AGENT
+    }
+
+    install(ContentNegotiation) {
+        json(Json {
+            ignoreUnknownKeys = true
+            isLenient = true
+        })
+    }
 }

@@ -8,6 +8,7 @@ import kotlinx.serialization.json.Json
 import ru.slartus.boostbuddy.data.Inject
 import ru.slartus.boostbuddy.data.repositories.AuthResponse
 import ru.slartus.boostbuddy.data.repositories.SettingsRepository
+import ru.slartus.boostbuddy.data.repositories.putAccessToken
 
 
 interface AuthComponent {
@@ -33,7 +34,7 @@ class AuthComponentImpl(
                 val json = authCookie.value.decodeURLQueryComponent()
                 val auth = Json.decodeFromString<AuthResponse>(json)
                 if (auth.accessToken != null && auth.refreshToken != null) {
-                    settingsRepository.putString("accessToken", auth.accessToken)
+                    settingsRepository.putAccessToken(auth.accessToken)
                     settingsRepository.putString("refreshToken", auth.refreshToken)
                     onLogined()
                 }
