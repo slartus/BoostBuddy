@@ -1,0 +1,23 @@
+package ru.slartus.boostbuddy.screens
+
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import com.arkivanov.decompose.extensions.compose.jetbrains.stack.Children
+import com.arkivanov.decompose.extensions.compose.jetbrains.stack.animation.fade
+import com.arkivanov.decompose.extensions.compose.jetbrains.stack.animation.stackAnimation
+import ru.slartus.boostbuddy.components.RootComponent
+
+
+@Composable
+fun RootScreen(component: RootComponent, modifier: Modifier = Modifier) {
+    Children(
+        stack = component.stack,
+        modifier = modifier,
+        animation = stackAnimation(fade()),
+    ) {
+        when (val child = it.instance) {
+            is RootComponent.Child.AuthChild -> AuthScreen(component = child.component)
+            is RootComponent.Child.SubscribesChild -> SubscribesScreen(component = child.component)
+        }
+    }
+}
