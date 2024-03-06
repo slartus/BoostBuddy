@@ -53,6 +53,7 @@ kotlin {
             implementation(libs.multiplatformSettings)
             implementation(libs.kodein.core)
             implementation(libs.kodein.conf)
+            implementation(libs.collections.immutable)
         }
 
         commonTest.dependencies {

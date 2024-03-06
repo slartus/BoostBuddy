@@ -3,6 +3,8 @@ package ru.slartus.boostbuddy.components
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
+import kotlinx.collections.immutable.ImmutableList
+import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.launch
 import ru.slartus.boostbuddy.data.Inject
 import ru.slartus.boostbuddy.data.repositories.SettingsRepository
@@ -21,20 +23,10 @@ interface SubscribesComponent {
 data class SubscribesViewState(
     val progressProgressState: ProgressState,
 ) {
-    companion object {
-        internal fun init(): SubscribesViewState = SubscribesViewState(ProgressState.Init)
-        internal fun loading(): SubscribesViewState = SubscribesViewState(ProgressState.Loading)
-        internal fun loaded(items: List<SubscribeItem>): SubscribesViewState =
-            SubscribesViewState(ProgressState.Loaded(items))
-
-        internal fun error(description: String): SubscribesViewState =
-            SubscribesViewState(ProgressState.Error(description))
-    }
-
     sealed class ProgressState {
         data object Init : ProgressState()
         data object Loading : ProgressState()
-        data class Loaded(val items: List<SubscribeItem>) : ProgressState()
+        data class Loaded(val items: ImmutableList<SubscribeItem>) : ProgressState()
         data class Error(val description: String) : ProgressState()
     }
 }
@@ -47,7 +39,7 @@ class SubscribesComponentImpl(
     private val settingsRepository by Inject.lazy<SettingsRepository>()
     private val subscribesRepository by Inject.lazy<SubscribesRepository>()
 
-    private val _state = MutableValue(SubscribesViewState.init())
+    private val _state = MutableValue(SubscribesViewState(SubscribesViewState.ProgressState.Init))
     override var state: Value<SubscribesViewState> = _state
 
     init {
@@ -72,13 +64,23 @@ class SubscribesComponentImpl(
     }
 
     private fun fetchSubscribes(token: String) {
-        _state.value = SubscribesViewState.loading()
+        _state.value =
+            _state.value.copy(progressProgressState = SubscribesViewState.ProgressState.Loading)
         scope.launch {
             when (val response = subscribesRepository.getSubscribes(token)) {
                 is Response.Error -> _state.value =
-                    SubscribesViewState.error(response.exception.messageOrThrow())
+                    _state.value.copy(
+                        progressProgressState = SubscribesViewState.ProgressState.Error(
+                            response.exception.messageOrThrow()
+                        )
+                    )
 
-                is Response.Success -> _state.value = SubscribesViewState.loaded(response.data)
+                is Response.Success -> _state.value =
+                    _state.value.copy(
+                        progressProgressState = SubscribesViewState.ProgressState.Loaded(
+                            response.data.toImmutableList()
+                        )
+                    )
             }
         }
     }

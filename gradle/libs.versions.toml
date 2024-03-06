@@ -18,6 +18,7 @@ multiplatformSettings = "1.1.1"
 sqlDelight = "2.0.1"
 kodein = "7.20.2" # https://github.com/kosi-libs/Kodein
 exoplayer = "1.2.1" # https://github.com/androidx/media
+collections-immutable = "0.3.7" # https://github.com/Kotlin/kotlinx.collections.immutable/releases
 
 [libraries]
 
@@ -27,6 +28,9 @@ compose-uitooling = { module = "androidx.compose.ui:ui-tooling", version.ref = "
 decompose = { module = "com.arkivanov.decompose:decompose", version.ref = "decompose" }
 decompose-compose = { module = "com.arkivanov.decompose:extensions-compose-jetbrains", version.ref = "decompose" }
 composeImageLoader = { module = "io.github.qdsfdhvh:image-loader", version.ref = "composeImageLoader" }
+
+
+collections-immutable = { module = "org.jetbrains.kotlinx:kotlinx-collections-immutable", version.ref = "collections-immutable" }
 
 kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlinx-coroutines" }
 kotlinx-coroutines-android = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-android", version.ref = "kotlinx-coroutines" }
