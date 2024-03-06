@@ -35,7 +35,7 @@ private fun SubscribesResponse.Data.toSubscribeItemOrNull(): SubscribeItem? {
         owner = responseBlog.owner?.let {
             Owner(
                 name = it.name ?: return null,
-                avatarUrl = it.avatarUrl ?: return null
+                avatarUrl = it.avatarUrl
             )
         } ?: return null,
     )

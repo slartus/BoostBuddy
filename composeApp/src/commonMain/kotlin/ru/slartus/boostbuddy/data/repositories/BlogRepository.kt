@@ -34,7 +34,14 @@ data class Post(
     val createdAt: Long,
     val intId: Long,
     val title: String,
-    val data: List<PostData>
+    val data: List<PostData>,
+    val user: PostUser,
+    val previewUrl: String?
+)
+
+data class PostUser(
+    val name: String,
+    val avatarUrl: String?
 )
 
 @Serializable
@@ -57,7 +64,14 @@ private fun PostResponse.Post.mapToPostOrNull(): Post? {
         title = title ?: return null,
         data = data
             ?.filter { it.type == "ok_video" }
-            ?.mapNotNull { it.mapToPostDataOrNull() } ?: emptyList()
+            ?.mapNotNull { it.mapToPostDataOrNull() } ?: emptyList(),
+        user = user?.let {
+            PostUser(
+                name = it.name ?: return null,
+                avatarUrl = it.avatarUrl
+            )
+        } ?: return null,
+        previewUrl = teaser?.find { it.type == "image" }?.url
     )
     if (post.data.isEmpty()) return null
     return post
@@ -84,7 +98,16 @@ private data class PostResponse(
         val title: String? = null,
         val createdAt: Long? = null,
         @SerialName("int_id") val intId: Long? = null,
-        val data: List<PostData>? = null
+        val data: List<PostData>? = null,
+        val user: PostUser? = null,
+        val teaser: List<Teaser>? = null
+    )
+
+
+    @Serializable
+    data class Teaser(
+        val url: String? = null,
+        val type: String? = null,//image
     )
 
     @Serializable
@@ -93,6 +116,12 @@ private data class PostResponse(
         val type: String? = null,//image, text, link, ok_video
         val url: String? = null,
         val playerUrls: List<PlayerUrl>? = null
+    )
+
+    @Serializable
+    data class PostUser(
+        val name: String? = null,
+        val avatarUrl: String? = null
     )
 
     @Serializable
