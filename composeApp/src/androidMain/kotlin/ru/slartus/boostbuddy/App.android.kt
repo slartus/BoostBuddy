@@ -27,7 +27,7 @@ class AndroidApp : Application() {
     }
 }
 
-class AppActivity : ComponentActivity()
+class AppActivity : BaseComponentActivity()
 
 class TvAppActivity : BaseComponentActivity()
 
