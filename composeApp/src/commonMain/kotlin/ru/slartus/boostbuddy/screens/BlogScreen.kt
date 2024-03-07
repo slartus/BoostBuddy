@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -117,32 +118,17 @@ private fun PostView(post: Post, onClick: () -> Unit) {
             .background(MaterialTheme.colorScheme.primaryContainer)
             .clickable { onClick() }.padding(16.dp)
     ) {
-        Row {
-            if (post.user.avatarUrl != null) {
-                Image(
-                    modifier = Modifier.size(48.dp),
-                    painter = rememberImagePainter(post.user.avatarUrl),
-                    contentDescription = "image",
-                )
-                Spacer(modifier = Modifier.size(8.dp))
-            }
-            Text(
-                modifier = Modifier.fillMaxWidth(),
-                text = post.user.name,
-                color = MaterialTheme.colorScheme.onPrimaryContainer,
-                style = MaterialTheme.typography.titleSmall
-            )
-        }
-        Spacer(modifier = Modifier.size(16.dp))
         Text(
             modifier = Modifier.fillMaxWidth(),
             text = post.title,
-            color = MaterialTheme.colorScheme.secondary,
+            color = MaterialTheme.colorScheme.primary,
             style = MaterialTheme.typography.titleMedium
         )
+        Spacer(modifier = Modifier.size(16.dp))
+
         if (post.previewUrl != null) {
             Image(
-                modifier = Modifier.fillMaxWidth().height(120.dp),
+                modifier = Modifier.fillMaxWidth().wrapContentHeight(),
                 painter = rememberImagePainter(post.previewUrl),
                 contentDescription = "preview",
             )

@@ -73,21 +73,22 @@ data class PlayerUrl(
 )
 
 private fun PostResponse.Post.mapToPostOrNull(): Post? {
+    val videoItems = data
+        ?.filter { it.type == "ok_video" } ?: emptyList()
+
     val post = Post(
         id = id ?: return null,
         createdAt = createdAt ?: return null,
         intId = intId ?: return null,
         title = title ?: return null,
-        data = data
-            ?.filter { it.type == "ok_video" }
-            ?.mapNotNull { it.mapToPostDataOrNull() } ?: emptyList(),
+        data = videoItems.mapNotNull { it.mapToPostDataOrNull() },
         user = user?.let {
             PostUser(
                 name = it.name ?: return null,
                 avatarUrl = it.avatarUrl
             )
         } ?: return null,
-        previewUrl = teaser?.find { it.type == "image" }?.url
+        previewUrl = videoItems.firstOrNull { !it.defaultPreview.isNullOrEmpty() }?.defaultPreview
     )
     if (post.data.isEmpty()) return null
     return post
@@ -131,6 +132,7 @@ private data class PostResponse(
         val title: String? = null,
         val type: String? = null,//image, text, link, ok_video
         val url: String? = null,
+        val defaultPreview: String? = null,
         val playerUrls: List<PlayerUrl>? = null
     )
 
