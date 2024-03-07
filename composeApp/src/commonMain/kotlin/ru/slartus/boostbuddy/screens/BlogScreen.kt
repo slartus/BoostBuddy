@@ -157,7 +157,7 @@ private fun PostsView(
             PostView(item, onClick = { onItemClick(item) })
         }
     }
-    LaunchedEffect(endOfListReached.value) {
+    LaunchedEffect(endOfListReached.value, items) {
         if (endOfListReached.value && canLoadMore) {
             onScrolledToEnd()
         }
