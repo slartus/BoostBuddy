@@ -34,9 +34,7 @@ class VideoComponentImpl(
             Idle -> viewState = viewState.copy(loading = true)
             Buffering -> viewState = viewState.copy(loading = true)
             Ready -> viewState = viewState.copy(loading = false)
-            Ended -> {
-
-            }
+            Ended -> Unit
         }
     }
 }
