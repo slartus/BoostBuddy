@@ -14,20 +14,36 @@ import ru.slartus.boostbuddy.utils.fetchOrError
 class BlogRepository(
     private val httpClient: HttpClient,
 ) {
-    suspend fun getData(accessToken: String, url: String): Response<List<Post>> = fetchOrError {
-        val response: PostResponse =
-            httpClient.get("https://api.boosty.to/v1/blog/$url/post/") {
-                header(HttpHeaders.Authorization, "Bearer $accessToken")
-                parameter("limit", "25")
-                //  parameter("offset", "0")
-                parameter("comments_limit", "2")
-                parameter("reply_limit", "1")
-            }.body()
+    suspend fun getData(accessToken: String, url: String, offset: Offset?): Response<Posts> =
+        fetchOrError {
+            val response: PostResponse =
+                httpClient.get("https://api.boosty.to/v1/blog/$url/post/") {
+                    header(HttpHeaders.Authorization, "Bearer $accessToken")
+                    parameter("limit", "25")
+                    offset?.let {
+                        parameter("offset", "${offset.createdAt}:${offset.postId}")
+                    }
+                    //  parameter("offset", "0")
+                    parameter("comments_limit", "0")
+                    parameter("reply_limit", "0")
+                }.body()
 
-        response.data?.mapNotNull { it.mapToPostOrNull() } ?: emptyList()
-    }
-
+            Posts(
+                items = response.data?.mapNotNull { it.mapToPostOrNull() } ?: emptyList(),
+                isLast = response.extra?.isLast == true
+            )
+        }
 }
+
+data class Offset(
+    val postId: Long,
+    val createdAt: Long
+)
+
+data class Posts(
+    val items: List<Post>,
+    val isLast: Boolean
+)
 
 data class Post(
     val id: String,

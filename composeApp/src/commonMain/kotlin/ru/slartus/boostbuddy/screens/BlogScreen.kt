@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -25,15 +26,18 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
 import com.seiko.imageloader.rememberImagePainter
+import kotlinx.collections.immutable.ImmutableList
 import ru.slartus.boostbuddy.components.BlogComponent
 import ru.slartus.boostbuddy.components.BlogViewState
-import ru.slartus.boostbuddy.components.SubscribesViewState
-import ru.slartus.boostbuddy.data.repositories.Blog
 import ru.slartus.boostbuddy.data.repositories.Post
+import ru.slartus.boostbuddy.utils.isEndOfListReached
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -57,32 +61,61 @@ fun BlogScreen(component: BlogComponent) {
             )
         },
     ) { innerPadding ->
-        Box(modifier = Modifier.padding(innerPadding)) {
+        Column(modifier = Modifier.padding(innerPadding)) {
             when (val progressState = state.progressProgressState) {
                 is BlogViewState.ProgressState.Error -> Text(text = progressState.description)
                 BlogViewState.ProgressState.Init,
                 BlogViewState.ProgressState.Loading -> Text(text = "Загрузка")
 
-                is BlogViewState.ProgressState.Loaded -> {
-                    LazyColumn(
-                        modifier = Modifier.fillMaxSize(),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        items(progressState.items) { item ->
-                            PostView(item, onClick = { component.onItemClicked(item) })
-                        }
-                    }
-                }
+                is BlogViewState.ProgressState.Loaded -> Unit
             }
+            PostsView(
+                items = state.items,
+                canLoadMore = state.hasMore,
+                onItemClick = remember { { component.onItemClicked(it) } },
+                onScrolledToEnd = remember { { component.onScrolledToEnd() } }
+            )
+        }
+    }
+}
+
+@Composable
+private fun PostsView(
+    items: ImmutableList<Post>,
+    canLoadMore: Boolean,
+    onItemClick: (Post) -> Unit,
+    onScrolledToEnd: () -> Unit
+) {
+    val listScrollState = rememberLazyListState()
+
+    val endOfListReached = remember {
+        derivedStateOf {
+            listScrollState.isEndOfListReached(visibleThreshold = 3)
+        }
+    }
+
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        state = listScrollState,
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        items(items, key = { it.intId }) { item ->
+            PostView(item, onClick = { onItemClick(item) })
+        }
+    }
+    LaunchedEffect(endOfListReached.value) {
+        if (endOfListReached.value && canLoadMore) {
+            onScrolledToEnd()
         }
     }
 }
 
 @Composable
 private fun PostView(post: Post, onClick: () -> Unit) {
-    Column(modifier = Modifier
-        .background(MaterialTheme.colorScheme.primaryContainer)
-        .clickable { onClick() }.padding(16.dp)
+    Column(
+        modifier = Modifier
+            .background(MaterialTheme.colorScheme.primaryContainer)
+            .clickable { onClick() }.padding(16.dp)
     ) {
         Row {
             if (post.user.avatarUrl != null) {

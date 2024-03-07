@@ -3,30 +3,36 @@ package ru.slartus.boostbuddy.components
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.value.Value
 import kotlinx.collections.immutable.ImmutableList
+import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.launch
 import ru.slartus.boostbuddy.data.Inject
 import ru.slartus.boostbuddy.data.repositories.Blog
 import ru.slartus.boostbuddy.data.repositories.BlogRepository
+import ru.slartus.boostbuddy.data.repositories.Offset
 import ru.slartus.boostbuddy.data.repositories.Post
 import ru.slartus.boostbuddy.data.repositories.SettingsRepository
 import ru.slartus.boostbuddy.utils.Response
 import ru.slartus.boostbuddy.utils.messageOrThrow
+import ru.slartus.boostbuddy.utils.unauthorizedError
 
 interface BlogComponent {
     val viewStates: Value<BlogViewState>
     fun onItemClicked(post: Post)
     fun onBackClicked()
+    fun onScrolledToEnd()
 }
 
 data class BlogViewState(
     val blog: Blog,
-    val progressProgressState: ProgressState,
+    val items: ImmutableList<Post> = persistentListOf(),
+    val hasMore: Boolean = true,
+    val progressProgressState: ProgressState = ProgressState.Init,
 ) {
     sealed class ProgressState {
         data object Init : ProgressState()
         data object Loading : ProgressState()
-        data class Loaded(val items: ImmutableList<Post>) : ProgressState()
+        data object Loaded : ProgressState()
         data class Error(val description: String) : ProgressState()
     }
 }
@@ -36,7 +42,10 @@ class BlogComponentImpl(
     private val blog: Blog,
     private val onItemSelected: (post: Post) -> Unit,
     private val onBackClicked: () -> Unit,
-) : BaseComponent<BlogViewState>(componentContext, BlogViewState(blog, BlogViewState.ProgressState.Init)), BlogComponent {
+) : BaseComponent<BlogViewState>(
+    componentContext,
+    BlogViewState(blog)
+), BlogComponent {
     private val settingsRepository by Inject.lazy<SettingsRepository>()
     private val blogRepository by Inject.lazy<BlogRepository>()
 
@@ -53,11 +62,15 @@ class BlogComponentImpl(
         }
     }
 
-    private fun fetchBlog(token: String) {
+    private fun fetchBlog(token: String, offset: Offset? = null) {
         viewState =
             viewState.copy(progressProgressState = BlogViewState.ProgressState.Loading)
         scope.launch {
-            when (val response = blogRepository.getData(accessToken = token, url = blog.blogUrl)) {
+            when (val response = blogRepository.getData(
+                accessToken = token,
+                url = blog.blogUrl,
+                offset = offset
+            )) {
                 is Response.Error -> viewState =
                     viewState.copy(
                         progressProgressState = BlogViewState.ProgressState.Error(
@@ -65,12 +78,16 @@ class BlogComponentImpl(
                         )
                     )
 
-                is Response.Success -> viewState =
-                    viewState.copy(
-                        progressProgressState = BlogViewState.ProgressState.Loaded(
-                            response.data.toImmutableList()
+                is Response.Success -> {
+                    val newItems = (viewState.items + response.data.items)
+                        .distinctBy { it.intId }.toImmutableList()
+                    viewState =
+                        viewState.copy(
+                            items = newItems,
+                            hasMore = !response.data.isLast,
+                            progressProgressState = BlogViewState.ProgressState.Loaded
                         )
-                    )
+                }
             }
         }
     }
@@ -81,5 +98,13 @@ class BlogComponentImpl(
 
     override fun onBackClicked() {
         onBackClicked.invoke()
+    }
+
+    override fun onScrolledToEnd() {
+        scope.launch {
+            val token = settingsRepository.getAccessToken() ?: unauthorizedError()
+            val offset = viewState.items.last().let { Offset(it.intId, it.createdAt) }
+            fetchBlog(token, offset)
+        }
     }
 }
