@@ -18,6 +18,7 @@ import ru.slartus.boostbuddy.utils.unauthorizedError
 interface SubscribesComponent {
     val state: Value<SubscribesViewState>
     fun onItemClicked(item: SubscribeItem)
+    fun onBackClicked()
 }
 
 data class SubscribesViewState(
@@ -34,6 +35,7 @@ data class SubscribesViewState(
 class SubscribesComponentImpl(
     componentContext: ComponentContext,
     private val onItemSelected: (item: SubscribeItem) -> Unit,
+    private val onBackClicked: () -> Unit,
 ) : SubscribesComponent, ComponentContext by componentContext {
     private val scope = coroutineScope()
     private val settingsRepository by Inject.lazy<SettingsRepository>()
@@ -87,5 +89,9 @@ class SubscribesComponentImpl(
 
     override fun onItemClicked(item: SubscribeItem) {
         onItemSelected(item)
+    }
+
+    override fun onBackClicked() {
+        onBackClicked.invoke()
     }
 }

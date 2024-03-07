@@ -1,5 +1,7 @@
 package ru.slartus.boostbuddy.screens
 
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.arkivanov.decompose.extensions.compose.jetbrains.stack.Children
@@ -10,16 +12,18 @@ import ru.slartus.boostbuddy.components.RootComponent
 
 @Composable
 fun RootScreen(component: RootComponent, modifier: Modifier = Modifier) {
-    Children(
-        stack = component.stack,
-        modifier = modifier,
-        animation = stackAnimation(fade()),
-    ) {
-        when (val child = it.instance) {
-            is RootComponent.Child.AuthChild -> AuthScreen(child.component)
-            is RootComponent.Child.SubscribesChild -> SubscribesScreen(child.component)
-            is RootComponent.Child.BlogChild -> BlogScreen(child.component)
-            is RootComponent.Child.VideoChild -> VideoScreen(child.component)
+    MaterialTheme {
+        Children(
+            stack = component.stack,
+            modifier = modifier,
+            animation = stackAnimation(fade()),
+        ) {
+            when (val child = it.instance) {
+                is RootComponent.Child.AuthChild -> AuthScreen(child.component)
+                is RootComponent.Child.SubscribesChild -> SubscribesScreen(child.component)
+                is RootComponent.Child.BlogChild -> BlogScreen(child.component)
+                is RootComponent.Child.VideoChild -> VideoScreen(child.component)
+            }
         }
     }
 }

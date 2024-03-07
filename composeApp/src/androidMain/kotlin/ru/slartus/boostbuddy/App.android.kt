@@ -49,11 +49,7 @@ class AppActivity : ComponentActivity() {
             }
         }
         setContent {
-            MaterialTheme {
-                Surface {
-                    RootScreen(component = root, modifier = Modifier.fillMaxSize())
-                }
-            }
+            RootScreen(component = root, modifier = Modifier.fillMaxSize())
         }
     }
 }

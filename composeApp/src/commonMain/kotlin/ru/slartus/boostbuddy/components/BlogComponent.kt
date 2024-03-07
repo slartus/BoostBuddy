@@ -17,6 +17,7 @@ import ru.slartus.boostbuddy.utils.messageOrThrow
 interface BlogComponent {
     val state: Value<BlogViewState>
     fun onItemClicked(post: Post)
+    fun onBackClicked()
 }
 
 data class BlogViewState(
@@ -34,7 +35,8 @@ data class BlogViewState(
 class BlogComponentImpl(
     componentContext: ComponentContext,
     private val blog: Blog,
-    val onItemSelected: (post: Post) -> Unit
+    private val onItemSelected: (post: Post) -> Unit,
+    private val onBackClicked: () -> Unit,
 ) : BlogComponent, ComponentContext by componentContext {
     private val scope = coroutineScope()
     private val settingsRepository by Inject.lazy<SettingsRepository>()
@@ -80,5 +82,9 @@ class BlogComponentImpl(
 
     override fun onItemClicked(post: Post) {
         onItemSelected(post)
+    }
+
+    override fun onBackClicked() {
+        onBackClicked.invoke()
     }
 }

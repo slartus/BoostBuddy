@@ -84,6 +84,9 @@ class RootComponentImpl(
             componentContext = componentContext,
             onItemSelected = {
                 navigation.push(Config.BlogConfig(blog = it.blog))
+            },
+            onBackClicked = {
+                navigation.pop()
             }
         )
 
@@ -98,6 +101,9 @@ class RootComponentImpl(
                 post.data.find { (it.videoUrls?.size ?: 0) > 0 }?.let { postData ->
                     navigation.push(Config.VideoConfig(postData = postData))
                 }
+            },
+            onBackClicked = {
+                navigation.popWhile { it is Config.BlogConfig }
             }
         )
 
