@@ -16,10 +16,9 @@ interface VideoComponent {
 
 data class VideoViewState(
     val postData: PostData,
+    val playerUrl: PlayerUrl,
     val loading: Boolean = false
-) {
-    val playerUrl: PlayerUrl? = postData.videoUrls?.firstOrNull { it.type == "hls" }
-}
+)
 
 enum class VideoState {
     Idle, Buffering, Ready, Ended
@@ -27,8 +26,9 @@ enum class VideoState {
 
 class VideoComponentImpl(
     componentContext: ComponentContext,
-    postData: PostData
-) : BaseComponent<VideoViewState>(componentContext, VideoViewState(postData)), VideoComponent {
+    postData: PostData,
+    playerUrl: PlayerUrl
+) : BaseComponent<VideoViewState>(componentContext, VideoViewState(postData, playerUrl)), VideoComponent {
     override fun onVideoStateChanged(videoState: VideoState) {
         when (videoState) {
             Idle -> viewState = viewState.copy(loading = true)

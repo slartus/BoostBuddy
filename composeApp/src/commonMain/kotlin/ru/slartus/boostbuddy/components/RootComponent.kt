@@ -11,6 +11,7 @@ import com.arkivanov.decompose.router.stack.push
 import com.arkivanov.decompose.value.Value
 import kotlinx.serialization.Serializable
 import ru.slartus.boostbuddy.data.repositories.Blog
+import ru.slartus.boostbuddy.data.repositories.PlayerUrl
 import ru.slartus.boostbuddy.data.repositories.PostData
 
 interface RootComponent {
@@ -97,10 +98,8 @@ class RootComponentImpl(
         BlogComponentImpl(
             componentContext = componentContext,
             blog = config.blog,
-            onItemSelected = { post ->
-                post.data.find { (it.videoUrls?.size ?: 0) > 0 }?.let { postData ->
-                    navigation.push(Config.VideoConfig(postData = postData))
-                }
+            onItemSelected = { postData, playerUrl ->
+                navigation.push(Config.VideoConfig(postData = postData, playerUrl = playerUrl))
             },
             onBackClicked = {
                 navigation.popWhile { it is Config.BlogConfig }
@@ -113,7 +112,8 @@ class RootComponentImpl(
     ): VideoComponent =
         VideoComponentImpl(
             componentContext = componentContext,
-            postData = config.postData
+            postData = config.postData,
+            playerUrl = config.playerUrl,
         )
 
     override fun onBackClicked(toIndex: Int) {
@@ -132,6 +132,6 @@ class RootComponentImpl(
         data class BlogConfig(val blog: Blog) : Config
 
         @Serializable
-        data class VideoConfig(val postData: PostData) : Config
+        data class VideoConfig(val postData: PostData, val playerUrl: PlayerUrl) : Config
     }
 }

@@ -1,16 +1,24 @@
 package ru.slartus.boostbuddy.components
 
 import com.arkivanov.decompose.ComponentContext
+import com.arkivanov.decompose.router.slot.ChildSlot
+import com.arkivanov.decompose.router.slot.SlotNavigation
+import com.arkivanov.decompose.router.slot.activate
+import com.arkivanov.decompose.router.slot.childSlot
+import com.arkivanov.decompose.router.slot.dismiss
 import com.arkivanov.decompose.value.Value
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.launch
+import kotlinx.serialization.Serializable
 import ru.slartus.boostbuddy.data.Inject
 import ru.slartus.boostbuddy.data.repositories.Blog
 import ru.slartus.boostbuddy.data.repositories.BlogRepository
 import ru.slartus.boostbuddy.data.repositories.Offset
+import ru.slartus.boostbuddy.data.repositories.PlayerUrl
 import ru.slartus.boostbuddy.data.repositories.Post
+import ru.slartus.boostbuddy.data.repositories.PostData
 import ru.slartus.boostbuddy.data.repositories.SettingsRepository
 import ru.slartus.boostbuddy.utils.Response
 import ru.slartus.boostbuddy.utils.messageOrThrow
@@ -18,6 +26,7 @@ import ru.slartus.boostbuddy.utils.unauthorizedError
 
 interface BlogComponent {
     val viewStates: Value<BlogViewState>
+    val dialogSlot: Value<ChildSlot<*, VideoTypeComponent>>
     fun onItemClicked(post: Post)
     fun onBackClicked()
     fun onScrolledToEnd()
@@ -40,7 +49,7 @@ data class BlogViewState(
 class BlogComponentImpl(
     componentContext: ComponentContext,
     private val blog: Blog,
-    private val onItemSelected: (post: Post) -> Unit,
+    private val onItemSelected: (postData: PostData, playerUrl: PlayerUrl) -> Unit,
     private val onBackClicked: () -> Unit,
 ) : BaseComponent<BlogViewState>(
     componentContext,
@@ -48,10 +57,27 @@ class BlogComponentImpl(
 ), BlogComponent {
     private val settingsRepository by Inject.lazy<SettingsRepository>()
     private val blogRepository by Inject.lazy<BlogRepository>()
+    private val dialogNavigation = SlotNavigation<DialogConfig>()
 
     init {
         subscribeToken()
     }
+
+    override val dialogSlot: Value<ChildSlot<*, VideoTypeComponent>> =
+        childSlot(
+            source = dialogNavigation,
+            serializer = DialogConfig.serializer(), // Or null to disable navigation state saving
+            handleBackButton = true, // Close the dialog on back button press
+        ) { config, _ ->
+            VideoTypeComponentImpl(
+                postData = config.postData,
+                onDismissed = dialogNavigation::dismiss,
+                onItemClicked = { playerUrl ->
+                    dialogNavigation.dismiss()
+                    onItemSelected(config.postData, playerUrl)
+                }
+            )
+        }
 
     private fun subscribeToken() {
         scope.launch {
@@ -92,8 +118,14 @@ class BlogComponentImpl(
         }
     }
 
+    @Serializable
+    private data class DialogConfig(
+        val postData: PostData,
+    )
+
     override fun onItemClicked(post: Post) {
-        onItemSelected(post)
+        val postData = post.data.find { (it.videoUrls?.size ?: 0) > 0 } ?: return
+        dialogNavigation.activate(DialogConfig(postData = postData))
     }
 
     override fun onBackClicked() {

@@ -24,17 +24,16 @@ fun VideoScreen(component: VideoComponent) {
     val state = component.viewStates.subscribeAsState().value
 
     val playerUrl by remember(state.playerUrl) {
-        mutableStateOf(state.playerUrl?.url)
+        mutableStateOf(state.playerUrl.url)
     }
     KeepScreenOnEffect()
     HideSystemBarsEffect()
     Box(modifier = Modifier.fillMaxSize().background(Color.Black)) {
-        playerUrl?.let { url ->
-            VideoPlayer(
-                url = url,
-                title = state.postData.title,
-                onVideoStateChange = { state -> component.onVideoStateChanged(state) })
-        }
+        VideoPlayer(
+            url = playerUrl,
+            title = state.postData.title,
+            onVideoStateChange = { state -> component.onVideoStateChanged(state) })
+
 
         if (state.loading) {
             CircularProgressIndicator(

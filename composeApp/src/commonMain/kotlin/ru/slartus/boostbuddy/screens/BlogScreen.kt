@@ -8,6 +8,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.wrapContentHeight
@@ -20,13 +22,19 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
@@ -34,13 +42,15 @@ import com.seiko.imageloader.rememberImagePainter
 import kotlinx.collections.immutable.ImmutableList
 import ru.slartus.boostbuddy.components.BlogComponent
 import ru.slartus.boostbuddy.components.BlogViewState
+import ru.slartus.boostbuddy.data.repositories.PlayerUrl
 import ru.slartus.boostbuddy.data.repositories.Post
+import ru.slartus.boostbuddy.data.repositories.PostData
 import ru.slartus.boostbuddy.utils.isEndOfListReached
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BlogScreen(component: BlogComponent) {
-    val state = component.viewStates.subscribeAsState().value
+    val state by component.viewStates.subscribeAsState()
 
     Scaffold(
         topBar = {
@@ -73,6 +83,45 @@ fun BlogScreen(component: BlogComponent) {
                 onItemClick = remember { { component.onItemClicked(it) } },
                 onScrolledToEnd = remember { { component.onScrolledToEnd() } }
             )
+        }
+
+
+        val dialogSlot by component.dialogSlot.subscribeAsState()
+        dialogSlot.child?.instance?.also { videoTypeComponent ->
+            VideoTypeDialogView(
+                postData = videoTypeComponent.postData,
+                onDismissClicked = { videoTypeComponent.onDismissClicked() },
+                onItemClicked = { videoTypeComponent.onItemClicked(it) }
+            )
+        }
+    }
+
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun VideoTypeDialogView(
+    postData: PostData,
+    onItemClicked: (PlayerUrl) -> Unit,
+    onDismissClicked: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val sheetState = rememberModalBottomSheetState()
+    ModalBottomSheet(
+        modifier = modifier.navigationBarsPadding(),
+        onDismissRequest = { onDismissClicked() },
+        sheetState = sheetState
+    ) {
+        Column {
+            postData.videoUrls?.filter { it.url.isNotEmpty() }?.forEach {
+                Text(
+                    modifier = Modifier.fillMaxWidth()
+                        .clickable { onItemClicked(it) }
+                        .padding(16.dp),
+                    text = it.type
+                )
+            }
+            Spacer(modifier = Modifier.height(48.dp))
         }
     }
 }
