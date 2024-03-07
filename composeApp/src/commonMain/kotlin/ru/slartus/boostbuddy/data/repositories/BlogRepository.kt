@@ -75,7 +75,7 @@ data class PlayerUrl(
 
 private fun PostResponse.Post.mapToPostOrNull(): Post? {
     val videoItems = data
-        ?.filter { it.type == "ok_video" } ?: emptyList()
+         ?: emptyList()
 
     val post = Post(
         id = id ?: return null,
@@ -91,7 +91,7 @@ private fun PostResponse.Post.mapToPostOrNull(): Post? {
         } ?: return null,
         previewUrl = videoItems.firstOrNull { !it.defaultPreview.isNullOrEmpty() }?.defaultPreview
     )
-    if (post.data.isEmpty()) return null
+
     return post
 }
 
