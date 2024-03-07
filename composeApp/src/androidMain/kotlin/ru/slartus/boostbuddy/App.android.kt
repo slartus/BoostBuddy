@@ -5,8 +5,6 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
 import com.arkivanov.decompose.defaultComponentContext
 import ru.slartus.boostbuddy.components.RootComponentImpl
@@ -29,7 +27,11 @@ class AndroidApp : Application() {
     }
 }
 
-class AppActivity : ComponentActivity() {
+class AppActivity : ComponentActivity()
+
+class TvAppActivity : BaseComponentActivity()
+
+open class BaseComponentActivity(): ComponentActivity() {
     private val globalExceptionHandlersChain by Inject.lazy<GlobalExceptionHandlersChain>()
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
