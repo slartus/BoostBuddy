@@ -10,6 +10,7 @@ import ru.slartus.boostbuddy.data.repositories.SettingsRepository
 import ru.slartus.boostbuddy.data.repositories.SubscribeItem
 import ru.slartus.boostbuddy.data.repositories.SubscribesRepository
 import ru.slartus.boostbuddy.utils.Response
+import ru.slartus.boostbuddy.utils.WebManager
 import ru.slartus.boostbuddy.utils.messageOrThrow
 import ru.slartus.boostbuddy.utils.unauthorizedError
 
@@ -18,6 +19,7 @@ interface SubscribesComponent {
     val viewStates: Value<SubscribesViewState>
     fun onItemClicked(item: SubscribeItem)
     fun onBackClicked()
+    fun onLogoutClicked()
 }
 
 data class SubscribesViewState(
@@ -92,5 +94,13 @@ class SubscribesComponentImpl(
 
     override fun onBackClicked() {
         onBackClicked.invoke()
+    }
+
+    override fun onLogoutClicked() {
+        scope.launch {
+            settingsRepository.putAccessToken(null)
+            WebManager.clearWebViewCookies()
+            unauthorizedError()
+        }
     }
 }
