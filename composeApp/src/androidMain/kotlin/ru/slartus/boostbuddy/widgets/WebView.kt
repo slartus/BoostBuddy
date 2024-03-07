@@ -1,10 +1,8 @@
 package ru.slartus.boostbuddy.widgets
 
 import android.graphics.Bitmap
-import android.util.Log
 import android.webkit.CookieManager
 import android.webkit.HttpAuthHandler
-import android.webkit.WebResourceRequest
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.compose.foundation.layout.fillMaxSize
@@ -44,20 +42,18 @@ actual fun WebView(url: String, onCookieChange: (String) -> Unit) {
 
                     override fun onPageStarted(webView: WebView, url: String?, favicon: Bitmap?) {
                         if (url != null)
-                            onCookieChange(CookieManager.getInstance().getCookie(url))
+                            onCookieChange(CookieManager.getInstance().getCookie(url).orEmpty())
                     }
 
-                    override fun shouldOverrideUrlLoading(
-                        view: WebView,
-                        request: WebResourceRequest
-                    ): Boolean {
-                        return false
+                    override fun onLoadResource(view: WebView?, url: String?) {
+                        if (url != null)
+                            onCookieChange(CookieManager.getInstance().getCookie(url).orEmpty())
                     }
 
                     override fun onPageFinished(view: WebView?, currentUrl: String?) {
                         super.onPageFinished(view, currentUrl)
                         if (currentUrl != null)
-                            onCookieChange(CookieManager.getInstance().getCookie(currentUrl))
+                            onCookieChange(CookieManager.getInstance().getCookie(currentUrl).orEmpty())
                     }
 
                 }

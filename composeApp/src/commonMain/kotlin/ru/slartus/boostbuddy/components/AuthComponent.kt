@@ -3,7 +3,6 @@ package ru.slartus.boostbuddy.components
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.essenty.backhandler.BackCallback
 import io.ktor.http.decodeURLQueryComponent
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
 import ru.slartus.boostbuddy.data.Inject
@@ -18,8 +17,6 @@ class AuthComponentImpl(
     componentContext: ComponentContext,
     private val onLogined: () -> Unit,
 ) : BaseComponent<Unit>(componentContext, Unit), AuthComponent {
-
-    private var checkCookiesJob: Job? = null
     private val settingsRepository by Inject.lazy<SettingsRepository>()
 
     init {
@@ -38,8 +35,7 @@ class AuthComponentImpl(
     }
 
     override fun onCookiesChanged(cookies: String) {
-        checkCookiesJob?.cancel()
-        checkCookiesJob = scope.launch {
+        scope.launch {
             runCatching {
                 val authCookie =
                     parseCookies(cookies).entries.firstOrNull { it.key == "auth" } ?: return@launch
