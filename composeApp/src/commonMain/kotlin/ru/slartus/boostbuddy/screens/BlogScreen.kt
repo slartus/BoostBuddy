@@ -113,7 +113,9 @@ private fun VideoTypeDialogView(
     onDismissClicked: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val sheetState = rememberModalBottomSheetState()
+    val sheetState = rememberModalBottomSheetState(
+        skipPartiallyExpanded = true
+    )
     ModalBottomSheet(
         modifier = modifier.navigationBarsPadding(),
         onDismissRequest = { onDismissClicked() },
