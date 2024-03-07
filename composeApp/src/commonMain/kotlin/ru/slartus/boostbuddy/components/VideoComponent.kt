@@ -27,7 +27,7 @@ enum class VideoState {
 
 class VideoComponentImpl(
     componentContext: ComponentContext,
-    private val postData: PostData
+    postData: PostData
 ) : BaseComponent<VideoViewState>(componentContext, VideoViewState(postData)), VideoComponent {
     override fun onVideoStateChanged(videoState: VideoState) {
         when (videoState) {
