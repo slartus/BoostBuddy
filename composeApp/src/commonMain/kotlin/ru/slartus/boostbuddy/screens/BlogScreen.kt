@@ -38,7 +38,7 @@ import ru.slartus.boostbuddy.data.repositories.Post
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BlogScreen(component: BlogComponent) {
-    val state = component.state.subscribeAsState().value
+    val state = component.viewStates.subscribeAsState().value
 
     Scaffold(
         topBar = {

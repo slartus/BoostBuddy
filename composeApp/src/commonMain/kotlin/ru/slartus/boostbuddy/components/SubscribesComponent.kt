@@ -1,7 +1,6 @@
 package ru.slartus.boostbuddy.components
 
 import com.arkivanov.decompose.ComponentContext
-import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.toImmutableList
@@ -16,7 +15,7 @@ import ru.slartus.boostbuddy.utils.unauthorizedError
 
 
 interface SubscribesComponent {
-    val state: Value<SubscribesViewState>
+    val viewStates: Value<SubscribesViewState>
     fun onItemClicked(item: SubscribeItem)
     fun onBackClicked()
 }
@@ -36,13 +35,13 @@ class SubscribesComponentImpl(
     componentContext: ComponentContext,
     private val onItemSelected: (item: SubscribeItem) -> Unit,
     private val onBackClicked: () -> Unit,
-) : SubscribesComponent, ComponentContext by componentContext {
-    private val scope = coroutineScope()
+) : BaseComponent<SubscribesViewState>(
+    componentContext,
+    SubscribesViewState(SubscribesViewState.ProgressState.Init)
+), SubscribesComponent {
     private val settingsRepository by Inject.lazy<SettingsRepository>()
     private val subscribesRepository by Inject.lazy<SubscribesRepository>()
 
-    private val _state = MutableValue(SubscribesViewState(SubscribesViewState.ProgressState.Init))
-    override var state: Value<SubscribesViewState> = _state
 
     init {
         checkToken()
@@ -66,19 +65,19 @@ class SubscribesComponentImpl(
     }
 
     private fun fetchSubscribes(token: String) {
-        _state.value =
-            _state.value.copy(progressProgressState = SubscribesViewState.ProgressState.Loading)
+        viewState =
+            viewState.copy(progressProgressState = SubscribesViewState.ProgressState.Loading)
         scope.launch {
             when (val response = subscribesRepository.getSubscribes(token)) {
-                is Response.Error -> _state.value =
-                    _state.value.copy(
+                is Response.Error -> viewState =
+                    viewState.copy(
                         progressProgressState = SubscribesViewState.ProgressState.Error(
                             response.exception.messageOrThrow()
                         )
                     )
 
-                is Response.Success -> _state.value =
-                    _state.value.copy(
+                is Response.Success -> viewState =
+                    viewState.copy(
                         progressProgressState = SubscribesViewState.ProgressState.Loaded(
                             response.data.toImmutableList()
                         )

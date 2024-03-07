@@ -32,7 +32,7 @@ import ru.slartus.boostbuddy.data.repositories.Blog
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SubscribesScreen(component: SubscribesComponent) {
-    val state = component.state.subscribeAsState().value
+    val state = component.viewStates.subscribeAsState().value
 
     Scaffold(
         topBar = {

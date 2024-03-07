@@ -21,7 +21,7 @@ import ru.slartus.boostbuddy.widgets.VideoPlayer
 
 @Composable
 fun VideoScreen(component: VideoComponent) {
-    val state = component.state.subscribeAsState().value
+    val state = component.viewStates.subscribeAsState().value
 
     val playerUrl by remember(state.playerUrl) {
         mutableStateOf(state.playerUrl?.url)

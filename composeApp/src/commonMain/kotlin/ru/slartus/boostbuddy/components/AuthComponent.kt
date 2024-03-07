@@ -17,9 +17,8 @@ interface AuthComponent {
 class AuthComponentImpl(
     componentContext: ComponentContext,
     private val onLogined: () -> Unit,
-) : AuthComponent, ComponentContext by componentContext {
+) : BaseComponent<Unit>(componentContext, Unit), AuthComponent {
 
-    private val scope = coroutineScope()
     private var checkCookiesJob: Job? = null
     private val settingsRepository by Inject.lazy<SettingsRepository>()
 
@@ -27,9 +26,7 @@ class AuthComponentImpl(
         clearToken()
         backHandler.register(object : BackCallback() {
             override fun onBack() {
-                scope.launch {
 
-                }
             }
         })
     }

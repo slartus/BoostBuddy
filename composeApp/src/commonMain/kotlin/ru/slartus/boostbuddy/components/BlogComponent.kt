@@ -1,7 +1,6 @@
 package ru.slartus.boostbuddy.components
 
 import com.arkivanov.decompose.ComponentContext
-import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.toImmutableList
@@ -15,7 +14,7 @@ import ru.slartus.boostbuddy.utils.Response
 import ru.slartus.boostbuddy.utils.messageOrThrow
 
 interface BlogComponent {
-    val state: Value<BlogViewState>
+    val viewStates: Value<BlogViewState>
     fun onItemClicked(post: Post)
     fun onBackClicked()
 }
@@ -37,13 +36,9 @@ class BlogComponentImpl(
     private val blog: Blog,
     private val onItemSelected: (post: Post) -> Unit,
     private val onBackClicked: () -> Unit,
-) : BlogComponent, ComponentContext by componentContext {
-    private val scope = coroutineScope()
+) : BaseComponent<BlogViewState>(componentContext, BlogViewState(blog, BlogViewState.ProgressState.Init)), BlogComponent {
     private val settingsRepository by Inject.lazy<SettingsRepository>()
     private val blogRepository by Inject.lazy<BlogRepository>()
-
-    private val _state = MutableValue(BlogViewState(blog, BlogViewState.ProgressState.Init))
-    override var state: Value<BlogViewState> = _state
 
     init {
         subscribeToken()
@@ -59,19 +54,19 @@ class BlogComponentImpl(
     }
 
     private fun fetchBlog(token: String) {
-        _state.value =
-            _state.value.copy(progressProgressState = BlogViewState.ProgressState.Loading)
+        viewState =
+            viewState.copy(progressProgressState = BlogViewState.ProgressState.Loading)
         scope.launch {
             when (val response = blogRepository.getData(accessToken = token, url = blog.blogUrl)) {
-                is Response.Error -> _state.value =
-                    _state.value.copy(
+                is Response.Error -> viewState =
+                    viewState.copy(
                         progressProgressState = BlogViewState.ProgressState.Error(
                             response.exception.messageOrThrow()
                         )
                     )
 
-                is Response.Success -> _state.value =
-                    _state.value.copy(
+                is Response.Success -> viewState =
+                    viewState.copy(
                         progressProgressState = BlogViewState.ProgressState.Loaded(
                             response.data.toImmutableList()
                         )

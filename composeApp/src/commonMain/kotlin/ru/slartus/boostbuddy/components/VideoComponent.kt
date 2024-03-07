@@ -1,14 +1,16 @@
 package ru.slartus.boostbuddy.components
 
 import com.arkivanov.decompose.ComponentContext
-import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
-import ru.slartus.boostbuddy.components.VideoState.*
+import ru.slartus.boostbuddy.components.VideoState.Buffering
+import ru.slartus.boostbuddy.components.VideoState.Ended
+import ru.slartus.boostbuddy.components.VideoState.Idle
+import ru.slartus.boostbuddy.components.VideoState.Ready
 import ru.slartus.boostbuddy.data.repositories.PlayerUrl
 import ru.slartus.boostbuddy.data.repositories.PostData
 
 interface VideoComponent {
-    val state: Value<VideoViewState>
+    val viewStates: Value<VideoViewState>
     fun onVideoStateChanged(videoState: VideoState)
 }
 
@@ -26,16 +28,12 @@ enum class VideoState {
 class VideoComponentImpl(
     componentContext: ComponentContext,
     private val postData: PostData
-) : VideoComponent, ComponentContext by componentContext {
-    private val scope = coroutineScope()
-
-    private val _state = MutableValue(VideoViewState(postData))
-    override var state: Value<VideoViewState> = _state
+) : BaseComponent<VideoViewState>(componentContext, VideoViewState(postData)), VideoComponent {
     override fun onVideoStateChanged(videoState: VideoState) {
         when (videoState) {
-            Idle -> _state.value = VideoViewState(postData, loading = true)
-            Buffering -> _state.value = VideoViewState(postData, loading = true)
-            Ready -> _state.value = VideoViewState(postData, loading = false)
+            Idle -> viewState = viewState.copy(loading = true)
+            Buffering -> viewState = viewState.copy(loading = true)
+            Ready -> viewState = viewState.copy(loading = false)
             Ended -> {
 
             }
