@@ -5,6 +5,6 @@ import androidx.compose.runtime.Composable
 import ru.slartus.boostbuddy.components.VideoState
 
 @Composable
-actual fun VideoPlayer(url: String, title: String, onVideoStateChange: (VideoState) -> Unit) {
+actual fun VideoPlayer(vid: String, url: String, title: String, onVideoStateChange: (VideoState) -> Unit) {
     Text(text = "Not implemented")
 }

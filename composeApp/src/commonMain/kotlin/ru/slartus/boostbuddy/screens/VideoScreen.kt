@@ -30,9 +30,11 @@ fun VideoScreen(component: VideoComponent) {
     HideSystemBarsEffect()
     Box(modifier = Modifier.fillMaxSize().background(Color.Black)) {
         VideoPlayer(
+            vid = state.postData.vid,
             url = playerUrl,
             title = state.postData.title,
-            onVideoStateChange = { state -> component.onVideoStateChanged(state) })
+            onVideoStateChange = { state -> component.onVideoStateChanged(state) }
+        )
 
 
         if (state.loading) {
