@@ -53,9 +53,8 @@ exoplayer-core = { module = "androidx.media3:media3-exoplayer", version.ref = "e
 exoplayer-dash = { module = "androidx.media3:media3-exoplayer-dash", version.ref = "exoplayer" }
 exoplayer-ui = { module = "androidx.media3:media3-ui", version.ref = "exoplayer" }
 exoplayer-hls = { module = "androidx.media3:media3-exoplayer-hls", version.ref = "exoplayer" }
-#exoplayer-rtsp = { module = "com.google.android.exoplayer:exoplayer-rtsp", version.ref = "exoplayer" }
-#exoplayer-smoothstreaming = { module = "com.google.android.exoplayer:exoplayer-smoothstreaming", version.ref = "exoplayer" }
-#exoplayer-transformer = { module = "com.google.android.exoplayer:exoplayer-transformer", version.ref = "exoplayer" }
+exoplayer-rtsp = { module = "androidx.media3:media3-exoplayer-rtsp", version.ref = "exoplayer" }
+exoplayer-smoothstreaming = { module = "androidx.media3:media3-exoplayer-smoothstreaming", version.ref = "exoplayer" }
 
 
 kodein-core = { module = "org.kodein.di:kodein-di", version.ref = "kodein" }

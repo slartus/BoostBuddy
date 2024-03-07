@@ -4,7 +4,6 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.buildConfig)
     alias(libs.plugins.kotlinx.serialization)
-    alias(libs.plugins.sqlDelight)
     id("kotlin-parcelize")
 }
 
@@ -66,17 +65,17 @@ kotlin {
             implementation(libs.compose.uitooling)
             implementation(libs.kotlinx.coroutines.android)
             implementation(libs.ktor.client.okhttp)
-            implementation(libs.sqlDelight.driver.android)
 
             implementation(libs.exoplayer.core)
             implementation(libs.exoplayer.dash)
             implementation(libs.exoplayer.ui)
             implementation(libs.exoplayer.hls)
+            implementation(libs.exoplayer.rtsp)
+            implementation(libs.exoplayer.smoothstreaming)
         }
 
         iosMain.dependencies {
             implementation(libs.ktor.client.darwin)
-            implementation(libs.sqlDelight.driver.native)
         }
 
     }
@@ -114,14 +113,4 @@ android {
 buildConfig {
     // BuildConfig configuration here.
     // https://github.com/gmazzo/gradle-buildconfig-plugin#usage-in-kts
-}
-
-sqldelight {
-    databases {
-        create("MyDatabase") {
-            // Database configuration here.
-            // https://cashapp.github.io/sqldelight
-            packageName.set("ru.slartus.boostbuddy.db")
-        }
-    }
 }
