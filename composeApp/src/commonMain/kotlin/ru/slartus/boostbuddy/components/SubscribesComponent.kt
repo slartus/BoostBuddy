@@ -20,6 +20,7 @@ interface SubscribesComponent {
     fun onItemClicked(item: SubscribeItem)
     fun onBackClicked()
     fun onLogoutClicked()
+    fun onRepeatClicked()
 }
 
 data class SubscribesViewState(
@@ -69,6 +70,7 @@ class SubscribesComponentImpl(
     private fun fetchSubscribes(token: String) {
         viewState =
             viewState.copy(progressProgressState = SubscribesViewState.ProgressState.Loading)
+
         scope.launch {
             when (val response = subscribesRepository.getSubscribes(token)) {
                 is Response.Error -> viewState =
@@ -101,6 +103,13 @@ class SubscribesComponentImpl(
             settingsRepository.putAccessToken(null)
             WebManager.clearWebViewCookies()
             unauthorizedError()
+        }
+    }
+
+    override fun onRepeatClicked() {
+        scope.launch {
+            val token = settingsRepository.getAccessToken() ?: unauthorizedError()
+            fetchSubscribes(token)
         }
     }
 }

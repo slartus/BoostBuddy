@@ -34,6 +34,8 @@ import com.seiko.imageloader.rememberImagePainter
 import ru.slartus.boostbuddy.components.SubscribesComponent
 import ru.slartus.boostbuddy.components.SubscribesViewState
 import ru.slartus.boostbuddy.data.repositories.Blog
+import ru.slartus.boostbuddy.ui.widgets.ErrorView
+import ru.slartus.boostbuddy.ui.widgets.LoaderView
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -60,11 +62,9 @@ fun SubscribesScreen(component: SubscribesComponent) {
             contentAlignment = Center
         ) {
             when (val progressState = state.progressProgressState) {
-                is SubscribesViewState.ProgressState.Error -> Text(text = progressState.description)
+                is SubscribesViewState.ProgressState.Error -> ErrorView(progressState.description)
                 SubscribesViewState.ProgressState.Init,
-                SubscribesViewState.ProgressState.Loading -> CircularProgressIndicator(
-                    modifier = Modifier.size(48.dp)
-                )
+                SubscribesViewState.ProgressState.Loading -> LoaderView()
 
                 is SubscribesViewState.ProgressState.Loaded -> {
                     LazyColumn(
