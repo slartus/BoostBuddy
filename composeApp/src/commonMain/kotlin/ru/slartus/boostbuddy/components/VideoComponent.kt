@@ -19,7 +19,7 @@ interface VideoComponent {
 }
 
 data class VideoViewState(
-    val postData: PostData,
+    val postData: PostData.Video,
     val playerUrl: PlayerUrl,
     val loading: Boolean = false,
     val position: Long? = null,
@@ -31,7 +31,7 @@ enum class VideoState {
 
 class VideoComponentImpl(
     componentContext: ComponentContext,
-    postData: PostData,
+    postData: PostData.Video,
     playerUrl: PlayerUrl
 ) : BaseComponent<VideoViewState>(componentContext, VideoViewState(postData, playerUrl)),
     VideoComponent {

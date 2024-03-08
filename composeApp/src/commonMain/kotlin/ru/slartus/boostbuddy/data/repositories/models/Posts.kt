@@ -1,5 +1,6 @@
 package ru.slartus.boostbuddy.data.repositories.models
 
+import androidx.compose.runtime.Immutable
 import kotlinx.serialization.Serializable
 
 
@@ -13,14 +14,14 @@ data class Posts(
     val isLast: Boolean
 )
 
+@Immutable
 data class Post(
     val id: String,
     val createdAt: Long,
     val intId: Long,
     val title: String,
     val data: List<PostData>,
-    val user: PostUser,
-    val previewUrl: String?
+    val user: PostUser
 )
 
 data class PostUser(
@@ -29,11 +30,23 @@ data class PostUser(
 )
 
 @Serializable
-data class PostData(
-    val vid: String,
-    val title: String,
-    val videoUrls: List<PlayerUrl>? = null
-)
+@Immutable
+sealed class PostData {
+    data class Text(
+        val rawContent: String,
+        val modificator: String
+    ) : PostData()
+
+    @Serializable
+    data class Video(
+        val vid: String,
+        val title: String,
+        val playerUrls: List<PlayerUrl>,
+        val previewUrl: String,
+    ) : PostData()
+
+    data object Unknown : PostData()
+}
 
 @Serializable
 data class PlayerUrl(

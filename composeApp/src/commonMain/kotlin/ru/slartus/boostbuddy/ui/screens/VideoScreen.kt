@@ -36,7 +36,7 @@ fun VideoScreen(component: VideoComponent) {
                 title = state.postData.title,
                 position = position,
                 onVideoStateChange = { state -> component.onVideoStateChanged(state) },
-                onContentPositionChange = { it -> component.onContentPositionChange(it) }
+                onContentPositionChange = { component.onContentPositionChange(it) }
             )
         }
 

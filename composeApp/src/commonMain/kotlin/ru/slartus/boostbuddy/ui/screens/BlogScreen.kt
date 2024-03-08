@@ -92,7 +92,7 @@ fun BlogScreen(component: BlogComponent) {
                     PostsView(
                         items = state.items,
                         canLoadMore = state.hasMore,
-                        onItemClick = { component.onItemClicked(it) },
+                        onVideoItemClick = { component.onVideoItemClicked(it) },
                         onScrolledToEnd = { component.onScrolledToEnd() },
                         onErrorItemClick = { component.onErrorItemClicked() },
                     )
@@ -114,7 +114,7 @@ fun BlogScreen(component: BlogComponent) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun VideoTypeDialogView(
-    postData: PostData,
+    postData: PostData.Video,
     onItemClicked: (PlayerUrl) -> Unit,
     onDismissClicked: () -> Unit,
     modifier: Modifier = Modifier
@@ -128,7 +128,7 @@ private fun VideoTypeDialogView(
         sheetState = sheetState
     ) {
         Column {
-            postData.videoUrls?.filter { it.url.isNotEmpty() }?.forEach {
+            postData.playerUrls.filter { it.url.isNotEmpty() }.forEach {
                 Text(
                     modifier = Modifier.fillMaxWidth()
                         .clickable { onItemClicked(it) }
@@ -145,7 +145,7 @@ private fun VideoTypeDialogView(
 private fun PostsView(
     items: ImmutableList<BlogItem>,
     canLoadMore: Boolean,
-    onItemClick: (Post) -> Unit,
+    onVideoItemClick: (PostData.Video) -> Unit,
     onScrolledToEnd: () -> Unit,
     onErrorItemClick: () -> Unit
 ) {
@@ -169,7 +169,9 @@ private fun PostsView(
                     onClick = { onErrorItemClick() })
 
                 BlogItem.LoadingItem -> LoadingView()
-                is BlogItem.PostItem -> PostView(item.post, onClick = { onItemClick(item.post) })
+                is BlogItem.PostItem -> PostView(
+                    item.post,
+                    onVideoClick = { onVideoItemClick(it) })
             }
         }
     }
@@ -181,11 +183,10 @@ private fun PostsView(
 }
 
 @Composable
-private fun PostView(post: Post, onClick: () -> Unit) {
+private fun PostView(post: Post, onVideoClick: (videoData: PostData.Video) -> Unit) {
     Column(
         modifier = Modifier
-            .background(MaterialTheme.colorScheme.primaryContainer)
-            .clickable { onClick() }.padding(16.dp),
+            .background(MaterialTheme.colorScheme.primaryContainer),
         horizontalAlignment = CenterHorizontally
     ) {
         Text(
@@ -196,14 +197,36 @@ private fun PostView(post: Post, onClick: () -> Unit) {
         )
         Spacer(modifier = Modifier.size(16.dp))
 
-        if (post.previewUrl != null) {
-            Box(modifier = Modifier.heightIn(min = 200.dp)) {
-                Image(
-                    modifier = Modifier.widthIn(max = 640.dp).fillMaxWidth()
-                        .wrapContentHeight(),
-                    painter = rememberImagePainter(post.previewUrl),
-                    contentDescription = "preview",
+        post.data.forEach { postData ->
+            when (postData) {
+                is PostData.Text -> Text(
+                    modifier = Modifier.fillMaxWidth(),
+                    text = postData.rawContent,
+                    color = MaterialTheme.colorScheme.primary,
+                    style = MaterialTheme.typography.bodyMedium
                 )
+
+                PostData.Unknown -> Text(
+                    modifier = Modifier.fillMaxWidth(),
+                    text = "UNKNOWN_CONTENT",
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodyMedium
+                )
+
+                is PostData.Video ->
+                    Box(
+                        modifier = Modifier
+                            .clickable { onVideoClick(postData) }.padding(16.dp)
+                            .heightIn(min = 200.dp)
+
+                    ) {
+                        Image(
+                            modifier = Modifier.widthIn(max = 640.dp).fillMaxWidth()
+                                .wrapContentHeight(),
+                            painter = rememberImagePainter(postData.previewUrl),
+                            contentDescription = "preview",
+                        )
+                    }
             }
         }
     }

@@ -6,8 +6,6 @@ import io.ktor.client.request.get
 import io.ktor.client.request.header
 import io.ktor.client.request.parameter
 import io.ktor.http.HttpHeaders
-import kotlinx.serialization.SerialName
-import kotlinx.serialization.Serializable
 import ru.slartus.boostbuddy.data.repositories.models.Offset
 import ru.slartus.boostbuddy.data.repositories.models.PlayerUrl
 import ru.slartus.boostbuddy.data.repositories.models.Post
@@ -43,33 +41,41 @@ internal class BlogRepository(
 }
 
 private fun PostResponse.PostData.mapToPostDataOrNull(): PostData? {
-    return PostData(
-        vid = vid ?: return null,
-        title = title.orEmpty(),
-        videoUrls = playerUrls
-            ?.map {
-                PlayerUrl(it.type ?: return null, it.url ?: return null)
-            }
-    )
+    return when (type) {
+        "ok_video" -> PostData.Video(
+            vid = vid ?: return null,
+            title = title.orEmpty(),
+            playerUrls = playerUrls?.mapNotNull { it.mapToPlayerUrlOrNull() }.orEmpty()
+                .ifEmpty { return null },
+            previewUrl = preview ?: defaultPreview ?: return null,
+        )
+
+        "text" -> PostData.Text(
+            rawContent = content.orEmpty(),
+            modificator = modificator.orEmpty(),
+        )
+
+        else -> PostData.Unknown
+    }
+}
+
+private fun PostResponse.PlayerUrl.mapToPlayerUrlOrNull(): PlayerUrl? {
+    return PlayerUrl(type ?: return null, url ?: return null)
 }
 
 private fun PostResponse.Post.mapToPostOrNull(): Post? {
-    val videoItems = data
-        ?: emptyList()
-
     val post = Post(
         id = id ?: return null,
         createdAt = createdAt ?: return null,
         intId = intId ?: return null,
         title = title ?: return null,
-        data = videoItems.mapNotNull { it.mapToPostDataOrNull() },
+        data = data?.mapNotNull { it.mapToPostDataOrNull() }.orEmpty(),
         user = user?.let {
             PostUser(
                 name = it.name ?: return null,
                 avatarUrl = it.avatarUrl
             )
-        } ?: return null,
-        previewUrl = videoItems.firstOrNull { !it.defaultPreview.isNullOrEmpty() }?.defaultPreview
+        } ?: return null
     )
 
     return post

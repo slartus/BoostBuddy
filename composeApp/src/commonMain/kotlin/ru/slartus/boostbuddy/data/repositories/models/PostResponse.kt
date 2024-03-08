@@ -33,8 +33,11 @@ internal data class PostResponse(
         val title: String? = null,
         val type: String? = null,//image, text, link, ok_video
         val url: String? = null,
+        val preview: String? = null,
         val defaultPreview: String? = null,
-        val playerUrls: List<PlayerUrl>? = null
+        val playerUrls: List<PlayerUrl>? = null,
+        val content: String? = null,
+        val modificator: String? = null
     )
 
     @Serializable
