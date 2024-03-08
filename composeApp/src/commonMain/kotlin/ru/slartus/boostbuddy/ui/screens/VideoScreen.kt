@@ -21,7 +21,7 @@ import ru.slartus.boostbuddy.ui.widgets.VideoPlayer
 
 @Composable
 fun VideoScreen(component: VideoComponent) {
-    val state = component.viewStates.subscribeAsState().value
+    val state by component.viewStates.subscribeAsState()
 
     val playerUrl by remember(state.playerUrl) {
         mutableStateOf(state.playerUrl.url)
@@ -29,12 +29,16 @@ fun VideoScreen(component: VideoComponent) {
     KeepScreenOnEffect()
     HideSystemBarsEffect()
     Box(modifier = Modifier.fillMaxSize().background(Color.Black)) {
-        VideoPlayer(
-            vid = state.postData.vid,
-            url = playerUrl,
-            title = state.postData.title,
-            onVideoStateChange = { state -> component.onVideoStateChanged(state) }
-        )
+        state.position?.let { position ->
+            VideoPlayer(
+                vid = state.postData.vid,
+                url = playerUrl,
+                title = state.postData.title,
+                position = position,
+                onVideoStateChange = { state -> component.onVideoStateChanged(state) },
+                onContentPositionChange = { it -> component.onContentPositionChange(it) }
+            )
+        }
 
 
         if (state.loading) {

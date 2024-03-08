@@ -30,8 +30,16 @@ class SettingsRepository(
         settings.putString(key, value)
     }
 
+    suspend fun putLong(key: String, value: Long) = withContext(Dispatchers.IO) {
+        settings.putLong(key, value)
+    }
 
-    suspend fun putAccessToken(value: String?) {
+    suspend fun getLong(key: String) = withContext(Dispatchers.IO) {
+        settings.getLongOrNull(key)
+    }
+
+
+    suspend fun putAccessToken(value: String?) = withContext(Dispatchers.IO){
         if (value == null)
             settings.remove("access_token")
         else

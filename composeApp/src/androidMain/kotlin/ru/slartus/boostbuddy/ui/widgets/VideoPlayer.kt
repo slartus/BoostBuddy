@@ -6,7 +6,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -33,7 +35,9 @@ actual fun VideoPlayer(
     vid: String,
     url: String,
     title: String,
-    onVideoStateChange: (VideoState) -> Unit
+    position: Long,
+    onVideoStateChange: (VideoState) -> Unit,
+    onContentPositionChange: (Long) -> Unit
 ) {
     val context = LocalContext.current
 
@@ -49,6 +53,10 @@ actual fun VideoPlayer(
 
     var error by remember { mutableStateOf<String?>(null) }
 
+    var contentPosition by remember { mutableLongStateOf(0L) }
+    LaunchedEffect(contentPosition) {
+        onContentPositionChange(contentPosition)
+    }
     val exoPlayer = remember {
         runCatching {
             ExoPlayer.Builder(context).build().apply {
@@ -57,6 +65,7 @@ actual fun VideoPlayer(
                 this.addListener(object : Player.Listener {
                     override fun onEvents(player: Player, events: Player.Events) {
                         super.onEvents(player, events)
+                        contentPosition = player.contentPosition
                     }
 
                     override fun onPlaybackStateChanged(playbackState: Int) {
@@ -80,7 +89,7 @@ actual fun VideoPlayer(
     }
     if (exoPlayer != null) {
         DisposableEffect(Unit) {
-            exoPlayer.seekTo(0, C.TIME_UNSET)
+            exoPlayer.seekTo(position)
             exoPlayer.playWhenReady = true
             onDispose {
                 exoPlayer.release()
