@@ -134,6 +134,6 @@ class RootComponentImpl(
         data class BlogConfig(val blog: Blog) : Config
 
         @Serializable
-        data class VideoConfig(val postData: PostData.Video, val playerUrl: PlayerUrl) : Config
+        data class VideoConfig(val postData: PostData.OkVideo, val playerUrl: PlayerUrl) : Config
     }
 }

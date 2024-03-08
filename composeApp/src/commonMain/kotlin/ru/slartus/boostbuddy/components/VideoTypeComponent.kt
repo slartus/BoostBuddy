@@ -4,13 +4,13 @@ import ru.slartus.boostbuddy.data.repositories.models.PlayerUrl
 import ru.slartus.boostbuddy.data.repositories.models.PostData
 
 interface VideoTypeComponent {
-    val postData: PostData.Video
+    val postData: PostData.OkVideo
     fun onDismissClicked()
     fun onItemClicked(playerUrl: PlayerUrl)
 }
 
 class VideoTypeComponentImpl(
-    override val postData: PostData.Video,
+    override val postData: PostData.OkVideo,
     private val onDismissed: () -> Unit,
     private val onItemClicked: (PlayerUrl) -> Unit
 ) : VideoTypeComponent {

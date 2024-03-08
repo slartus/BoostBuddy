@@ -24,7 +24,7 @@ internal class BlogRepository(
             val response: PostResponse =
                 httpClient.get("https://api.boosty.to/v1/blog/$url/post/") {
                     header(HttpHeaders.Authorization, "Bearer $accessToken")
-                    parameter("limit", "125")
+                    parameter("limit", "20")
                     offset?.let {
                         parameter("offset", "${offset.createdAt}:${offset.postId}")
                     }
@@ -41,12 +41,16 @@ internal class BlogRepository(
 
 private fun PostResponse.PostData.mapToPostDataOrNull(): PostData? {
     return when (type) {
-        "ok_video" -> PostData.Video(
+        "ok_video" -> PostData.OkVideo(
             vid = vid ?: return null,
             title = title.orEmpty(),
             playerUrls = playerUrls?.mapNotNull { it.mapToPlayerUrlOrNull() }.orEmpty()
                 .ifEmpty { return null },
             previewUrl = preview ?: defaultPreview ?: return null,
+        )
+
+        "video" -> PostData.Video(
+            url = url ?: return null,
         )
 
         "text" -> PostData.Text(
@@ -55,6 +59,16 @@ private fun PostResponse.PostData.mapToPostDataOrNull(): PostData? {
         )
 
         "image" -> PostData.Image(
+            url = url ?: return null,
+        )
+
+        "link" -> PostData.Link(
+            rawContent = content.orEmpty(),
+            url = url ?: return null,
+        )
+
+        "audio_file" -> PostData.AudioFile(
+            title = title.orEmpty(),
             url = url ?: return null,
         )
 

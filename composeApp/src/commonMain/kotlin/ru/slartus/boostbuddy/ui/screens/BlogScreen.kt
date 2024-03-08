@@ -39,6 +39,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Alignment.Companion.CenterHorizontally
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
 import com.seiko.imageloader.rememberImagePainter
@@ -49,6 +50,7 @@ import ru.slartus.boostbuddy.components.blog.BlogViewState
 import ru.slartus.boostbuddy.data.repositories.models.PlayerUrl
 import ru.slartus.boostbuddy.data.repositories.models.Post
 import ru.slartus.boostbuddy.data.repositories.models.PostData
+import ru.slartus.boostbuddy.ui.common.LocalPlatformConfiguration
 import ru.slartus.boostbuddy.ui.common.isEndOfListReached
 import ru.slartus.boostbuddy.ui.widgets.ErrorView
 import ru.slartus.boostbuddy.ui.widgets.LoaderView
@@ -114,7 +116,7 @@ fun BlogScreen(component: BlogComponent) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun VideoTypeDialogView(
-    postData: PostData.Video,
+    postData: PostData.OkVideo,
     onItemClicked: (PlayerUrl) -> Unit,
     onDismissClicked: () -> Unit,
     modifier: Modifier = Modifier
@@ -145,7 +147,7 @@ private fun VideoTypeDialogView(
 private fun PostsView(
     items: ImmutableList<BlogItem>,
     canLoadMore: Boolean,
-    onVideoItemClick: (PostData.Video) -> Unit,
+    onVideoItemClick: (PostData.OkVideo) -> Unit,
     onScrolledToEnd: () -> Unit,
     onErrorItemClick: () -> Unit
 ) {
@@ -156,7 +158,6 @@ private fun PostsView(
             listScrollState.isEndOfListReached(visibleThreshold = 3)
         }
     }
-
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         state = listScrollState,
@@ -183,7 +184,8 @@ private fun PostsView(
 }
 
 @Composable
-private fun PostView(post: Post, onVideoClick: (videoData: PostData.Video) -> Unit) {
+private fun PostView(post: Post, onVideoClick: (okVideoData: PostData.OkVideo) -> Unit) {
+
     Column(
         modifier = Modifier
             .background(MaterialTheme.colorScheme.primaryContainer)
@@ -203,50 +205,116 @@ private fun PostView(post: Post, onVideoClick: (videoData: PostData.Video) -> Un
         ) {
             post.data.forEach { postData ->
                 when (postData) {
-                    is PostData.Text -> postData.content?.let { content ->
-                        Text(
-                            modifier = Modifier.fillMaxWidth(),
-                            text = content.text,
-                            color = MaterialTheme.colorScheme.primary,
-                            style = MaterialTheme.typography.bodyMedium
-                        )
-                    }
-
-                    PostData.Unknown -> Text(
-                        modifier = Modifier.fillMaxWidth(),
-                        text = "UNKNOWN_CONTENT",
-                        color = MaterialTheme.colorScheme.error,
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-
-                    is PostData.Video ->
-                        Box(
-                            modifier = Modifier
-                                .clickable { onVideoClick(postData) }
-                                .heightIn(min = 200.dp)
-
-                        ) {
-                            Image(
-                                modifier = Modifier.widthIn(max = 640.dp).fillMaxWidth()
-                                    .wrapContentHeight(),
-                                painter = rememberImagePainter(postData.previewUrl),
-                                contentDescription = "preview",
-                            )
-                        }
-
-                    is PostData.Image -> {
-                        Box(modifier = Modifier.heightIn(min = 200.dp)) {
-                            Image(
-                                modifier = Modifier.widthIn(max = 640.dp).fillMaxWidth()
-                                    .wrapContentHeight(),
-                                painter = rememberImagePainter(postData.url),
-                                contentDescription = "url",
-                            )
-                        }
-                    }
+                    is PostData.Text -> PostDataTextView(postData)
+                    PostData.Unknown -> PostDataUnknownView()
+                    is PostData.OkVideo -> PostDataOkVideoView(postData, onVideoClick)
+                    is PostData.Image -> PostDataImageView(postData)
+                    is PostData.Link -> PostDataLinkView(postData)
+                    is PostData.Video -> PostDataVideoView(postData)
+                    is PostData.AudioFile -> PostDataAudioFileView(postData)
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun PostDataAudioFileView(
+    postData: PostData.AudioFile
+) {
+    val platformConfiguration = LocalPlatformConfiguration.current
+    Text(
+        modifier = Modifier.fillMaxWidth().clickable {
+            platformConfiguration.openBrowser(postData.url)
+        },
+        text = postData.title,
+        color = MaterialTheme.colorScheme.primary,
+        style = MaterialTheme.typography.labelMedium
+    )
+}
+
+@Composable
+private fun PostDataVideoView(
+    postData: PostData.Video
+) {
+    val platformConfiguration = LocalPlatformConfiguration.current
+    Text(
+        modifier = Modifier.fillMaxWidth().clickable {
+            platformConfiguration.openBrowser(postData.url)
+        },
+        text = postData.url,
+        color = MaterialTheme.colorScheme.primary,
+        style = MaterialTheme.typography.labelMedium
+    )
+}
+
+
+@Composable
+private fun PostDataLinkView(
+    postData: PostData.Link
+) {
+    val platformConfiguration = LocalPlatformConfiguration.current
+    Text(
+        modifier = Modifier.fillMaxWidth().clickable {
+            platformConfiguration.openBrowser(postData.url)
+        },
+        text = postData.text,
+        color = MaterialTheme.colorScheme.primary,
+        style = MaterialTheme.typography.labelMedium
+    )
+}
+
+@Composable
+private fun PostDataImageView(postData: PostData.Image) {
+    Box(modifier = Modifier.heightIn(min = 200.dp)) {
+        Image(
+            modifier = Modifier.widthIn(max = 640.dp).fillMaxWidth()
+                .wrapContentHeight(),
+            painter = rememberImagePainter(postData.url),
+            contentDescription = "url",
+        )
+    }
+}
+
+@Composable
+private fun PostDataOkVideoView(
+    postData: PostData.OkVideo,
+    onVideoClick: (okVideoData: PostData.OkVideo) -> Unit,
+) {
+    Box(
+        modifier = Modifier
+            .clickable { onVideoClick(postData) }
+            .heightIn(min = 200.dp)
+
+    ) {
+        Image(
+            modifier = Modifier.widthIn(max = 640.dp).fillMaxWidth()
+                .wrapContentHeight(),
+            painter = rememberImagePainter(postData.previewUrl),
+            contentDescription = "preview",
+        )
+    }
+}
+
+@Composable
+private fun PostDataUnknownView() {
+    Text(
+        modifier = Modifier.fillMaxWidth(),
+        text = "UNKNOWN_CONTENT",
+        color = MaterialTheme.colorScheme.error,
+        style = MaterialTheme.typography.bodyMedium
+    )
+}
+
+@Composable
+private fun PostDataTextView(postData: PostData.Text) {
+    postData.content?.let { content ->
+        Text(
+            modifier = Modifier.fillMaxWidth(),
+            text = content.text,
+            color = MaterialTheme.colorScheme.primary,
+            style = MaterialTheme.typography.bodyMedium
+        )
     }
 }
 

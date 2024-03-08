@@ -28,7 +28,7 @@ import ru.slartus.boostbuddy.utils.unauthorizedError
 interface BlogComponent {
     val viewStates: Value<BlogViewState>
     val dialogSlot: Value<ChildSlot<*, VideoTypeComponent>>
-    fun onVideoItemClicked(postData: PostData.Video)
+    fun onVideoItemClicked(postData: PostData.OkVideo)
     fun onBackClicked()
     fun onScrolledToEnd()
     fun onRepeatClicked()
@@ -38,7 +38,7 @@ interface BlogComponent {
 class BlogComponentImpl(
     componentContext: ComponentContext,
     private val blog: Blog,
-    private val onItemSelected: (postData: PostData.Video, playerUrl: PlayerUrl) -> Unit,
+    private val onItemSelected: (postData: PostData.OkVideo, playerUrl: PlayerUrl) -> Unit,
     private val onBackClicked: () -> Unit,
 ) : BaseComponent<BlogViewState>(
     componentContext,
@@ -146,10 +146,10 @@ class BlogComponentImpl(
 
     @Serializable
     private data class DialogConfig(
-        val postData: PostData.Video,
+        val postData: PostData.OkVideo,
     )
 
-    override fun onVideoItemClicked(postData: PostData.Video) {
+    override fun onVideoItemClicked(postData: PostData.OkVideo) {
         dialogNavigation.activate(DialogConfig(postData = postData))
     }
 

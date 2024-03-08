@@ -5,11 +5,13 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
 import com.arkivanov.decompose.defaultComponentContext
 import ru.slartus.boostbuddy.components.RootComponentImpl
 import ru.slartus.boostbuddy.data.Inject
 import ru.slartus.boostbuddy.data.createDependenciesTree
+import ru.slartus.boostbuddy.ui.common.LocalPlatformConfiguration
 import ru.slartus.boostbuddy.ui.screens.RootScreen
 import ru.slartus.boostbuddy.utils.GlobalExceptionHandlersChain
 import ru.slartus.boostbuddy.utils.PlatformConfiguration
@@ -31,8 +33,9 @@ class AppActivity : BaseComponentActivity()
 
 class TvAppActivity : BaseComponentActivity()
 
-open class BaseComponentActivity(): ComponentActivity() {
+open class BaseComponentActivity : ComponentActivity() {
     private val globalExceptionHandlersChain by Inject.lazy<GlobalExceptionHandlersChain>()
+    private val platformConfiguration by Inject.lazy<PlatformConfiguration>()
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -51,7 +54,11 @@ open class BaseComponentActivity(): ComponentActivity() {
             }
         }
         setContent {
-            RootScreen(component = root, modifier = Modifier.fillMaxSize())
+            CompositionLocalProvider(
+                LocalPlatformConfiguration provides platformConfiguration
+            ) {
+                RootScreen(component = root, modifier = Modifier.fillMaxSize())
+            }
         }
     }
 }

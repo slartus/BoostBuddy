@@ -4,7 +4,6 @@ import androidx.compose.runtime.Immutable
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
-import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonPrimitive
 
 
@@ -44,7 +43,7 @@ sealed class PostData {
     }
 
     @Serializable
-    data class Video(
+    data class OkVideo(
         val vid: String,
         val title: String,
         val playerUrls: List<PlayerUrl>,
@@ -52,6 +51,24 @@ sealed class PostData {
     ) : PostData()
 
     data class Image(
+        val url: String
+    ) : PostData()
+
+    data class Link(
+        val rawContent: String,
+        val url: String
+    ) : PostData() {
+        private val content: PostDataTextContent? = PostDataTextContent.ofRaw(rawContent)
+        val text: String = content?.text ?: url
+    }
+
+    @Serializable
+    data class Video(
+        val url: String
+    ) : PostData()
+
+    data class AudioFile(
+        val title: String,
         val url: String
     ) : PostData()
 
