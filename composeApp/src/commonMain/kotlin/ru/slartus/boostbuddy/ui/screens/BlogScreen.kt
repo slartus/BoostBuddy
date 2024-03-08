@@ -198,38 +198,42 @@ private fun PostView(post: Post, onVideoClick: (videoData: PostData.Video) -> Un
         )
         Spacer(modifier = Modifier.size(16.dp))
 
-        post.data.forEach { postData ->
-            when (postData) {
-                is PostData.Text -> postData.content.text?.let { text ->
-                    Text(
-                        modifier = Modifier.fillMaxWidth(),
-                        text = text,
-                        color = MaterialTheme.colorScheme.primary,
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                }
-
-                PostData.Unknown -> Text(
-                    modifier = Modifier.fillMaxWidth(),
-                    text = "UNKNOWN_CONTENT",
-                    color = MaterialTheme.colorScheme.error,
-                    style = MaterialTheme.typography.bodyMedium
-                )
-
-                is PostData.Video ->
-                    Box(
-                        modifier = Modifier
-                            .clickable { onVideoClick(postData) }
-                            .heightIn(min = 200.dp)
-
-                    ) {
-                        Image(
-                            modifier = Modifier.widthIn(max = 640.dp).fillMaxWidth()
-                                .wrapContentHeight(),
-                            painter = rememberImagePainter(postData.previewUrl),
-                            contentDescription = "preview",
+        Column(
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            post.data.forEach { postData ->
+                when (postData) {
+                    is PostData.Text -> postData.content.text?.let { text ->
+                        Text(
+                            modifier = Modifier.fillMaxWidth(),
+                            text = text,
+                            color = MaterialTheme.colorScheme.primary,
+                            style = MaterialTheme.typography.bodyMedium
                         )
                     }
+
+                    PostData.Unknown -> Text(
+                        modifier = Modifier.fillMaxWidth(),
+                        text = "UNKNOWN_CONTENT",
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+
+                    is PostData.Video ->
+                        Box(
+                            modifier = Modifier
+                                .clickable { onVideoClick(postData) }
+                                .heightIn(min = 200.dp)
+
+                        ) {
+                            Image(
+                                modifier = Modifier.widthIn(max = 640.dp).fillMaxWidth()
+                                    .wrapContentHeight(),
+                                painter = rememberImagePainter(postData.previewUrl),
+                                contentDescription = "preview",
+                            )
+                        }
+                }
             }
         }
     }

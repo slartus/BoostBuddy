@@ -60,11 +60,10 @@ data class PostDataTextContent(
 ) {
     companion object {
         fun ofRaw(rawContent: String): PostDataTextContent = runCatching {
+            if (rawContent.isEmpty()) return PostDataTextContent(null)
             val x = Json.parseToJsonElement(rawContent) as? JsonArray?
 
-            val text = x?.firstOrNull()?.jsonPrimitive?.contentOrNull
-                ?.trim('"')
-                ?.ifBlank { null }
+            val text = x?.firstOrNull()?.jsonPrimitive?.contentOrNull?.ifEmpty { null }
             return PostDataTextContent(text)
         }.getOrDefault(PostDataTextContent(rawContent))
     }
