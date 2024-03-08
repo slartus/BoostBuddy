@@ -203,10 +203,10 @@ private fun PostView(post: Post, onVideoClick: (videoData: PostData.Video) -> Un
         ) {
             post.data.forEach { postData ->
                 when (postData) {
-                    is PostData.Text -> postData.content.text?.let { text ->
+                    is PostData.Text -> postData.content?.let { content ->
                         Text(
                             modifier = Modifier.fillMaxWidth(),
-                            text = text,
+                            text = content.text,
                             color = MaterialTheme.colorScheme.primary,
                             style = MaterialTheme.typography.bodyMedium
                         )

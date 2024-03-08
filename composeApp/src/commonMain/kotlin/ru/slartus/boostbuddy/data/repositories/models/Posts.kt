@@ -4,7 +4,6 @@ import androidx.compose.runtime.Immutable
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
-import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonPrimitive
 
@@ -41,7 +40,7 @@ sealed class PostData {
         val rawContent: String,
         val modificator: String
     ) : PostData() {
-        val content: PostDataTextContent = PostDataTextContent.ofRaw(rawContent)
+        val content: PostDataTextContent? = PostDataTextContent.ofRaw(rawContent)
     }
 
     @Serializable
@@ -56,14 +55,15 @@ sealed class PostData {
 }
 
 data class PostDataTextContent(
-    val text: String?
+    val text: String
 ) {
     companion object {
-        fun ofRaw(rawContent: String): PostDataTextContent = runCatching {
-            if (rawContent.isEmpty()) return PostDataTextContent(null)
+        fun ofRaw(rawContent: String): PostDataTextContent? = runCatching {
+            if (rawContent.isEmpty()) return null
             val x = Json.parseToJsonElement(rawContent) as? JsonArray?
 
-            val text = x?.firstOrNull()?.jsonPrimitive?.contentOrNull?.ifEmpty { null }
+            val text =
+                x?.firstOrNull()?.jsonPrimitive?.content?.ifEmpty { null } ?: return null
             return PostDataTextContent(text)
         }.getOrDefault(PostDataTextContent(rawContent))
     }
