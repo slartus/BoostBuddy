@@ -1,4 +1,4 @@
-package ru.slartus.boostbuddy.components
+package ru.slartus.boostbuddy.components.blog
 
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.router.slot.ChildSlot
@@ -8,10 +8,12 @@ import com.arkivanov.decompose.router.slot.childSlot
 import com.arkivanov.decompose.router.slot.dismiss
 import com.arkivanov.decompose.value.Value
 import kotlinx.collections.immutable.ImmutableList
-import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
+import ru.slartus.boostbuddy.components.BaseComponent
+import ru.slartus.boostbuddy.components.VideoTypeComponent
+import ru.slartus.boostbuddy.components.VideoTypeComponentImpl
 import ru.slartus.boostbuddy.data.Inject
 import ru.slartus.boostbuddy.data.repositories.Blog
 import ru.slartus.boostbuddy.data.repositories.BlogRepository
@@ -31,20 +33,7 @@ interface BlogComponent {
     fun onBackClicked()
     fun onScrolledToEnd()
     fun onRepeatClicked()
-}
-
-data class BlogViewState(
-    val blog: Blog,
-    val items: ImmutableList<Post> = persistentListOf(),
-    val hasMore: Boolean = true,
-    val progressProgressState: ProgressState = ProgressState.Init,
-) {
-    sealed class ProgressState {
-        data object Init : ProgressState()
-        data object Loading : ProgressState()
-        data object Loaded : ProgressState()
-        data class Error(val description: String) : ProgressState()
-    }
+    fun onErrorItemClicked()
 }
 
 class BlogComponentImpl(
@@ -89,14 +78,14 @@ class BlogComponentImpl(
         }
     }
 
-    private fun fetchBlog(token: String, offset: Offset? = null) {
+    private fun fetchBlog(token: String) {
         viewState =
             viewState.copy(progressProgressState = BlogViewState.ProgressState.Loading)
         scope.launch {
             when (val response = blogRepository.getData(
                 accessToken = token,
                 url = blog.blogUrl,
-                offset = offset
+                offset = null
             )) {
                 is Response.Error -> viewState =
                     viewState.copy(
@@ -106,8 +95,9 @@ class BlogComponentImpl(
                     )
 
                 is Response.Success -> {
-                    val newItems = (viewState.items + response.data.items)
-                        .distinctBy { it.intId }.toImmutableList()
+                    val newItems = response.data.items
+                        .map { BlogItem.PostItem(it) }
+                        .toImmutableList()
                     viewState =
                         viewState.copy(
                             items = newItems,
@@ -118,6 +108,42 @@ class BlogComponentImpl(
             }
         }
     }
+
+    private fun fetchBlog(token: String, offset: Offset? = null) {
+        viewState = viewState.copy(items = viewState.items.plusItem(BlogItem.LoadingItem))
+        scope.launch {
+            when (val response = blogRepository.getData(
+                accessToken = token,
+                url = blog.blogUrl,
+                offset = offset
+            )) {
+                is Response.Error -> viewState =
+                    viewState.copy(items = viewState.items.plusItem(BlogItem.ErrorItem(response.exception.messageOrThrow())))
+
+                is Response.Success -> {
+                    val newItems =
+                        viewState.items.plusItems(response.data.items.map { BlogItem.PostItem(it) })
+
+                    viewState =
+                        viewState.copy(
+                            items = newItems,
+                            hasMore = !response.data.isLast,
+                            progressProgressState = BlogViewState.ProgressState.Loaded
+                        )
+                }
+            }
+        }
+    }
+
+    private fun fetchNext() {
+        scope.launch {
+            val token = settingsRepository.getAccessToken() ?: unauthorizedError()
+            val lastItem = viewState.items.filterIsInstance<BlogItem.PostItem>().last()
+            val offset = Offset(lastItem.post.intId, lastItem.post.createdAt)
+            fetchBlog(token, offset)
+        }
+    }
+
 
     @Serializable
     private data class DialogConfig(
@@ -134,11 +160,7 @@ class BlogComponentImpl(
     }
 
     override fun onScrolledToEnd() {
-        scope.launch {
-            val token = settingsRepository.getAccessToken() ?: unauthorizedError()
-            val offset = viewState.items.last().let { Offset(it.intId, it.createdAt) }
-            fetchBlog(token, offset)
-        }
+        fetchNext()
     }
 
     override fun onRepeatClicked() {
@@ -146,5 +168,23 @@ class BlogComponentImpl(
             val token = settingsRepository.getAccessToken() ?: unauthorizedError()
             fetchBlog(token)
         }
+    }
+
+    override fun onErrorItemClicked() {
+        fetchNext()
+    }
+
+    companion object {
+        private fun List<BlogItem>.plusItems(items: List<BlogItem>): ImmutableList<BlogItem> =
+            dropLastWhile { it !is BlogItem.PostItem }
+                .plus(items)
+                .distinctBy { it.key }
+                .toImmutableList()
+
+        private fun List<BlogItem>.plusItem(item: BlogItem): ImmutableList<BlogItem> =
+            dropLastWhile { it !is BlogItem.PostItem }
+                .plus(item)
+                .distinctBy { it.key }
+                .toImmutableList()
     }
 }

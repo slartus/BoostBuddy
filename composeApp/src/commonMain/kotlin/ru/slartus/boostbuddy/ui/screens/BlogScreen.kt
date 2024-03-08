@@ -19,8 +19,10 @@ import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -42,8 +44,9 @@ import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
 import com.seiko.imageloader.rememberImagePainter
 import kotlinx.collections.immutable.ImmutableList
-import ru.slartus.boostbuddy.components.BlogComponent
-import ru.slartus.boostbuddy.components.BlogViewState
+import ru.slartus.boostbuddy.components.blog.BlogComponent
+import ru.slartus.boostbuddy.components.blog.BlogItem
+import ru.slartus.boostbuddy.components.blog.BlogViewState
 import ru.slartus.boostbuddy.data.repositories.models.PlayerUrl
 import ru.slartus.boostbuddy.data.repositories.models.Post
 import ru.slartus.boostbuddy.data.repositories.models.PostData
@@ -82,6 +85,7 @@ fun BlogScreen(component: BlogComponent) {
                     message = progressState.description,
                     onRepeatClick = { component.onRepeatClicked() }
                 )
+
                 BlogViewState.ProgressState.Init,
                 BlogViewState.ProgressState.Loading -> LoaderView()
 
@@ -89,8 +93,9 @@ fun BlogScreen(component: BlogComponent) {
                     PostsView(
                         items = state.items,
                         canLoadMore = state.hasMore,
-                        onItemClick = remember { { component.onItemClicked(it) } },
-                        onScrolledToEnd = remember { { component.onScrolledToEnd() } }
+                        onItemClick = { component.onItemClicked(it) },
+                        onScrolledToEnd = { component.onScrolledToEnd() },
+                        onErrorItemClick = { component.onErrorItemClicked() },
                     )
             }
         }
@@ -139,10 +144,11 @@ private fun VideoTypeDialogView(
 
 @Composable
 private fun PostsView(
-    items: ImmutableList<Post>,
+    items: ImmutableList<BlogItem>,
     canLoadMore: Boolean,
     onItemClick: (Post) -> Unit,
-    onScrolledToEnd: () -> Unit
+    onScrolledToEnd: () -> Unit,
+    onErrorItemClick: () -> Unit
 ) {
     val listScrollState = rememberLazyListState()
 
@@ -157,12 +163,19 @@ private fun PostsView(
         state = listScrollState,
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        items(items, key = { it.intId }) { item ->
-            PostView(item, onClick = { onItemClick(item) })
+        items(items, key = { it.key }, contentType = { it.contentType }) { item ->
+            when (item) {
+                is BlogItem.ErrorItem -> ErrorView(
+                    item.description,
+                    onClick = { onErrorItemClick() })
+
+                BlogItem.LoadingItem -> LoadingView()
+                is BlogItem.PostItem -> PostView(item.post, onClick = { onItemClick(item.post) })
+            }
         }
     }
     LaunchedEffect(endOfListReached.value, items) {
-        if (endOfListReached.value && canLoadMore) {
+        if (endOfListReached.value && canLoadMore && items.last() is BlogItem.PostItem) {
             onScrolledToEnd()
         }
     }
@@ -194,5 +207,31 @@ private fun PostView(post: Post, onClick: () -> Unit) {
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun LoadingView() {
+    Box(
+        modifier = Modifier.fillMaxSize().padding(8.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        CircularProgressIndicator(Modifier.size(24.dp))
+    }
+}
+
+@Composable
+private fun ErrorView(description: String, onClick: () -> Unit) {
+    Box(
+        modifier = Modifier.fillMaxSize()
+            .background(MaterialTheme.colorScheme.errorContainer)
+            .clickable { onClick() }.padding(8.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = description,
+            color = MaterialTheme.colorScheme.onErrorContainer,
+            style = MaterialTheme.typography.titleMedium
+        )
     }
 }
