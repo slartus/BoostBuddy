@@ -2,6 +2,11 @@ package ru.slartus.boostbuddy.data.repositories.models
 
 import androidx.compose.runtime.Immutable
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.jsonPrimitive
 
 
 data class Offset(
@@ -35,7 +40,9 @@ sealed class PostData {
     data class Text(
         val rawContent: String,
         val modificator: String
-    ) : PostData()
+    ) : PostData() {
+        val content: PostDataTextContent = PostDataTextContent.ofRaw(rawContent)
+    }
 
     @Serializable
     data class Video(
@@ -46,6 +53,21 @@ sealed class PostData {
     ) : PostData()
 
     data object Unknown : PostData()
+}
+
+data class PostDataTextContent(
+    val text: String?
+) {
+    companion object {
+        fun ofRaw(rawContent: String): PostDataTextContent = runCatching {
+            val x = Json.parseToJsonElement(rawContent) as? JsonArray?
+
+            val text = x?.firstOrNull()?.jsonPrimitive?.contentOrNull
+                ?.trim('"')
+                ?.ifBlank { null }
+            return PostDataTextContent(text)
+        }.getOrDefault(PostDataTextContent(rawContent))
+    }
 }
 
 @Serializable

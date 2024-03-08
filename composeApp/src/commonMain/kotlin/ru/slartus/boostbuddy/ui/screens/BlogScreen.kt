@@ -186,7 +186,8 @@ private fun PostsView(
 private fun PostView(post: Post, onVideoClick: (videoData: PostData.Video) -> Unit) {
     Column(
         modifier = Modifier
-            .background(MaterialTheme.colorScheme.primaryContainer),
+            .background(MaterialTheme.colorScheme.primaryContainer)
+            .padding(16.dp),
         horizontalAlignment = CenterHorizontally
     ) {
         Text(
@@ -199,12 +200,14 @@ private fun PostView(post: Post, onVideoClick: (videoData: PostData.Video) -> Un
 
         post.data.forEach { postData ->
             when (postData) {
-                is PostData.Text -> Text(
-                    modifier = Modifier.fillMaxWidth(),
-                    text = postData.rawContent,
-                    color = MaterialTheme.colorScheme.primary,
-                    style = MaterialTheme.typography.bodyMedium
-                )
+                is PostData.Text -> postData.content.text?.let { text ->
+                    Text(
+                        modifier = Modifier.fillMaxWidth(),
+                        text = text,
+                        color = MaterialTheme.colorScheme.primary,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
 
                 PostData.Unknown -> Text(
                     modifier = Modifier.fillMaxWidth(),
@@ -216,7 +219,7 @@ private fun PostView(post: Post, onVideoClick: (videoData: PostData.Video) -> Un
                 is PostData.Video ->
                     Box(
                         modifier = Modifier
-                            .clickable { onVideoClick(postData) }.padding(16.dp)
+                            .clickable { onVideoClick(postData) }
                             .heightIn(min = 200.dp)
 
                     ) {
