@@ -62,7 +62,11 @@ fun SubscribesScreen(component: SubscribesComponent) {
             contentAlignment = Center
         ) {
             when (val progressState = state.progressProgressState) {
-                is SubscribesViewState.ProgressState.Error -> ErrorView(progressState.description)
+                is SubscribesViewState.ProgressState.Error -> ErrorView(
+                    message = progressState.description,
+                    onRepeatClick = { component.onRepeatClicked() }
+                )
+
                 SubscribesViewState.ProgressState.Init,
                 SubscribesViewState.ProgressState.Loading -> LoaderView()
 

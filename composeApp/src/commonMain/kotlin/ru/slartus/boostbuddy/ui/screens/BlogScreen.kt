@@ -21,7 +21,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -36,6 +35,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Alignment.Companion.CenterHorizontally
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -48,6 +48,8 @@ import ru.slartus.boostbuddy.data.repositories.models.PlayerUrl
 import ru.slartus.boostbuddy.data.repositories.models.Post
 import ru.slartus.boostbuddy.data.repositories.models.PostData
 import ru.slartus.boostbuddy.ui.common.isEndOfListReached
+import ru.slartus.boostbuddy.ui.widgets.ErrorView
+import ru.slartus.boostbuddy.ui.widgets.LoaderView
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -71,27 +73,27 @@ fun BlogScreen(component: BlogComponent) {
             )
         },
     ) { innerPadding ->
-        Column(
-            modifier = Modifier.padding(innerPadding),
-            horizontalAlignment = CenterHorizontally
+        Box(
+            modifier = Modifier.fillMaxSize().padding(innerPadding),
+            contentAlignment = Alignment.Center
         ) {
             when (val progressState = state.progressProgressState) {
-                is BlogViewState.ProgressState.Error -> Text(text = progressState.description)
-                BlogViewState.ProgressState.Init,
-                BlogViewState.ProgressState.Loading -> CircularProgressIndicator(
-                    modifier = Modifier.size(48.dp)
+                is BlogViewState.ProgressState.Error -> ErrorView(
+                    message = progressState.description,
+                    onRepeatClick = { component.onRepeatClicked() }
                 )
+                BlogViewState.ProgressState.Init,
+                BlogViewState.ProgressState.Loading -> LoaderView()
 
-                is BlogViewState.ProgressState.Loaded -> Unit
+                is BlogViewState.ProgressState.Loaded ->
+                    PostsView(
+                        items = state.items,
+                        canLoadMore = state.hasMore,
+                        onItemClick = remember { { component.onItemClicked(it) } },
+                        onScrolledToEnd = remember { { component.onScrolledToEnd() } }
+                    )
             }
-            PostsView(
-                items = state.items,
-                canLoadMore = state.hasMore,
-                onItemClick = remember { { component.onItemClicked(it) } },
-                onScrolledToEnd = remember { { component.onScrolledToEnd() } }
-            )
         }
-
 
         val dialogSlot by component.dialogSlot.subscribeAsState()
         dialogSlot.child?.instance?.also { videoTypeComponent ->

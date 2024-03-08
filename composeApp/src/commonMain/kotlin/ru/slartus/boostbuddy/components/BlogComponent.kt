@@ -30,6 +30,7 @@ interface BlogComponent {
     fun onItemClicked(post: Post)
     fun onBackClicked()
     fun onScrolledToEnd()
+    fun onRepeatClicked()
 }
 
 data class BlogViewState(
@@ -137,6 +138,13 @@ class BlogComponentImpl(
             val token = settingsRepository.getAccessToken() ?: unauthorizedError()
             val offset = viewState.items.last().let { Offset(it.intId, it.createdAt) }
             fetchBlog(token, offset)
+        }
+    }
+
+    override fun onRepeatClicked() {
+        scope.launch {
+            val token = settingsRepository.getAccessToken() ?: unauthorizedError()
+            fetchBlog(token)
         }
     }
 }
