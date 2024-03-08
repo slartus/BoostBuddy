@@ -51,6 +51,10 @@ sealed class PostData {
         val previewUrl: String,
     ) : PostData()
 
+    data class Image(
+        val url: String
+    ) : PostData()
+
     data object Unknown : PostData()
 }
 

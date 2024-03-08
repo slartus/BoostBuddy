@@ -233,6 +233,17 @@ private fun PostView(post: Post, onVideoClick: (videoData: PostData.Video) -> Un
                                 contentDescription = "preview",
                             )
                         }
+
+                    is PostData.Image -> {
+                        Box(modifier = Modifier.heightIn(min = 200.dp)) {
+                            Image(
+                                modifier = Modifier.widthIn(max = 640.dp).fillMaxWidth()
+                                    .wrapContentHeight(),
+                                painter = rememberImagePainter(postData.url),
+                                contentDescription = "url",
+                            )
+                        }
+                    }
                 }
             }
         }

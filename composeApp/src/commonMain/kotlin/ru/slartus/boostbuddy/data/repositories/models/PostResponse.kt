@@ -29,6 +29,7 @@ internal data class PostResponse(
 
     @Serializable
     data class PostData(
+        val id: String? = null,
         val vid: String? = null,
         val title: String? = null,
         val type: String? = null,//image, text, link, ok_video

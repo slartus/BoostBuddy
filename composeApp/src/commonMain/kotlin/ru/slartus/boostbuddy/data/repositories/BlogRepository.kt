@@ -24,11 +24,10 @@ internal class BlogRepository(
             val response: PostResponse =
                 httpClient.get("https://api.boosty.to/v1/blog/$url/post/") {
                     header(HttpHeaders.Authorization, "Bearer $accessToken")
-                    parameter("limit", "25")
+                    parameter("limit", "125")
                     offset?.let {
                         parameter("offset", "${offset.createdAt}:${offset.postId}")
                     }
-                    //  parameter("offset", "0")
                     parameter("comments_limit", "0")
                     parameter("reply_limit", "0")
                 }.body()
@@ -53,6 +52,10 @@ private fun PostResponse.PostData.mapToPostDataOrNull(): PostData? {
         "text" -> PostData.Text(
             rawContent = content.orEmpty(),
             modificator = modificator.orEmpty(),
+        )
+
+        "image" -> PostData.Image(
+            url = url ?: return null,
         )
 
         else -> PostData.Unknown
