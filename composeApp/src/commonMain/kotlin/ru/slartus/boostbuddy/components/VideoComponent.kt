@@ -6,8 +6,8 @@ import ru.slartus.boostbuddy.components.VideoState.Buffering
 import ru.slartus.boostbuddy.components.VideoState.Ended
 import ru.slartus.boostbuddy.components.VideoState.Idle
 import ru.slartus.boostbuddy.components.VideoState.Ready
-import ru.slartus.boostbuddy.data.repositories.PlayerUrl
-import ru.slartus.boostbuddy.data.repositories.PostData
+import ru.slartus.boostbuddy.data.repositories.models.PlayerUrl
+import ru.slartus.boostbuddy.data.repositories.models.PostData
 
 interface VideoComponent {
     val viewStates: Value<VideoViewState>

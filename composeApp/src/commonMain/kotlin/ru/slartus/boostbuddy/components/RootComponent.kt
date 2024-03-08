@@ -11,8 +11,8 @@ import com.arkivanov.decompose.router.stack.push
 import com.arkivanov.decompose.value.Value
 import kotlinx.serialization.Serializable
 import ru.slartus.boostbuddy.data.repositories.Blog
-import ru.slartus.boostbuddy.data.repositories.PlayerUrl
-import ru.slartus.boostbuddy.data.repositories.PostData
+import ru.slartus.boostbuddy.data.repositories.models.PlayerUrl
+import ru.slartus.boostbuddy.data.repositories.models.PostData
 
 interface RootComponent {
     val stack: Value<ChildStack<*, Child>>

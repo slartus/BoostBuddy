@@ -1,7 +1,7 @@
 package ru.slartus.boostbuddy.components
 
-import ru.slartus.boostbuddy.data.repositories.PlayerUrl
-import ru.slartus.boostbuddy.data.repositories.PostData
+import ru.slartus.boostbuddy.data.repositories.models.PlayerUrl
+import ru.slartus.boostbuddy.data.repositories.models.PostData
 
 interface VideoTypeComponent {
     val postData: PostData

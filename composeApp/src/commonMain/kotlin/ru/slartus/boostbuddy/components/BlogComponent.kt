@@ -15,11 +15,11 @@ import kotlinx.serialization.Serializable
 import ru.slartus.boostbuddy.data.Inject
 import ru.slartus.boostbuddy.data.repositories.Blog
 import ru.slartus.boostbuddy.data.repositories.BlogRepository
-import ru.slartus.boostbuddy.data.repositories.Offset
-import ru.slartus.boostbuddy.data.repositories.PlayerUrl
-import ru.slartus.boostbuddy.data.repositories.Post
-import ru.slartus.boostbuddy.data.repositories.PostData
 import ru.slartus.boostbuddy.data.repositories.SettingsRepository
+import ru.slartus.boostbuddy.data.repositories.models.Offset
+import ru.slartus.boostbuddy.data.repositories.models.PlayerUrl
+import ru.slartus.boostbuddy.data.repositories.models.Post
+import ru.slartus.boostbuddy.data.repositories.models.PostData
 import ru.slartus.boostbuddy.utils.Response
 import ru.slartus.boostbuddy.utils.messageOrThrow
 import ru.slartus.boostbuddy.utils.unauthorizedError

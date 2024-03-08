@@ -44,9 +44,9 @@ import com.seiko.imageloader.rememberImagePainter
 import kotlinx.collections.immutable.ImmutableList
 import ru.slartus.boostbuddy.components.BlogComponent
 import ru.slartus.boostbuddy.components.BlogViewState
-import ru.slartus.boostbuddy.data.repositories.PlayerUrl
-import ru.slartus.boostbuddy.data.repositories.Post
-import ru.slartus.boostbuddy.data.repositories.PostData
+import ru.slartus.boostbuddy.data.repositories.models.PlayerUrl
+import ru.slartus.boostbuddy.data.repositories.models.Post
+import ru.slartus.boostbuddy.data.repositories.models.PostData
 import ru.slartus.boostbuddy.utils.isEndOfListReached
 
 @OptIn(ExperimentalMaterial3Api::class)
