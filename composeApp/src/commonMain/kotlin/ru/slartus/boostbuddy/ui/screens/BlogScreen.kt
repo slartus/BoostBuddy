@@ -2,7 +2,9 @@ package ru.slartus.boostbuddy.ui.screens
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -35,11 +37,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Alignment.Companion.CenterHorizontally
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
 import com.seiko.imageloader.rememberImagePainter
@@ -185,33 +189,36 @@ private fun PostsView(
 
 @Composable
 private fun PostView(post: Post, onVideoClick: (okVideoData: PostData.OkVideo) -> Unit) {
-
     Column(
         modifier = Modifier
             .background(MaterialTheme.colorScheme.primaryContainer)
             .padding(16.dp),
         horizontalAlignment = CenterHorizontally
     ) {
-        Text(
-            modifier = Modifier.fillMaxWidth(),
-            text = post.title,
-            color = MaterialTheme.colorScheme.primary,
-            style = MaterialTheme.typography.titleMedium
-        )
+        FocusableBox {
+            Text(
+                modifier = Modifier.fillMaxWidth().focusable(),
+                text = post.title,
+                color = MaterialTheme.colorScheme.primary,
+                style = MaterialTheme.typography.titleMedium
+            )
+        }
         Spacer(modifier = Modifier.size(16.dp))
 
         Column(
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             post.data.forEach { postData ->
-                when (postData) {
-                    is PostData.Text -> PostDataTextView(postData)
-                    PostData.Unknown -> PostDataUnknownView()
-                    is PostData.OkVideo -> PostDataOkVideoView(postData, onVideoClick)
-                    is PostData.Image -> PostDataImageView(postData)
-                    is PostData.Link -> PostDataLinkView(postData)
-                    is PostData.Video -> PostDataVideoView(postData)
-                    is PostData.AudioFile -> PostDataAudioFileView(postData)
+                FocusableBox {
+                    when (postData) {
+                        is PostData.Text -> PostDataTextView(postData)
+                        PostData.Unknown -> PostDataUnknownView()
+                        is PostData.OkVideo -> PostDataOkVideoView(postData, onVideoClick)
+                        is PostData.Image -> PostDataImageView(postData)
+                        is PostData.Link -> PostDataLinkView(postData)
+                        is PostData.Video -> PostDataVideoView(postData)
+                        is PostData.AudioFile -> PostDataAudioFileView(postData)
+                    }
                 }
             }
         }
@@ -254,6 +261,7 @@ private fun PostDataLinkView(
     postData: PostData.Link
 ) {
     val platformConfiguration = LocalPlatformConfiguration.current
+
     Text(
         modifier = Modifier.fillMaxWidth().clickable {
             platformConfiguration.openBrowser(postData.url)
@@ -266,7 +274,7 @@ private fun PostDataLinkView(
 
 @Composable
 private fun PostDataImageView(postData: PostData.Image) {
-    Box(modifier = Modifier.heightIn(min = 200.dp)) {
+    Box(modifier = Modifier.heightIn(min = 200.dp).focusable()) {
         Image(
             modifier = Modifier.widthIn(max = 640.dp).fillMaxWidth()
                 .wrapContentHeight(),
@@ -285,7 +293,6 @@ private fun PostDataOkVideoView(
         modifier = Modifier
             .clickable { onVideoClick(postData) }
             .heightIn(min = 200.dp)
-
     ) {
         Image(
             modifier = Modifier.widthIn(max = 640.dp).fillMaxWidth()
@@ -293,6 +300,20 @@ private fun PostDataOkVideoView(
             painter = rememberImagePainter(postData.previewUrl),
             contentDescription = "preview",
         )
+    }
+}
+
+@Composable
+private fun FocusableBox(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
+    var focused by remember { mutableStateOf(false) }
+    Box(modifier
+        .then(
+            if (focused) Modifier.border(0.5.dp, MaterialTheme.colorScheme.primary)
+            else Modifier
+        )
+        .onFocusChanged { focused = it.isFocused }
+        .focusable()) {
+        content()
     }
 }
 
@@ -310,7 +331,7 @@ private fun PostDataUnknownView() {
 private fun PostDataTextView(postData: PostData.Text) {
     postData.content?.let { content ->
         Text(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth().focusable(),
             text = content.text,
             color = MaterialTheme.colorScheme.primary,
             style = MaterialTheme.typography.bodyMedium
