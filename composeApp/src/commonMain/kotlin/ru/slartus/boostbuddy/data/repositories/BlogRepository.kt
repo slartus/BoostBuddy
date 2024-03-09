@@ -10,6 +10,7 @@ import ru.slartus.boostbuddy.data.repositories.models.Offset
 import ru.slartus.boostbuddy.data.repositories.models.PlayerUrl
 import ru.slartus.boostbuddy.data.repositories.models.Post
 import ru.slartus.boostbuddy.data.repositories.models.PostData
+import ru.slartus.boostbuddy.data.repositories.models.PostDataTextContent
 import ru.slartus.boostbuddy.data.repositories.models.PostResponse
 import ru.slartus.boostbuddy.data.repositories.models.PostUser
 import ru.slartus.boostbuddy.data.repositories.models.Posts
@@ -53,10 +54,12 @@ private fun PostResponse.PostData.mapToPostDataOrNull(): PostData? {
             url = url ?: return null,
         )
 
-        "text" -> PostData.Text(
-            rawContent = content.orEmpty(),
-            modificator = modificator.orEmpty(),
-        )
+        "text" -> {
+            PostData.Text(
+                content = PostDataTextContent.ofRaw(content.orEmpty()) ?: return null,
+                modificator = modificator.orEmpty(),
+            )
+        }
 
         "image" -> PostData.Image(
             url = url ?: return null,

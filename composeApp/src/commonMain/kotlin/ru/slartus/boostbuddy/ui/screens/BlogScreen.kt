@@ -329,14 +329,12 @@ private fun PostDataUnknownView() {
 
 @Composable
 private fun PostDataTextView(postData: PostData.Text) {
-    postData.content?.let { content ->
-        Text(
-            modifier = Modifier.fillMaxWidth().focusable(),
-            text = content.text,
-            color = MaterialTheme.colorScheme.primary,
-            style = MaterialTheme.typography.bodyMedium
-        )
-    }
+    Text(
+        modifier = Modifier.fillMaxWidth().focusable(),
+        text = postData.content.text,
+        color = MaterialTheme.colorScheme.primary,
+        style = MaterialTheme.typography.bodyMedium
+    )
 }
 
 @Composable

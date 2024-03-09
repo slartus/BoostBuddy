@@ -36,11 +36,9 @@ data class PostUser(
 @Immutable
 sealed class PostData {
     data class Text(
-        val rawContent: String,
+        val content: PostDataTextContent,
         val modificator: String
-    ) : PostData() {
-        val content: PostDataTextContent? = PostDataTextContent.ofRaw(rawContent)
-    }
+    ) : PostData()
 
     @Serializable
     data class OkVideo(
