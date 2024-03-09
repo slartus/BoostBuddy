@@ -6,6 +6,7 @@ import com.arkivanov.decompose.extensions.compose.jetbrains.stack.Children
 import com.arkivanov.decompose.extensions.compose.jetbrains.stack.animation.fade
 import com.arkivanov.decompose.extensions.compose.jetbrains.stack.animation.stackAnimation
 import ru.slartus.boostbuddy.components.RootComponent
+import ru.slartus.boostbuddy.ui.screens.blog.BlogScreen
 import ru.slartus.boostbuddy.ui.theme.AppTheme
 
 
