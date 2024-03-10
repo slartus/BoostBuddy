@@ -19,20 +19,18 @@ import ru.slartus.boostbuddy.components.AuthComponent
 
 @Composable
 fun AuthScreen(component: AuthComponent) {
-    Scaffold {
-        Column(modifier = Modifier.fillMaxSize()) {
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(16.dp),
-                verticalAlignment = CenterVertically
-            ) {
-                CircularProgressIndicator(modifier = Modifier.size(24.dp))
-                Spacer(modifier = Modifier.padding(8.dp))
-                Text(
-                    text = "Ожидание авторизационной куки"
-                )
-            }
-
-            WebView("https://boosty.to", onCookieChange = component::onCookiesChanged)
+    Column(modifier = Modifier.fillMaxSize()) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(16.dp),
+            verticalAlignment = CenterVertically
+        ) {
+            CircularProgressIndicator(modifier = Modifier.size(24.dp))
+            Spacer(modifier = Modifier.padding(8.dp))
+            Text(
+                text = "Ожидание авторизационной куки"
+            )
         }
+
+        WebView("https://boosty.to", onCookieChange = component::onCookiesChanged)
     }
 }

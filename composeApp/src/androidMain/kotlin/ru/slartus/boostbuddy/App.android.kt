@@ -7,6 +7,7 @@ import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import com.arkivanov.decompose.defaultComponentContext
 import ru.slartus.boostbuddy.components.RootComponentImpl
 import ru.slartus.boostbuddy.data.Inject
@@ -37,6 +38,7 @@ open class BaseComponentActivity : ComponentActivity() {
     private val globalExceptionHandlersChain by Inject.lazy<GlobalExceptionHandlersChain>()
     private val platformConfiguration by Inject.lazy<PlatformConfiguration>()
     override fun onCreate(savedInstanceState: Bundle?) {
+        installSplashScreen()
         super.onCreate(savedInstanceState)
 
         val root = RootComponentImpl(componentContext = defaultComponentContext())

@@ -10,7 +10,7 @@
         android:name=".AndroidApp"
         android:icon="@drawable/ic_launcher"
         android:label="BoostBuddy"
-        android:theme="@style/Theme.AppCompat.DayNight.NoActionBar"
+        android:theme="@style/AppTheme.App"
         android:banner="@drawable/ic_launcher"
         >
         <activity

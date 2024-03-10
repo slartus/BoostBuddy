@@ -74,6 +74,7 @@ kotlin {
             implementation(libs.exoplayer.hls)
             implementation(libs.exoplayer.rtsp)
             implementation(libs.exoplayer.smoothstreaming)
+            implementation(libs.android.splashscreen)
         }
 
         iosMain.dependencies {
