@@ -83,14 +83,57 @@ private fun PostDataVideoView(
     postData: PostData.Video
 ) {
     val platformConfiguration = LocalPlatformConfiguration.current
-    Text(
-        modifier = Modifier.fillMaxWidth().clickable {
-            platformConfiguration.openBrowser(postData.url)
-        },
-        text = postData.url,
-        color = MaterialTheme.colorScheme.primary,
-        style = MaterialTheme.typography.labelMedium
-    )
+    if (postData.previewUrl != null) {
+        VideoPreview(
+            url = postData.previewUrl,
+            onClick = {
+                platformConfiguration.openBrowser(postData.url)
+            }
+        )
+    } else {
+        Text(
+            modifier = Modifier.fillMaxWidth().clickable {
+                platformConfiguration.openBrowser(postData.url)
+            },
+            text = postData.url,
+            color = MaterialTheme.colorScheme.primary,
+            style = MaterialTheme.typography.labelMedium
+        )
+    }
+}
+
+@Composable
+private fun VideoPreview(url: String, onClick: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .clickable { onClick() }
+            .heightIn(min = 200.dp)
+    ) {
+        Image(
+            modifier = Modifier.widthIn(max = 640.dp).fillMaxWidth()
+                .wrapContentHeight(),
+            painter = rememberImagePainter(url),
+            contentDescription = "preview",
+        )
+
+        Box(
+            modifier = Modifier
+                .size(68.dp)
+                .background(
+                    color = MaterialTheme.colorScheme.scrim.copy(alpha = 0.5f),
+                    shape = CircleShape
+                )
+                .align(Alignment.Center)
+                .padding(4.dp)
+        ) {
+            Icon(
+                modifier = Modifier.fillMaxSize(),
+                tint = LightColorScheme.background,
+                imageVector = Icons.Filled.PlayArrow,
+                contentDescription = "Play video icon"
+            )
+        }
+    }
 }
 
 
@@ -127,34 +170,5 @@ private fun PostDataOkVideoView(
     postData: PostData.OkVideo,
     onVideoClick: (okVideoData: PostData.OkVideo) -> Unit,
 ) {
-    Box(
-        modifier = Modifier
-            .clickable { onVideoClick(postData) }
-            .heightIn(min = 200.dp)
-    ) {
-        Image(
-            modifier = Modifier.widthIn(max = 640.dp).fillMaxWidth()
-                .wrapContentHeight(),
-            painter = rememberImagePainter(postData.previewUrl),
-            contentDescription = "preview",
-        )
-
-        Box(
-            modifier = Modifier
-                .size(68.dp)
-                .background(
-                    color = MaterialTheme.colorScheme.scrim.copy(alpha = 0.5f),
-                    shape = CircleShape
-                )
-                .align(Alignment.Center)
-                .padding(4.dp)
-        ) {
-            Icon(
-                modifier = Modifier.fillMaxSize(),
-                tint = LightColorScheme.background,
-                imageVector = Icons.Filled.PlayArrow,
-                contentDescription = "Play video icon"
-            )
-        }
-    }
+    VideoPreview(postData.previewUrl, onClick = { onVideoClick(postData) })
 }

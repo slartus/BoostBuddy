@@ -1,6 +1,7 @@
 package ru.slartus.boostbuddy.data.repositories.models
 
 import androidx.compose.runtime.Immutable
+import io.ktor.http.Url
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
@@ -60,10 +61,17 @@ sealed class PostData {
         val text: String = content?.text ?: url
     }
 
-    @Serializable
     data class Video(
         val url: String
-    ) : PostData()
+    ) : PostData() {
+        private val uri: Url? = runCatching { Url(url) }.getOrNull()
+        private val isYoutube: Boolean = uri?.host?.equals("www.youtube.com", ignoreCase = true) == true
+        val previewUrl: String? = if (isYoutube && uri != null) getYoutubePreviewUrl(uri.parameters["v"]) else null
+        companion object{
+            private fun getYoutubePreviewUrl(youtubeId: String?): String =
+                "https://img.youtube.com/vi/$youtubeId/maxresdefault.jpg"
+        }
+    }
 
     data class AudioFile(
         val title: String,
