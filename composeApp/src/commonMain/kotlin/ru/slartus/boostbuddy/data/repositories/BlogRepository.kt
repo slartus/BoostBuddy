@@ -40,12 +40,23 @@ internal class BlogRepository(
         }
 }
 
+val playerUrlsComparator = object : Comparator<PlayerUrl> {
+    private val sortedQualities =
+        listOf("tiny", "lowest", "low", "hls", "medium", "high", "quad_hd", "full_hd")
+            .reversed()
+
+    override fun compare(a: PlayerUrl, b: PlayerUrl): Int =
+        sortedQualities.indexOf(a.type).compareTo(sortedQualities.indexOf(b.type))
+
+}
+
 private fun PostResponse.PostData.mapToPostDataOrNull(): PostData? {
     return when (type) {
         "ok_video" -> PostData.OkVideo(
             vid = vid ?: return null,
             title = title.orEmpty(),
             playerUrls = playerUrls?.mapNotNull { it.mapToPlayerUrlOrNull() }.orEmpty()
+                .sortedWith(playerUrlsComparator)
                 .ifEmpty { return null },
             previewUrl = preview ?: defaultPreview ?: return null,
         )

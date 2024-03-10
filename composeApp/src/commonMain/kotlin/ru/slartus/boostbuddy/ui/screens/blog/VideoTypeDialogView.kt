@@ -1,8 +1,8 @@
 package ru.slartus.boostbuddy.ui.screens.blog
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -42,7 +42,7 @@ internal fun VideoTypeDialogView(
                     text = it.type
                 )
             }
-            Spacer(modifier = Modifier.height(48.dp))
+            Box(modifier = Modifier.height(64.dp))
         }
     }
 }
