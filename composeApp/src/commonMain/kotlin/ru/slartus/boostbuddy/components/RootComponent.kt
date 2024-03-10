@@ -9,6 +9,7 @@ import com.arkivanov.decompose.router.stack.popTo
 import com.arkivanov.decompose.router.stack.popWhile
 import com.arkivanov.decompose.router.stack.push
 import com.arkivanov.decompose.value.Value
+import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import ru.slartus.boostbuddy.components.auth.AuthComponent
 import ru.slartus.boostbuddy.components.auth.AuthComponentImpl
@@ -18,13 +19,15 @@ import ru.slartus.boostbuddy.components.subscribes.SubscribesComponent
 import ru.slartus.boostbuddy.components.subscribes.SubscribesComponentImpl
 import ru.slartus.boostbuddy.components.video.VideoComponent
 import ru.slartus.boostbuddy.components.video.VideoComponentImpl
+import ru.slartus.boostbuddy.data.Inject
 import ru.slartus.boostbuddy.data.repositories.Blog
+import ru.slartus.boostbuddy.data.repositories.SettingsRepository
 import ru.slartus.boostbuddy.data.repositories.models.PlayerUrl
 import ru.slartus.boostbuddy.data.repositories.models.PostData
 
 interface RootComponent {
     val stack: Value<ChildStack<*, Child>>
-
+    val viewStates: Value<RootViewState>
     // It's possible to pop multiple screens at a time on iOS
     fun onBackClicked(toIndex: Int)
 
@@ -37,12 +40,15 @@ interface RootComponent {
     }
 }
 
+data class RootViewState(
+    val darkMode: Boolean?
+)
+
 class RootComponentImpl(
     componentContext: ComponentContext,
-) : RootComponent, ComponentContext by componentContext {
-
+) : BaseComponent<RootViewState>(componentContext, RootViewState(darkMode = null)), RootComponent {
     private val navigation = StackNavigation<Config>()
-
+    private val settingsRepository by Inject.lazy<SettingsRepository>()
     override val stack: Value<ChildStack<*, RootComponent.Child>> =
         childStack(
             source = navigation,
@@ -51,6 +57,18 @@ class RootComponentImpl(
             handleBackButton = true,
             childFactory = ::child,
         )
+
+    init {
+        subscribeSettings()
+    }
+
+    private fun subscribeSettings() {
+        scope.launch {
+            settingsRepository.darkModeFlow.collect {
+                viewState = viewState.copy(darkMode = it)
+            }
+        }
+    }
 
     fun showAuthorizeComponent() {
         navigation.push(Config.Auth)

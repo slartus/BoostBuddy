@@ -17,6 +17,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.DarkMode
+import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material.icons.filled.Logout
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -38,19 +40,34 @@ import com.seiko.imageloader.rememberImagePainter
 import ru.slartus.boostbuddy.components.subscribes.SubscribesComponent
 import ru.slartus.boostbuddy.components.subscribes.SubscribesViewState
 import ru.slartus.boostbuddy.data.repositories.Blog
+import ru.slartus.boostbuddy.ui.theme.LocalThemeIsDark
 import ru.slartus.boostbuddy.ui.widgets.ErrorView
 import ru.slartus.boostbuddy.ui.widgets.LoaderView
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SubscribesScreen(component: SubscribesComponent) {
-    val state = component.viewStates.subscribeAsState().value
-
+    val state by component.viewStates.subscribeAsState()
+    val isDarkState by LocalThemeIsDark.current
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text("Подписки") },
                 actions = {
+                    IconButton(onClick = { component.onSetDarkModeClicked(!isDarkState) }) {
+                        if (!isDarkState) {
+                            Icon(
+                                imageVector = Icons.Filled.DarkMode,
+                                contentDescription = "Set dark mode"
+                            )
+                        } else {
+                            Icon(
+                                imageVector = Icons.Filled.LightMode,
+                                contentDescription = "set light mode"
+                            )
+                        }
+                    }
+
                     IconButton(onClick = { component.onLogoutClicked() }) {
                         Icon(
                             imageVector = Icons.Filled.Logout,

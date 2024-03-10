@@ -18,8 +18,16 @@ class SettingsRepository(
     val tokenFlow: StateFlow<String?>
         get() = tokenBus.asStateFlow()
 
+    private val darkModeBus: MutableStateFlow<Boolean?> = MutableStateFlow(
+        null
+    )
+
+    val darkModeFlow: StateFlow<Boolean?>
+        get() = darkModeBus.asStateFlow()
+
     init {
-        tokenBus.value = settings.getStringOrNull("access_token")
+        tokenBus.value = settings.getStringOrNull(ACCESS_TOKEN_KEY)
+        darkModeBus.value = settings.getBooleanOrNull(DARK_MODE_KEY)
     }
 
     suspend fun getString(key: String): String? = withContext(Dispatchers.IO) {
@@ -38,15 +46,24 @@ class SettingsRepository(
         settings.getLongOrNull(key)
     }
 
+    suspend fun setDarkMode(value: Boolean) = withContext(Dispatchers.IO) {
+        settings.putBoolean(DARK_MODE_KEY, value)
+        darkModeBus.value = value
+    }
 
-    suspend fun putAccessToken(value: String?) = withContext(Dispatchers.IO){
+    suspend fun putAccessToken(value: String?) = withContext(Dispatchers.IO) {
         if (value == null)
-            settings.remove("access_token")
+            settings.remove(ACCESS_TOKEN_KEY)
         else
-            settings.putString("access_token", value)
+            settings.putString(ACCESS_TOKEN_KEY, value)
         tokenBus.value = value
     }
 
-    suspend fun getAccessToken(): String? = getString("access_token")
+    suspend fun getAccessToken(): String? = getString(ACCESS_TOKEN_KEY)
+
+    private companion object {
+        const val ACCESS_TOKEN_KEY = "access_token"
+        const val DARK_MODE_KEY = "dark_mode"
+    }
 }
 
