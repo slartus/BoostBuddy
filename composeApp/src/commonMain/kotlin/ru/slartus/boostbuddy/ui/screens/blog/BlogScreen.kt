@@ -180,7 +180,7 @@ private fun PostsView(
 private fun PostView(post: Post, onVideoClick: (okVideoData: PostData.OkVideo) -> Unit) {
     Column(
         modifier = Modifier
-            .background(MaterialTheme.colorScheme.primaryContainer)
+            .background(MaterialTheme.colorScheme.onPrimary)
             .padding(16.dp),
         horizontalAlignment = CenterHorizontally
     ) {

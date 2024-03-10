@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.dp
 import com.seiko.imageloader.rememberImagePainter
 import ru.slartus.boostbuddy.data.repositories.models.PostData
 import ru.slartus.boostbuddy.ui.common.LocalPlatformConfiguration
+import ru.slartus.boostbuddy.ui.theme.LightColorScheme
 
 @Composable
 fun PostDataView(postData: PostData, onVideoClick: (okVideoData: PostData.OkVideo) -> Unit) {
@@ -57,7 +58,7 @@ private fun PostDataTextView(postData: PostData.Text) {
         modifier = Modifier.fillMaxWidth().focusable(),
         text = postData.content.text,
         color = MaterialTheme.colorScheme.primary,
-        style = MaterialTheme.typography.bodyMedium
+        style = MaterialTheme.typography.bodySmall
     )
 }
 
@@ -150,6 +151,7 @@ private fun PostDataOkVideoView(
         ) {
             Icon(
                 modifier = Modifier.fillMaxSize(),
+                tint = LightColorScheme.background,
                 imageVector = Icons.Filled.PlayArrow,
                 contentDescription = "Play video icon"
             )

@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -89,7 +90,7 @@ fun SubscribesScreen(component: SubscribesComponent) {
 private fun BlogView(blog: Blog, onClick: () -> Unit) {
     Row(
         modifier = Modifier
-            .background(MaterialTheme.colorScheme.primaryContainer)
+            .background(MaterialTheme.colorScheme.onPrimary)
             .clickable { onClick() }.padding(horizontal = 16.dp, vertical = 4.dp),
         verticalAlignment = CenterVertically
     ) {
@@ -109,10 +110,11 @@ private fun BlogView(blog: Blog, onClick: () -> Unit) {
                 color = MaterialTheme.colorScheme.onPrimaryContainer,
                 style = MaterialTheme.typography.titleMedium
             )
+            Spacer(Modifier.height(2.dp))
             Text(
                 modifier = Modifier.fillMaxWidth(),
                 text = blog.title,
-                color = MaterialTheme.colorScheme.secondary,
+                color = MaterialTheme.colorScheme.onPrimaryContainer,
                 style = MaterialTheme.typography.bodyMedium
             )
         }
