@@ -29,27 +29,24 @@ fun VideoScreen(component: VideoComponent) {
     }
     KeepScreenOnEffect()
     HideSystemBarsEffect()
-    Surface(modifier = Modifier.fillMaxSize().background(Color.Black)) {
-        Box(modifier = Modifier.fillMaxSize()) {
-            state.position?.let { position ->
-                VideoPlayer(
-                    vid = state.postData.vid,
-                    url = playerUrl,
-                    title = state.postData.title,
-                    position = position,
-                    onVideoStateChange = { state -> component.onVideoStateChanged(state) },
-                    onContentPositionChange = { component.onContentPositionChange(it) },
-                    onStopClick = { component.onStopClicked() }
-                )
-            }
 
+    Box(modifier = Modifier.fillMaxSize().background(Color.Black)) {
+        state.position?.let { position ->
+            VideoPlayer(
+                vid = state.postData.vid,
+                url = playerUrl,
+                title = state.postData.title,
+                position = position,
+                onVideoStateChange = { state -> component.onVideoStateChanged(state) },
+                onContentPositionChange = { component.onContentPositionChange(it) },
+                onStopClick = { component.onStopClicked() }
+            )
+        }
 
-            if (state.loading) {
-                CircularProgressIndicator(
-                    modifier = Modifier.align(Alignment.Center).size(58.dp)
-                )
-            }
+        if (state.loading) {
+            CircularProgressIndicator(
+                modifier = Modifier.align(Alignment.Center).size(58.dp)
+            )
         }
     }
-
 }
