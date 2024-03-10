@@ -110,50 +110,6 @@ android {
     composeOptions {
         kotlinCompilerExtensionVersion = "1.5.4"
     }
-    signingConfigs {
-        create("release") {
-            val credentialsPath = "${rootDir.absolutePath}/keystore/keystore.properties"
-            storeFile = File("${rootDir.absolutePath}/keystore/release.keystore")
-
-            if (File(credentialsPath).exists()) {
-                val credentials = loadProperties(credentialsPath)
-
-                keyAlias = credentials.getProperty("RELEASE_KEY_ALIAS")
-                keyPassword = credentials.getProperty("RELEASE_KEY_PASSWORD")
-                storePassword = credentials.getProperty("RELEASE_STORE_PASSWORD")
-            } else {
-                storePassword = System.getenv("RELEASE_STORE_PASSWORD")
-                keyAlias = System.getenv("RELEASE_KEY_ALIAS")
-                keyPassword = System.getenv("RELEASE_KEY_PASSWORD")
-            }
-        }
-    }
-    buildTypes {
-        val release by getting {
-            isMinifyEnabled = true
-            isShrinkResources = true
-            signingConfig = signingConfigs.getByName("release")
-
-            proguardFiles(
-                getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
-            )
-        }
-    }
-
-    applicationVariants.all { variant ->
-        variant.outputs.all {
-            val fileName = when {
-                variant.buildType.name == "debug" -> "app-debug.apk"
-                else -> "BoostBuddy_${variant.versionName}-${variant.buildType.name}.apk"
-            }
-
-            val variantOutputImpl = this as com.android.build.gradle.internal.api.BaseVariantOutputImpl
-            variantOutputImpl.outputFileName =  fileName
-        }
-        true
-    }
-
 }
 
 buildConfig {
