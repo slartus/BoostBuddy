@@ -15,6 +15,16 @@ import platform.CoreGraphics.CGRectZero
 import platform.Foundation.NSHTTPCookie
 import platform.Foundation.NSMutableURLRequest
 import platform.Foundation.NSURL
+import platform.Foundation.NSURLAuthenticationChallenge
+import platform.Foundation.NSURLAuthenticationMethodNTLM
+import platform.Foundation.NSURLAuthenticationMethodServerTrust
+import platform.Foundation.NSURLCredential
+import platform.Foundation.NSURLSessionAuthChallengeCancelAuthenticationChallenge
+import platform.Foundation.NSURLSessionAuthChallengeDisposition
+import platform.Foundation.NSURLSessionAuthChallengePerformDefaultHandling
+import platform.Foundation.NSURLSessionAuthChallengeUseCredential
+import platform.Foundation.create
+import platform.Foundation.serverTrust
 import platform.WebKit.WKHTTPCookieStore
 import platform.WebKit.WKHTTPCookieStoreObserverProtocol
 import platform.WebKit.WKNavigation
@@ -73,7 +83,17 @@ class WKNavigationDelegate(
     private val onPageStarted: (url: String?, title: String?) -> Unit = { _, _ -> },
     private val onPageLoaded: (url: String?, title: String?) -> Unit = { _, _ -> },
 ) : NSObject(), WKNavigationDelegateProtocol {
-
+    override fun webView(
+        webView: WKWebView,
+        didReceiveAuthenticationChallenge: NSURLAuthenticationChallenge,
+        completionHandler: (NSURLSessionAuthChallengeDisposition, NSURLCredential?) -> Unit,
+    ) {
+        if (didReceiveAuthenticationChallenge.protectionSpace.authenticationMethod == NSURLAuthenticationMethodNTLM) {
+            completionHandler(NSURLSessionAuthChallengeCancelAuthenticationChallenge, null)
+        } else {
+            didReceiveAuthenticationChallenge.decideSslChallenge(completionHandler)
+        }
+    }
     @Suppress("PARAMETER_NAME_CHANGED_ON_OVERRIDE")
     override fun webView(webView: WKWebView, didCommitNavigation: WKNavigation?) {
         webView.URL?.absoluteString?.let { onPageStarted(it, webView.title) }
@@ -82,6 +102,28 @@ class WKNavigationDelegate(
     @Suppress("PARAMETER_NAME_CHANGED_ON_OVERRIDE")
     override fun webView(webView: WKWebView, didFinishNavigation: WKNavigation?) {
         webView.URL?.absoluteString?.let { onPageLoaded(it, webView.title) }
+    }
+
+    companion object{
+        @OptIn(ExperimentalForeignApi::class)
+        private fun NSURLAuthenticationChallenge.decideSslChallenge(completionHandler: (NSURLSessionAuthChallengeDisposition, NSURLCredential?) -> Unit) {
+            if (protectionSpace.authenticationMethod != NSURLAuthenticationMethodServerTrust) {
+                completionHandler(1, null)
+                return
+            }
+            val hosts = listOf("boosty.to", "google.com")
+            if (!hosts.any { protectionSpace.host.contains(it) }) {
+                completionHandler(NSURLSessionAuthChallengePerformDefaultHandling, null)
+                return
+            }
+            val serverTrust = protectionSpace.serverTrust
+            if (serverTrust != null) {
+                val credential = NSURLCredential.create(trust = serverTrust)
+                completionHandler(NSURLSessionAuthChallengeUseCredential, credential)
+            } else {
+                completionHandler(NSURLSessionAuthChallengeCancelAuthenticationChallenge, null)
+            }
+        }
     }
 }
 
@@ -97,20 +139,6 @@ class CookieStoreObserver(
                     onCookiesChange(it)
                 }
         }
-    }
-}
-
-@OptIn(ExperimentalCoroutinesApi::class)
-private suspend fun getCookie(url: String): String? = suspendCancellableCoroutine { continuation ->
-    val cookieStore: WKHTTPCookieStore = WKWebsiteDataStore.defaultDataStore().httpCookieStore
-
-    var result: String? = null
-    cookieStore.getAllCookies { cookies ->
-        continuation.resume(
-            cookies?.filterIsInstance<NSHTTPCookie>()
-                ?.joinToString(separator = "; ") { cookie ->
-                    "${cookie.name}=${cookie.value}"
-                }) {}
     }
 }
 
