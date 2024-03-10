@@ -136,7 +136,6 @@ private fun VideoPreview(url: String, onClick: () -> Unit) {
     }
 }
 
-
 @Composable
 private fun PostDataLinkView(
     postData: PostData.Link
