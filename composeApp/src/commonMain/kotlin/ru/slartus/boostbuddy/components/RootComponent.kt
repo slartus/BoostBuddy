@@ -30,7 +30,7 @@ interface RootComponent {
     val viewStates: Value<RootViewState>
     // It's possible to pop multiple screens at a time on iOS
     fun onBackClicked(toIndex: Int)
-
+    fun showAuthorizeComponent()
     // Defines all possible child components
     sealed class Child {
         class AuthChild(val component: AuthComponent) : Child()
@@ -70,7 +70,7 @@ class RootComponentImpl(
         }
     }
 
-    fun showAuthorizeComponent() {
+    override fun showAuthorizeComponent() {
         navigation.push(Config.Auth)
     }
 

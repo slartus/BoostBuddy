@@ -11,11 +11,11 @@ import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import com.arkivanov.decompose.defaultComponentContext
 import ru.slartus.boostbuddy.components.RootComponentImpl
 import ru.slartus.boostbuddy.data.Inject
-import ru.slartus.boostbuddy.data.createDependenciesTree
 import ru.slartus.boostbuddy.ui.common.LocalPlatformConfiguration
 import ru.slartus.boostbuddy.ui.screens.RootScreen
 import ru.slartus.boostbuddy.utils.GlobalExceptionHandlersChain
 import ru.slartus.boostbuddy.utils.PlatformConfiguration
+import ru.slartus.boostbuddy.utils.PlatformDataConfiguration
 import ru.slartus.boostbuddy.utils.UnauthorizedException
 
 class AndroidApp : Application() {
@@ -26,7 +26,7 @@ class AndroidApp : Application() {
     override fun onCreate() {
         super.onCreate()
         INSTANCE = this
-        createDependenciesTree(PlatformConfiguration(this))
+        PlatformDataConfiguration.createDependenciesTree(PlatformConfiguration(this))
     }
 }
 

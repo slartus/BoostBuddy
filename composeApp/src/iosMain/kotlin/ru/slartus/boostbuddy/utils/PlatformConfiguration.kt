@@ -11,4 +11,9 @@ actual open class PlatformConfiguration private constructor() {
             UIApplication.sharedApplication().openURL(it)
         }
     }
+
+    companion object : PlatformConfiguration() {
+        @Suppress("unused")
+        val shared = PlatformConfiguration()
+    }
 }

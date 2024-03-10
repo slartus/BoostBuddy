@@ -4,11 +4,18 @@ import BoostBuddyShared
 
 @main
 struct iOSApp: App {
+    init() {
+        PlatformDataConfiguration.shared.createDependenciesTree(
+            platformConfiguration: PlatformConfiguration.companion.shared
+        )
+    }
+
     var body: some Scene {
             WindowGroup {
                 ContentView()
             }
         }
+
 }
 
 
