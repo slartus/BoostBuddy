@@ -20,6 +20,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material.icons.filled.Logout
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -37,10 +38,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
 import com.seiko.imageloader.rememberImagePainter
+import kotlinx.collections.immutable.ImmutableList
 import ru.slartus.boostbuddy.components.subscribes.SubscribesComponent
 import ru.slartus.boostbuddy.components.subscribes.SubscribesViewState
 import ru.slartus.boostbuddy.data.repositories.Blog
+import ru.slartus.boostbuddy.data.repositories.SubscribeItem
 import ru.slartus.boostbuddy.ui.theme.LocalThemeIsDark
+import ru.slartus.boostbuddy.ui.widgets.EmptyView
 import ru.slartus.boostbuddy.ui.widgets.ErrorView
 import ru.slartus.boostbuddy.ui.widgets.LoaderView
 
@@ -54,16 +58,22 @@ fun SubscribesScreen(component: SubscribesComponent) {
             TopAppBar(
                 title = { Text("Подписки") },
                 actions = {
+                    IconButton(onClick = { component.onRefreshClicked() }) {
+                        Icon(
+                            imageVector = Icons.Filled.Refresh,
+                            contentDescription = "Обновить"
+                        )
+                    }
                     IconButton(onClick = { component.onSetDarkModeClicked(!isDarkState) }) {
                         if (!isDarkState) {
                             Icon(
                                 imageVector = Icons.Filled.DarkMode,
-                                contentDescription = "Set dark mode"
+                                contentDescription = "Тёмная тема"
                             )
                         } else {
                             Icon(
                                 imageVector = Icons.Filled.LightMode,
-                                contentDescription = "set light mode"
+                                contentDescription = "Светлая тема"
                             )
                         }
                     }
@@ -91,16 +101,10 @@ fun SubscribesScreen(component: SubscribesComponent) {
                 SubscribesViewState.ProgressState.Init,
                 SubscribesViewState.ProgressState.Loading -> LoaderView()
 
-                is SubscribesViewState.ProgressState.Loaded -> {
-                    LazyColumn(
-                        modifier = Modifier.fillMaxSize(),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        items(progressState.items) { item ->
-                            BlogView(item.blog, onClick = { component.onItemClicked(item) })
-                        }
-                    }
-                }
+                is SubscribesViewState.ProgressState.Loaded -> SubscribesView(
+                    items = progressState.items,
+                    onItemClicked = component::onItemClicked
+                )
             }
         }
         val dialogSlot by component.dialogSlot.subscribeAsState()
@@ -111,6 +115,25 @@ fun SubscribesScreen(component: SubscribesComponent) {
                 onAcceptClicked = { logoutComponent.onAcceptClicked() },
                 onCancelClicked = { logoutComponent.onCancelClicked() },
             )
+        }
+    }
+}
+
+@Composable
+private fun SubscribesView(
+    items: ImmutableList<SubscribeItem>,
+    onItemClicked: (SubscribeItem) -> Unit
+) {
+    if (items.isEmpty()) {
+        EmptyView()
+    } else {
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            items(items) { item ->
+                BlogView(item.blog, onClick = { onItemClicked(item) })
+            }
         }
     }
 }

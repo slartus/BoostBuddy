@@ -30,6 +30,7 @@ interface SubscribesComponent {
     fun onLogoutClicked()
     fun onRepeatClicked()
     fun onSetDarkModeClicked(value: Boolean)
+    fun onRefreshClicked()
 }
 
 data class SubscribesViewState(
@@ -118,6 +119,13 @@ class SubscribesComponentImpl(
         }
     }
 
+    private fun refresh() {
+        scope.launch {
+            val token = settingsRepository.getAccessToken() ?: unauthorizedError()
+            fetchSubscribes(token)
+        }
+    }
+
     override fun onItemClicked(item: SubscribeItem) {
         onItemSelected(item)
     }
@@ -131,16 +139,17 @@ class SubscribesComponentImpl(
     }
 
     override fun onRepeatClicked() {
-        scope.launch {
-            val token = settingsRepository.getAccessToken() ?: unauthorizedError()
-            fetchSubscribes(token)
-        }
+        refresh()
     }
 
     override fun onSetDarkModeClicked(value: Boolean) {
         scope.launch {
             settingsRepository.setDarkMode(value)
         }
+    }
+
+    override fun onRefreshClicked() {
+        refresh()
     }
 
     private fun logout() {
