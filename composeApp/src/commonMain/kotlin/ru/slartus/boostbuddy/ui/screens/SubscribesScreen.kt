@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -107,15 +106,15 @@ fun SubscribesScreen(component: SubscribesComponent) {
                 )
             }
         }
-        val dialogSlot by component.dialogSlot.subscribeAsState()
-        dialogSlot.child?.instance?.also { logoutComponent ->
-            LogoutDialogView(
-                modifier = Modifier.padding(innerPadding),
-                onDismissClicked = { logoutComponent.onDismissed() },
-                onAcceptClicked = { logoutComponent.onAcceptClicked() },
-                onCancelClicked = { logoutComponent.onCancelClicked() },
-            )
-        }
+    }
+    val dialogSlot by component.dialogSlot.subscribeAsState()
+    dialogSlot.child?.instance?.also { logoutComponent ->
+        LogoutDialogView(
+            modifier = Modifier,
+            onDismissClicked = { logoutComponent.onDismissed() },
+            onAcceptClicked = { logoutComponent.onAcceptClicked() },
+            onCancelClicked = { logoutComponent.onCancelClicked() },
+        )
     }
 }
 
@@ -186,7 +185,7 @@ internal fun LogoutDialogView(
         skipPartiallyExpanded = true
     )
     ModalBottomSheet(
-        modifier = modifier.navigationBarsPadding(),
+        modifier = modifier,
         onDismissRequest = { onDismissClicked() },
         sheetState = sheetState
     ) {
@@ -203,7 +202,6 @@ internal fun LogoutDialogView(
                     .padding(16.dp),
                 text = "Отмена"
             )
-            Spacer(modifier = Modifier.height(56.dp))
         }
     }
 }

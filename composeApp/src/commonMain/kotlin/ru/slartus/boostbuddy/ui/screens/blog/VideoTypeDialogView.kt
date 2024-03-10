@@ -42,7 +42,6 @@ internal fun VideoTypeDialogView(
                     text = it.type
                 )
             }
-            Box(modifier = Modifier.height(64.dp))
         }
     }
 }
