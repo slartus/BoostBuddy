@@ -51,7 +51,8 @@ open class BaseComponentActivity : ComponentActivity() {
                 }
 
                 else -> {
-                    false
+                    // some bug in android:
+                    true
                 }
             }
         }

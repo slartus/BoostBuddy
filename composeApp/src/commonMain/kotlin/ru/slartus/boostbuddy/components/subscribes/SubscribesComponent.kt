@@ -54,18 +54,24 @@ class SubscribesComponentImpl(
     private val subscribesRepository by Inject.lazy<SubscribesRepository>()
     private val dialogNavigation = SlotNavigation<DialogConfig>()
 
-    override val dialogSlot: Value<ChildSlot<*, LogoutDialogComponent>> =
-        childSlot(
+    private val _dialogSlot =
+        childSlot<DialogConfig, LogoutDialogComponent>(
             source = dialogNavigation,
-            serializer = DialogConfig.serializer(), // Or null to disable navigation state saving
-            handleBackButton = true, // Close the dialog on back button press
-        ) { _, _ ->
-            LogoutDialogComponentImpl(
-                onDismissed = dialogNavigation::dismiss,
-                onAcceptClicked = ::logout,
-                onCancelClicked = dialogNavigation::dismiss
-            )
-        }
+            serializer = null,
+            handleBackButton = true,
+            childFactory = { _, _ ->
+                LogoutDialogComponentImpl(
+                    onDismissed = {
+                        println(">>>>>>>>>>>>>>>>onDismissed")
+                        dialogNavigation.dismiss()
+                    },
+                    onAcceptClicked = ::logout,
+                    onCancelClicked = dialogNavigation::dismiss
+                )
+            }
+        )
+
+    override val dialogSlot: Value<ChildSlot<*, LogoutDialogComponent>> = _dialogSlot
 
     init {
         checkToken()
