@@ -1,10 +1,17 @@
-package ru.slartus.boostbuddy.components
+package ru.slartus.boostbuddy.components.subscribes
 
 import com.arkivanov.decompose.ComponentContext
+import com.arkivanov.decompose.router.slot.ChildSlot
+import com.arkivanov.decompose.router.slot.SlotNavigation
+import com.arkivanov.decompose.router.slot.activate
+import com.arkivanov.decompose.router.slot.childSlot
+import com.arkivanov.decompose.router.slot.dismiss
 import com.arkivanov.decompose.value.Value
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.launch
+import kotlinx.serialization.Serializable
+import ru.slartus.boostbuddy.components.BaseComponent
 import ru.slartus.boostbuddy.data.Inject
 import ru.slartus.boostbuddy.data.repositories.SettingsRepository
 import ru.slartus.boostbuddy.data.repositories.SubscribeItem
@@ -17,6 +24,7 @@ import ru.slartus.boostbuddy.utils.unauthorizedError
 
 interface SubscribesComponent {
     val viewStates: Value<SubscribesViewState>
+    val dialogSlot: Value<ChildSlot<*, LogoutDialogComponent>>
     fun onItemClicked(item: SubscribeItem)
     fun onBackClicked()
     fun onLogoutClicked()
@@ -44,7 +52,20 @@ class SubscribesComponentImpl(
 ), SubscribesComponent {
     private val settingsRepository by Inject.lazy<SettingsRepository>()
     private val subscribesRepository by Inject.lazy<SubscribesRepository>()
+    private val dialogNavigation = SlotNavigation<DialogConfig>()
 
+    override val dialogSlot: Value<ChildSlot<*, LogoutDialogComponent>> =
+        childSlot(
+            source = dialogNavigation,
+            serializer = DialogConfig.serializer(), // Or null to disable navigation state saving
+            handleBackButton = true, // Close the dialog on back button press
+        ) { _, _ ->
+            LogoutDialogComponentImpl(
+                onDismissed = dialogNavigation::dismiss,
+                onAcceptClicked = ::logout,
+                onCancelClicked = dialogNavigation::dismiss
+            )
+        }
 
     init {
         checkToken()
@@ -99,11 +120,7 @@ class SubscribesComponentImpl(
     }
 
     override fun onLogoutClicked() {
-        scope.launch {
-            settingsRepository.putAccessToken(null)
-            WebManager.clearWebViewCookies()
-            unauthorizedError()
-        }
+        dialogNavigation.activate(DialogConfig)
     }
 
     override fun onRepeatClicked() {
@@ -112,4 +129,15 @@ class SubscribesComponentImpl(
             fetchSubscribes(token)
         }
     }
+
+    private fun logout() {
+        scope.launch {
+            settingsRepository.putAccessToken(null)
+            WebManager.clearWebViewCookies()
+            unauthorizedError()
+        }
+    }
+
+    @Serializable
+    private object DialogConfig
 }

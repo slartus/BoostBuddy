@@ -1,4 +1,4 @@
-package ru.slartus.boostbuddy.components
+package ru.slartus.boostbuddy.components.blog
 
 import ru.slartus.boostbuddy.data.repositories.models.PlayerUrl
 import ru.slartus.boostbuddy.data.repositories.models.PostData

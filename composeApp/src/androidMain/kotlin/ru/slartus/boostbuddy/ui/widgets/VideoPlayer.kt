@@ -29,7 +29,7 @@ import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
-import ru.slartus.boostbuddy.components.VideoState
+import ru.slartus.boostbuddy.components.video.VideoState
 
 @UnstableApi
 @Composable

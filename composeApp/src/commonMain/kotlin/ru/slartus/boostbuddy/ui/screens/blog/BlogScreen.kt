@@ -93,6 +93,7 @@ fun BlogScreen(component: BlogComponent) {
         val dialogSlot by component.dialogSlot.subscribeAsState()
         dialogSlot.child?.instance?.also { videoTypeComponent ->
             VideoTypeDialogView(
+                modifier = Modifier.padding(innerPadding),
                 postData = videoTypeComponent.postData,
                 onDismissClicked = { videoTypeComponent.onDismissClicked() },
                 onItemClicked = { videoTypeComponent.onItemClicked(it) }

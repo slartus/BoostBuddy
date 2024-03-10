@@ -12,8 +12,6 @@ import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import ru.slartus.boostbuddy.components.BaseComponent
-import ru.slartus.boostbuddy.components.VideoTypeComponent
-import ru.slartus.boostbuddy.components.VideoTypeComponentImpl
 import ru.slartus.boostbuddy.data.Inject
 import ru.slartus.boostbuddy.data.repositories.Blog
 import ru.slartus.boostbuddy.data.repositories.BlogRepository
@@ -143,12 +141,6 @@ class BlogComponentImpl(
         }
     }
 
-
-    @Serializable
-    private data class DialogConfig(
-        val postData: PostData.OkVideo,
-    )
-
     override fun onVideoItemClicked(postData: PostData.OkVideo) {
         dialogNavigation.activate(DialogConfig(postData = postData))
     }
@@ -185,4 +177,9 @@ class BlogComponentImpl(
                 .distinctBy { it.key }
                 .toImmutableList()
     }
+
+    @Serializable
+    private data class DialogConfig(
+        val postData: PostData.OkVideo,
+    )
 }

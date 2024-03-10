@@ -1,10 +1,11 @@
-package ru.slartus.boostbuddy.components
+package ru.slartus.boostbuddy.components.auth
 
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.essenty.backhandler.BackCallback
 import io.ktor.http.decodeURLQueryComponent
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
+import ru.slartus.boostbuddy.components.BaseComponent
 import ru.slartus.boostbuddy.data.Inject
 import ru.slartus.boostbuddy.data.repositories.AuthResponse
 import ru.slartus.boostbuddy.data.repositories.SettingsRepository

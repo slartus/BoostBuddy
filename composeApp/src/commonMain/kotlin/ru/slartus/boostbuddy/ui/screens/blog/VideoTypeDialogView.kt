@@ -17,7 +17,6 @@ import androidx.compose.ui.unit.dp
 import ru.slartus.boostbuddy.data.repositories.models.PlayerUrl
 import ru.slartus.boostbuddy.data.repositories.models.PostData
 
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun VideoTypeDialogView(

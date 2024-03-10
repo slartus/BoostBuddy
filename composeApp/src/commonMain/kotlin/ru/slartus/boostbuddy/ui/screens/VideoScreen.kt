@@ -15,7 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
-import ru.slartus.boostbuddy.components.VideoComponent
+import ru.slartus.boostbuddy.components.video.VideoComponent
 import ru.slartus.boostbuddy.ui.common.HideSystemBarsEffect
 import ru.slartus.boostbuddy.ui.common.KeepScreenOnEffect
 import ru.slartus.boostbuddy.ui.widgets.VideoPlayer

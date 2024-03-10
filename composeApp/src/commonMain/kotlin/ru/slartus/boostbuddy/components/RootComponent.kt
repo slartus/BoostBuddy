@@ -10,8 +10,14 @@ import com.arkivanov.decompose.router.stack.popWhile
 import com.arkivanov.decompose.router.stack.push
 import com.arkivanov.decompose.value.Value
 import kotlinx.serialization.Serializable
+import ru.slartus.boostbuddy.components.auth.AuthComponent
+import ru.slartus.boostbuddy.components.auth.AuthComponentImpl
 import ru.slartus.boostbuddy.components.blog.BlogComponent
 import ru.slartus.boostbuddy.components.blog.BlogComponentImpl
+import ru.slartus.boostbuddy.components.subscribes.SubscribesComponent
+import ru.slartus.boostbuddy.components.subscribes.SubscribesComponentImpl
+import ru.slartus.boostbuddy.components.video.VideoComponent
+import ru.slartus.boostbuddy.components.video.VideoComponentImpl
 import ru.slartus.boostbuddy.data.repositories.Blog
 import ru.slartus.boostbuddy.data.repositories.models.PlayerUrl
 import ru.slartus.boostbuddy.data.repositories.models.PostData

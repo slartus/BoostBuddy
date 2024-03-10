@@ -2,7 +2,7 @@ package ru.slartus.boostbuddy.ui.widgets
 
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import ru.slartus.boostbuddy.components.VideoState
+import ru.slartus.boostbuddy.components.video.VideoState
 
 @Composable
 actual fun VideoPlayer(

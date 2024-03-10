@@ -1,12 +1,13 @@
-package ru.slartus.boostbuddy.components
+package ru.slartus.boostbuddy.components.video
 
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.value.Value
 import kotlinx.coroutines.launch
-import ru.slartus.boostbuddy.components.VideoState.Buffering
-import ru.slartus.boostbuddy.components.VideoState.Ended
-import ru.slartus.boostbuddy.components.VideoState.Idle
-import ru.slartus.boostbuddy.components.VideoState.Ready
+import ru.slartus.boostbuddy.components.BaseComponent
+import ru.slartus.boostbuddy.components.video.VideoState.Buffering
+import ru.slartus.boostbuddy.components.video.VideoState.Ended
+import ru.slartus.boostbuddy.components.video.VideoState.Idle
+import ru.slartus.boostbuddy.components.video.VideoState.Ready
 import ru.slartus.boostbuddy.data.Inject
 import ru.slartus.boostbuddy.data.repositories.SettingsRepository
 import ru.slartus.boostbuddy.data.repositories.models.PlayerUrl
