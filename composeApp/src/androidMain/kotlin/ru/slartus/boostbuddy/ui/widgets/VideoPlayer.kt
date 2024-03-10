@@ -3,6 +3,7 @@ package ru.slartus.boostbuddy.ui.widgets
 import android.view.KeyEvent
 import android.view.ViewGroup
 import android.widget.FrameLayout
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -38,7 +39,8 @@ actual fun VideoPlayer(
     title: String,
     position: Long,
     onVideoStateChange: (VideoState) -> Unit,
-    onContentPositionChange: (Long) -> Unit
+    onContentPositionChange: (Long) -> Unit,
+    onStopClick: () -> Unit
 ) {
     val context = LocalContext.current
 
@@ -61,11 +63,12 @@ actual fun VideoPlayer(
     val exoPlayer = remember {
         runCatching {
             ExoPlayer.Builder(context).build().apply {
-                this.setMediaItems(mediaItems)
-                this.prepare()
-                this.addListener(object : Player.Listener {
+                setMediaItems(mediaItems)
+                prepare()
+                addListener(object : Player.Listener {
                     override fun onEvents(player: Player, events: Player.Events) {
                         super.onEvents(player, events)
+
                         contentPosition = player.contentPosition
                     }
 
@@ -100,12 +103,6 @@ actual fun VideoPlayer(
         LocalLifecycleOwner.current.lifecycle.addObserver(object : LifecycleEventObserver {
             override fun onStateChanged(source: LifecycleOwner, event: Lifecycle.Event) {
                 when (event) {
-                    Lifecycle.Event.ON_START -> {
-                        if (exoPlayer.isPlaying.not()) {
-                            exoPlayer.play()
-                        }
-                    }
-
                     Lifecycle.Event.ON_STOP -> {
                         exoPlayer.pause()
                     }
@@ -115,86 +112,129 @@ actual fun VideoPlayer(
             }
         })
 
+
+        val playerView = remember {
+            PlayerView(context).apply {
+                player = exoPlayer
+                layoutParams = FrameLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.MATCH_PARENT
+                )
+                resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FIXED_WIDTH
+                setShowNextButton(false)
+                setShowPreviousButton(false)
+                setShowFastForwardButton(false)
+                setShowRewindButton(false)
+            }
+        }
+
+
+
+        var shouldShowController by remember { mutableStateOf(false) }
         AndroidView(
             modifier = Modifier
-                .fillMaxSize()
+                .focusable()
                 .onKeyEvent { keyEvent ->
-                    onKeyEvent(keyEvent, exoPlayer)
-                },
-            factory = {
-                PlayerView(context).apply {
-                    player = exoPlayer
-                    layoutParams = FrameLayout.LayoutParams(
-                        ViewGroup.LayoutParams.MATCH_PARENT,
-                        ViewGroup.LayoutParams.MATCH_PARENT
-                    )
-                    resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FIXED_WIDTH
-                    setShowNextButton(false)
-                    setShowPreviousButton(false)
-                    setShowFastForwardButton(false)
-                    setShowRewindButton(false)
+                    if (!isOwnKeyCode(keyEvent)) return@onKeyEvent false
+                    if (keyEvent.nativeKeyEvent.action == KeyEvent.ACTION_DOWN) {
+                        when (keyEvent.nativeKeyEvent.keyCode) {
+                            KeyEvent.KEYCODE_DPAD_LEFT,
+                            KeyEvent.KEYCODE_MEDIA_PREVIOUS,
+                            KeyEvent.KEYCODE_MEDIA_STEP_BACKWARD -> {
+                                exoPlayer.seekBack()
+                                true
+                            }
+
+                            KeyEvent.KEYCODE_DPAD_RIGHT,
+                            KeyEvent.KEYCODE_MEDIA_FAST_FORWARD,
+                            KeyEvent.KEYCODE_MEDIA_NEXT,
+                            KeyEvent.KEYCODE_MEDIA_STEP_FORWARD -> {
+                                exoPlayer.seekForward()
+                                true
+                            }
+
+                            KeyEvent.KEYCODE_DPAD_CENTER,
+                            KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE -> {
+                                shouldShowController = shouldShowController.not()
+                                when {
+                                    exoPlayer.isPlaying -> {
+                                        shouldShowController = true
+                                        exoPlayer.pausePlayer()
+                                    }
+
+                                    else -> {
+                                        shouldShowController = false
+                                        exoPlayer.startPlayer()
+                                    }
+                                }
+                                true
+                            }
+
+                            KeyEvent.KEYCODE_MEDIA_PLAY -> {
+                                shouldShowController = false
+                                exoPlayer.startPlayer()
+                                true
+                            }
+
+                            KeyEvent.KEYCODE_MEDIA_PAUSE -> {
+                                shouldShowController = true
+                                exoPlayer.pausePlayer()
+                                true
+                            }
+
+                            KeyEvent.KEYCODE_MEDIA_STOP -> {
+                                onStopClick()
+                                true
+                            }
+
+                            else -> {
+                                false
+                            }
+                        }
+                    } else {
+                        true
+                    }
+
                 }
-            })
+                .fillMaxSize(),
+            factory = {
+                playerView
+            },
+            update = {
+                if (shouldShowController) it.showController()
+                else it.hideController()
+            }
+        )
+
     }
 }
 
-private fun onKeyEvent(
-    keyEvent: androidx.compose.ui.input.key.KeyEvent,
-    exoPlayer: ExoPlayer
-) = if (keyEvent.nativeKeyEvent.action == KeyEvent.ACTION_UP) {
+private fun ExoPlayer.startPlayer() {
+    playWhenReady = true
+    play()
+}
+
+private fun ExoPlayer.pausePlayer() {
+    playWhenReady = false
+    pause()
+}
+
+private fun isOwnKeyCode(keyEvent: androidx.compose.ui.input.key.KeyEvent): Boolean =
     when (keyEvent.nativeKeyEvent.keyCode) {
-        KeyEvent.KEYCODE_DPAD_LEFT -> {
-            if (exoPlayer.playbackState == ExoPlayer.STATE_READY) {
-                exoPlayer.seekBack()
-                true
-            } else {
-                false
-            }
-        }
-
-        KeyEvent.KEYCODE_DPAD_RIGHT -> {
-            if (exoPlayer.playbackState == ExoPlayer.STATE_READY) {
-                exoPlayer.seekBack()
-                true
-            } else {
-                false
-            }
-        }
-
-        KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE -> {
-            if (exoPlayer.isPlaying) {
-                exoPlayer.pause()
-                true
-            } else if (exoPlayer.playbackState == ExoPlayer.STATE_READY) {
-                exoPlayer.play()
-                true
-            } else {
-                false
-            }
-        }
-
-        KeyEvent.KEYCODE_MEDIA_PLAY -> {
-            if (exoPlayer.playbackState == ExoPlayer.STATE_READY) {
-                exoPlayer.play()
-                true
-            } else {
-                false
-            }
-        }
-
-        KeyEvent.KEYCODE_MEDIA_PAUSE -> {
-            if (exoPlayer.isPlaying) {
-                exoPlayer.pause()
-                true
-            } else {
-                false
-            }
-        }
+        KeyEvent.KEYCODE_DPAD_LEFT,
+        KeyEvent.KEYCODE_DPAD_RIGHT,
+        KeyEvent.KEYCODE_DPAD_CENTER,
+        KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE,
+        KeyEvent.KEYCODE_MEDIA_PLAY,
+        KeyEvent.KEYCODE_MEDIA_STOP,
+        KeyEvent.KEYCODE_MEDIA_FAST_FORWARD,
+        KeyEvent.KEYCODE_MEDIA_NEXT,
+        KeyEvent.KEYCODE_MEDIA_PREVIOUS,
+        KeyEvent.KEYCODE_MEDIA_STEP_BACKWARD,
+        KeyEvent.KEYCODE_MEDIA_STEP_FORWARD,
+        KeyEvent.KEYCODE_MEDIA_PAUSE -> true
 
         else -> {
             false
         }
     }
-} else {
-    true
-}

@@ -10,5 +10,6 @@ expect fun VideoPlayer(
     title: String,
     position: Long,
     onVideoStateChange: (VideoState) -> Unit,
-    onContentPositionChange: (Long) -> Unit
+    onContentPositionChange: (Long) -> Unit,
+    onStopClick: () -> Unit
 )

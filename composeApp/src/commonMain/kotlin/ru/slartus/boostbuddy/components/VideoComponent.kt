@@ -16,6 +16,7 @@ interface VideoComponent {
     val viewStates: Value<VideoViewState>
     fun onVideoStateChanged(videoState: VideoState)
     fun onContentPositionChange(position: Long)
+    fun onStopClicked()
 }
 
 data class VideoViewState(
@@ -32,7 +33,8 @@ enum class VideoState {
 class VideoComponentImpl(
     componentContext: ComponentContext,
     postData: PostData.OkVideo,
-    playerUrl: PlayerUrl
+    playerUrl: PlayerUrl,
+    private val onStopClicked: () -> Unit
 ) : BaseComponent<VideoViewState>(componentContext, VideoViewState(postData, playerUrl)),
     VideoComponent {
     private val settingsRepository by Inject.lazy<SettingsRepository>()
@@ -61,6 +63,10 @@ class VideoComponentImpl(
         scope.launch {
             settingsRepository.putLong(positionKey(viewState.postData.vid), position)
         }
+    }
+
+    override fun onStopClicked() {
+        onStopClicked.invoke()
     }
 
     companion object {

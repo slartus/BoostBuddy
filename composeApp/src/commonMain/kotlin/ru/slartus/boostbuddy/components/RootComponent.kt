@@ -78,7 +78,7 @@ class RootComponentImpl(
         AuthComponentImpl(
             componentContext = componentContext,
             onLogined = {
-                navigation.popWhile { it is Config.Auth }
+                navigation.popWhile { it == Config.Auth }
             },
         )
 
@@ -104,7 +104,7 @@ class RootComponentImpl(
                 navigation.push(Config.VideoConfig(postData = postData, playerUrl = playerUrl))
             },
             onBackClicked = {
-                navigation.popWhile { it is Config.BlogConfig }
+                navigation.popWhile { it == config }
             }
         )
 
@@ -116,6 +116,7 @@ class RootComponentImpl(
             componentContext = componentContext,
             postData = config.postData,
             playerUrl = config.playerUrl,
+            onStopClicked = { navigation.popWhile { it == config } }
         )
 
     override fun onBackClicked(toIndex: Int) {

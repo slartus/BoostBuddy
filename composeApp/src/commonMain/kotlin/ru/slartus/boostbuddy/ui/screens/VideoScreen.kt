@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -28,23 +29,26 @@ fun VideoScreen(component: VideoComponent) {
     }
     KeepScreenOnEffect()
     HideSystemBarsEffect()
-    Box(modifier = Modifier.fillMaxSize().background(Color.Black)) {
-        state.position?.let { position ->
-            VideoPlayer(
-                vid = state.postData.vid,
-                url = playerUrl,
-                title = state.postData.title,
-                position = position,
-                onVideoStateChange = { state -> component.onVideoStateChanged(state) },
-                onContentPositionChange = { component.onContentPositionChange(it) }
-            )
-        }
+    Surface(modifier = Modifier.fillMaxSize().background(Color.Black)) {
+        Box(modifier = Modifier.fillMaxSize()) {
+            state.position?.let { position ->
+                VideoPlayer(
+                    vid = state.postData.vid,
+                    url = playerUrl,
+                    title = state.postData.title,
+                    position = position,
+                    onVideoStateChange = { state -> component.onVideoStateChanged(state) },
+                    onContentPositionChange = { component.onContentPositionChange(it) },
+                    onStopClick = { component.onStopClicked() }
+                )
+            }
 
 
-        if (state.loading) {
-            CircularProgressIndicator(
-                modifier = Modifier.align(Alignment.Center).size(58.dp)
-            )
+            if (state.loading) {
+                CircularProgressIndicator(
+                    modifier = Modifier.align(Alignment.Center).size(58.dp)
+                )
+            }
         }
     }
 
