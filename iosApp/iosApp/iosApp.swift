@@ -1,26 +1,30 @@
-import UIKit
+
 import SwiftUI
-import ComposeApp
+import BoostBuddyShared
 
 @main
-struct iosApp: App {
+struct iOSApp: App {
     var body: some Scene {
-        WindowGroup {
-            ContentView()
+            WindowGroup {
+                ContentView()
+            }
         }
+}
+
+
+struct ComposeView: UIViewControllerRepresentable {
+    @UIApplicationDelegateAdaptor(AppDelegate.self)
+    var appDelegate: AppDelegate
+    func makeUIViewController(context: Context) -> UIViewController {
+        MainKt.MainViewController(rootComponent: appDelegate.root)
     }
+
+    func updateUIViewController(_ uiViewController: UIViewController, context: Context) {}
 }
 
 struct ContentView: View {
     var body: some View {
-        ComposeView().ignoresSafeArea(.all)
+        ComposeView()
+                .ignoresSafeArea(.keyboard) // Compose has own keyboard handler
     }
-}
-
-struct ComposeView: UIViewControllerRepresentable {
-    func makeUIViewController(context: Context) -> UIViewController {
-        MainKt.MainViewController()
-    }
-
-    func updateUIViewController(_ uiViewController: UIViewController, context: Context) {}
 }

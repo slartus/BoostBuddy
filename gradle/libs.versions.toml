@@ -7,6 +7,7 @@ androidx-appcompat = "1.6.1"
 androidx-activityCompose = "1.8.1"
 compose-uitooling = "1.5.4"
 decompose = "2.2.2-compose-experimental"
+essently = "1.3.0" # https://github.com/arkivanov/Essenty
 composeImageLoader = "1.7.1" # https://github.com/qdsfdhvh/compose-imageloader
 napier = "2.7.0"
 buildConfig = "4.1.1"
@@ -30,6 +31,8 @@ androidx-activityCompose = { module = "androidx.activity:activity-compose", vers
 compose-uitooling = { module = "androidx.compose.ui:ui-tooling", version.ref = "compose-uitooling" }
 decompose = { module = "com.arkivanov.decompose:decompose", version.ref = "decompose" }
 decompose-compose = { module = "com.arkivanov.decompose:extensions-compose-jetbrains", version.ref = "decompose" }
+decompose-extensions-experimental = { module = "com.arkivanov.decompose:extensions-compose-jetbrains", version.ref = "decompose" }
+essently-lifecycle = { module = "com.arkivanov.essenty:lifecycle", version.ref = "essently" }
 composeImageLoader = { module = "io.github.qdsfdhvh:image-loader", version.ref = "composeImageLoader" }
 android-splashscreen = { module = "androidx.core:core-splashscreen", version.ref = "android-splashscreen" }
 

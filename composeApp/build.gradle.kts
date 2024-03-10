@@ -24,8 +24,11 @@ kotlin {
         iosSimulatorArm64()
     ).forEach {
         it.binaries.framework {
-            baseName = "BoostBuddy"
-            isStatic = true
+            baseName = "BoostBuddyShared"
+            export(libs.decompose)
+            export(libs.decompose.compose)
+            export(libs.decompose.extensions.experimental)
+            export(libs.essently.lifecycle)
         }
     }
 
@@ -41,8 +44,9 @@ kotlin {
             implementation(compose.materialIconsExtended)
             @OptIn(org.jetbrains.compose.ExperimentalComposeLibrary::class)
             implementation(compose.components.resources)
-            implementation(libs.decompose)
-            implementation(libs.decompose.compose)
+            api(libs.decompose)
+            api(libs.decompose.extensions.experimental)
+            api(libs.decompose.compose)
             implementation(libs.composeImageLoader)
             implementation(libs.kotlinx.coroutines.core)
             implementation(libs.ktor.core)

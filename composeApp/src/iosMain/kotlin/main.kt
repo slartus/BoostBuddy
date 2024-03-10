@@ -1,5 +1,8 @@
 import androidx.compose.ui.window.ComposeUIViewController
-import ru.slartus.boostbuddy.App
 import platform.UIKit.UIViewController
+import ru.slartus.boostbuddy.components.RootComponent
+import ru.slartus.boostbuddy.ui.screens.RootScreen
 
-fun MainViewController(): UIViewController = ComposeUIViewController { App() }
+fun MainViewController(
+    rootComponent: RootComponent
+): UIViewController = ComposeUIViewController { RootScreen(rootComponent) }
