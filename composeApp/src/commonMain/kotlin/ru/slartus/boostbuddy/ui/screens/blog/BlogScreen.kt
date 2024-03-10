@@ -9,8 +9,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -23,11 +21,9 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
@@ -42,7 +38,6 @@ import kotlinx.collections.immutable.ImmutableList
 import ru.slartus.boostbuddy.components.blog.BlogComponent
 import ru.slartus.boostbuddy.components.blog.BlogItem
 import ru.slartus.boostbuddy.components.blog.BlogViewState
-import ru.slartus.boostbuddy.data.repositories.models.PlayerUrl
 import ru.slartus.boostbuddy.data.repositories.models.Post
 import ru.slartus.boostbuddy.data.repositories.models.PostData
 import ru.slartus.boostbuddy.ui.common.isEndOfListReached
@@ -102,36 +97,6 @@ fun BlogScreen(component: BlogComponent) {
                 onDismissClicked = { videoTypeComponent.onDismissClicked() },
                 onItemClicked = { videoTypeComponent.onItemClicked(it) }
             )
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun VideoTypeDialogView(
-    postData: PostData.OkVideo,
-    onItemClicked: (PlayerUrl) -> Unit,
-    onDismissClicked: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    val sheetState = rememberModalBottomSheetState(
-        skipPartiallyExpanded = true
-    )
-    ModalBottomSheet(
-        modifier = modifier.navigationBarsPadding(),
-        onDismissRequest = { onDismissClicked() },
-        sheetState = sheetState
-    ) {
-        Column {
-            postData.playerUrls.filter { it.url.isNotEmpty() }.forEach {
-                Text(
-                    modifier = Modifier.fillMaxWidth()
-                        .clickable { onItemClicked(it) }
-                        .padding(16.dp),
-                    text = it.type
-                )
-            }
-            Spacer(modifier = Modifier.height(48.dp))
         }
     }
 }
