@@ -33,6 +33,7 @@ import platform.WebKit.WKWebView
 import platform.WebKit.WKWebViewConfiguration
 import platform.WebKit.WKWebsiteDataStore
 import platform.darwin.NSObject
+import ru.slartus.boostbuddy.data.ktor.USER_AGENT
 
 @OptIn(ExperimentalForeignApi::class)
 @Composable
@@ -67,6 +68,7 @@ actual fun WebView(url: String, onCookieChange: (String) -> Unit) {
                 limitsNavigationsToAppBoundDomains = true
             }
             WKWebView(frame = CGRectZero.readValue(), configuration = config).apply {
+                customUserAgent = USER_AGENT
                 navigationDelegate = rememberedNavigationDelegate
                 loadRequest(url)
             }
