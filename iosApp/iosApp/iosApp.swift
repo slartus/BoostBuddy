@@ -18,7 +18,6 @@ struct iOSApp: App {
 
 }
 
-
 struct ComposeView: UIViewControllerRepresentable {
     @UIApplicationDelegateAdaptor(AppDelegate.self)
     var appDelegate: AppDelegate
