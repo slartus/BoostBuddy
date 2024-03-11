@@ -1,5 +1,6 @@
 package ru.slartus.boostbuddy.ui.screens
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -11,10 +12,18 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.DarkMode
+import androidx.compose.material.icons.filled.LightMode
+import androidx.compose.material.icons.filled.Logout
 import androidx.compose.material.icons.filled.NorthWest
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -51,117 +60,143 @@ import ru.slartus.boostbuddy.ui.common.LocalPlatformConfiguration
 import ru.slartus.boostbuddy.ui.widgets.WebView
 import ru.slartus.boostbuddy.utils.Platform
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AuthScreen(component: AuthComponent) {
     val density = LocalDensity.current
 
     val platformConfiguration = LocalPlatformConfiguration.current
+    var useCursor by remember { mutableStateOf(platformConfiguration.platform == Platform.AndroidTV) }
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(16.dp),
+                        verticalAlignment = CenterVertically
+                    ) {
+                        CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                        Spacer(modifier = Modifier.padding(8.dp))
+                        Text(
+                            text = "Ожидание авторизационной куки"
+                        )
+                    }
+                },
+                actions = {
+                    IconButton(onClick = { useCursor = !useCursor }) {
+                        Icon(
+                            imageVector = Icons.Filled.NorthWest,
+                            contentDescription = "Обновить"
+                        )
+                    }
+                }
 
-    Column(modifier = Modifier.fillMaxSize()) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(16.dp),
-            verticalAlignment = CenterVertically
-        ) {
-            CircularProgressIndicator(modifier = Modifier.size(24.dp))
-            Spacer(modifier = Modifier.padding(8.dp))
-            Text(
-                text = "Ожидание авторизационной куки"
             )
-        }
-
+        },
+    ) { innerPadding ->
         var cursorPositionX by remember { mutableStateOf(0.dp) }
         var cursorPositionY by remember { mutableStateOf(0.dp) }
         var clickOffset by remember { mutableStateOf<Offset?>(null) }
         val focusRequester = remember { FocusRequester() }
         val coroutineScope = rememberCoroutineScope()
+
         Box(
             modifier = Modifier
+                .padding(innerPadding)
                 .then(
-                    when (platformConfiguration.platform) {
-                        Platform.Android, Platform.iOS -> Modifier
-                        Platform.AndroidTV -> Modifier
-                            .focusable()
-                            .focusRequester(focusRequester)
-                            .onPreviewKeyEvent { keyEvent ->
-                                if (!isOwnKeyCode(keyEvent)) return@onPreviewKeyEvent false
-                                if (keyEvent.type == KeyEventType.KeyDown) {
-                                    when (keyEvent.key) {
-                                        DirectionUp -> {
-                                            cursorPositionY = max(cursorPositionY - 5.dp, 0.dp)
-                                            true
-                                        }
-
-                                        DirectionUpLeft -> {
-                                            cursorPositionY = max(cursorPositionY - 5.dp, 0.dp)
-                                            cursorPositionX = max(cursorPositionX - 5.dp, 0.dp)
-                                            true
-                                        }
-
-                                        DirectionUpRight -> {
-                                            cursorPositionY = max(cursorPositionY - 5.dp, 0.dp)
-                                            cursorPositionX = max(cursorPositionX + 5.dp, 0.dp)
-                                            true
-                                        }
-
-                                        DirectionDown -> {
-                                            cursorPositionY = max(cursorPositionY + 5.dp, 0.dp)
-                                            true
-                                        }
-
-                                        DirectionDownLeft -> {
-                                            cursorPositionY = max(cursorPositionY + 5.dp, 0.dp)
-                                            cursorPositionX = max(cursorPositionX - 5.dp, 0.dp)
-                                            true
-                                        }
-
-                                        DirectionDownRight -> {
-                                            cursorPositionY = max(cursorPositionY + 5.dp, 0.dp)
-                                            cursorPositionX = max(cursorPositionX + 5.dp, 0.dp)
-                                            true
-                                        }
-
-                                        DirectionLeft -> {
-                                            cursorPositionX = max(cursorPositionX - 5.dp, 0.dp)
-                                            true
-                                        }
-
-                                        DirectionRight -> {
-                                            cursorPositionX = max(cursorPositionX + 5.dp, 0.dp)
-                                            true
-                                        }
-
-                                        DirectionCenter -> {
-                                            coroutineScope.launch {
-                                                clickOffset = with(density) {
-                                                    Offset(
-                                                        cursorPositionX.toPx(),
-                                                        cursorPositionY.toPx()
-                                                    )
-                                                }
-                                                delay(500)
-                                                focusRequester.requestFocus()
-                                            }
-                                            true
-                                        }
-
-                                        else -> false
+                    if (!useCursor) Modifier
+                    else Modifier
+                        .focusable()
+                        .focusRequester(focusRequester)
+                        .onPreviewKeyEvent { keyEvent ->
+                            if (!isOwnKeyCode(keyEvent)) return@onPreviewKeyEvent false
+                            if (keyEvent.type == KeyEventType.KeyDown) {
+                                when (keyEvent.key) {
+                                    DirectionUp -> {
+                                        val newValue = cursorPositionY - 5.dp
+                                        cursorPositionY = max(newValue, 0.dp)
+                                        newValue >= 0.dp
                                     }
-                                } else {
-                                    true
-                                }
 
+                                    DirectionUpLeft -> {
+                                        cursorPositionY = max(cursorPositionY - 5.dp, 0.dp)
+                                        cursorPositionX = max(cursorPositionX - 5.dp, 0.dp)
+                                        true
+                                    }
+
+                                    DirectionUpRight -> {
+                                        cursorPositionY = max(cursorPositionY - 5.dp, 0.dp)
+                                        cursorPositionX = max(cursorPositionX + 5.dp, 0.dp)
+                                        true
+                                    }
+
+                                    DirectionDown -> {
+                                        cursorPositionY = max(cursorPositionY + 5.dp, 0.dp)
+                                        true
+                                    }
+
+                                    DirectionDownLeft -> {
+                                        cursorPositionY = max(cursorPositionY + 5.dp, 0.dp)
+                                        cursorPositionX = max(cursorPositionX - 5.dp, 0.dp)
+                                        true
+                                    }
+
+                                    DirectionDownRight -> {
+                                        cursorPositionY = max(cursorPositionY + 5.dp, 0.dp)
+                                        cursorPositionX = max(cursorPositionX + 5.dp, 0.dp)
+                                        true
+                                    }
+
+                                    DirectionLeft -> {
+                                        cursorPositionX = max(cursorPositionX - 5.dp, 0.dp)
+                                        true
+                                    }
+
+                                    DirectionRight -> {
+                                        cursorPositionX = max(cursorPositionX + 5.dp, 0.dp)
+                                        true
+                                    }
+
+                                    DirectionCenter -> {
+                                        coroutineScope.launch {
+                                            clickOffset = with(density) {
+                                                Offset(
+                                                    cursorPositionX.toPx(),
+                                                    cursorPositionY.toPx()
+                                                )
+                                            }
+                                            delay(500)
+                                            focusRequester.requestFocus()
+                                        }
+                                        true
+                                    }
+
+                                    else -> false
+                                }
+                            } else {
+                                true
                             }
-                    }
+
+                        }
                 )
 
         ) {
-            WebView("https://boosty.to", clickOffset, onCookieChange = component::onCookiesChanged)
-            Icon(
-                modifier = Modifier.size(24.dp).offset(x = cursorPositionX, y = cursorPositionY),
-                imageVector = Icons.Filled.NorthWest,
-                tint = Color.Red,
-                contentDescription = "Обновить"
+            WebView(
+                "https://boosty.to",
+                clickOffset,
+                onCookieChange = component::onCookiesChanged
             )
+            if (useCursor)
+                Icon(
+                    modifier = Modifier.size(24.dp)
+                        .clickable {
+                            useCursor = false
+                        }
+                        .offset(x = cursorPositionX, y = cursorPositionY),
+                    imageVector = Icons.Filled.NorthWest,
+                    tint = Color.Red,
+                    contentDescription = "Обновить"
+                )
         }
     }
 }
