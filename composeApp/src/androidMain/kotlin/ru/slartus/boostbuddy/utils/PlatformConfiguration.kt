@@ -6,10 +6,7 @@ import android.content.Intent
 import android.net.Uri
 import android.widget.Toast
 
-actual class PlatformConfiguration(var androidContext: Context) {
-
-    actual val platform: Platform = Platform.Android
-
+actual class PlatformConfiguration(var androidContext: Context, actual val platform: Platform) {
     actual fun openBrowser(url: String) {
         val browserIntent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
         browserIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)

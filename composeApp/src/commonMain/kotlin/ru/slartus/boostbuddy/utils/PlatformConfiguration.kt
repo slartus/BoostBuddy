@@ -8,5 +8,6 @@ expect class PlatformConfiguration {
 
 sealed class Platform(val name: String) {
     data object Android : Platform(name = "android")
+    data object AndroidTV : Platform(name = "androidTV")
     data object iOS : Platform(name = "ios")
 }
