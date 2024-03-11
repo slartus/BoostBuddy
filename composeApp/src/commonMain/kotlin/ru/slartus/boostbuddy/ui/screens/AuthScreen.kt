@@ -51,6 +51,7 @@ import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.max
 import kotlinx.coroutines.delay
@@ -114,46 +115,46 @@ fun AuthScreen(component: AuthComponent) {
                                 when (keyEvent.key) {
                                     DirectionUp -> {
                                         val newValue = cursorPositionY - 5.dp
-                                        cursorPositionY = max(newValue, 0.dp)
+                                        cursorPositionY = cursorPositionY.dec()
                                         newValue >= 0.dp
                                     }
 
                                     DirectionUpLeft -> {
-                                        cursorPositionY = max(cursorPositionY - 5.dp, 0.dp)
-                                        cursorPositionX = max(cursorPositionX - 5.dp, 0.dp)
+                                        cursorPositionY = cursorPositionY.dec()
+                                        cursorPositionX = cursorPositionX.dec()
                                         true
                                     }
 
                                     DirectionUpRight -> {
-                                        cursorPositionY = max(cursorPositionY - 5.dp, 0.dp)
-                                        cursorPositionX = max(cursorPositionX + 5.dp, 0.dp)
+                                        cursorPositionY = cursorPositionY.dec()
+                                        cursorPositionX = cursorPositionX.inc()
                                         true
                                     }
 
                                     DirectionDown -> {
-                                        cursorPositionY = max(cursorPositionY + 5.dp, 0.dp)
+                                        cursorPositionY = cursorPositionY.inc()
                                         true
                                     }
 
                                     DirectionDownLeft -> {
-                                        cursorPositionY = max(cursorPositionY + 5.dp, 0.dp)
-                                        cursorPositionX = max(cursorPositionX - 5.dp, 0.dp)
+                                        cursorPositionY = cursorPositionY.inc()
+                                        cursorPositionX = cursorPositionX.dec()
                                         true
                                     }
 
                                     DirectionDownRight -> {
-                                        cursorPositionY = max(cursorPositionY + 5.dp, 0.dp)
-                                        cursorPositionX = max(cursorPositionX + 5.dp, 0.dp)
+                                        cursorPositionY = cursorPositionY.inc()
+                                        cursorPositionX = cursorPositionX.inc()
                                         true
                                     }
 
                                     DirectionLeft -> {
-                                        cursorPositionX = max(cursorPositionX - 5.dp, 0.dp)
+                                        cursorPositionX = cursorPositionX.dec()
                                         true
                                     }
 
                                     DirectionRight -> {
-                                        cursorPositionX = max(cursorPositionX + 5.dp, 0.dp)
+                                        cursorPositionX = cursorPositionX.inc()
                                         true
                                     }
 
@@ -201,6 +202,8 @@ fun AuthScreen(component: AuthComponent) {
     }
 }
 
+private fun Dp.inc(): Dp = this + 5.dp
+private fun Dp.dec(): Dp = max(this - 5.dp, 0.dp)
 
 private fun isOwnKeyCode(keyEvent: KeyEvent): Boolean =
     when (keyEvent.key) {
