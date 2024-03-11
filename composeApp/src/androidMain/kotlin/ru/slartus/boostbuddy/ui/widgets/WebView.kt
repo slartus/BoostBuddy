@@ -5,7 +5,6 @@ import android.os.SystemClock
 import android.view.MotionEvent
 import android.view.MotionEvent.PointerCoords
 import android.view.MotionEvent.PointerProperties
-import android.view.View
 import android.webkit.CookieManager
 import android.webkit.HttpAuthHandler
 import android.webkit.WebView
@@ -92,9 +91,8 @@ actual fun WebView(url: String, clickCoors: Offset?, onCookieChange: (String) ->
     }
 }
 
-private fun View.simulateClick(coroutineScope: CoroutineScope, x: Float, y: Float) {
+private fun WebView.simulateClick(coroutineScope: CoroutineScope, x: Float, y: Float) {
     coroutineScope.launch {
-        scrollTo(x.toInt(), y.toInt())
         val downTime: Long = SystemClock.uptimeMillis()
         val eventTime: Long = SystemClock.uptimeMillis()
         val properties = arrayOfNulls<PointerProperties>(1)
@@ -104,8 +102,8 @@ private fun View.simulateClick(coroutineScope: CoroutineScope, x: Float, y: Floa
         properties[0] = pp1
         val pointerCoords = arrayOfNulls<PointerCoords>(1)
         val pc1 = PointerCoords()
-        pc1.x = x
-        pc1.y = y
+        pc1.x = x + scrollX
+        pc1.y = y + scrollY
         pc1.pressure = 1f
         pc1.size = 1f
         pointerCoords[0] = pc1
@@ -121,6 +119,7 @@ private fun View.simulateClick(coroutineScope: CoroutineScope, x: Float, y: Floa
             pointerCoords, 0, 0, 1f, 1f, 0, 0, 0, 0
         )
         dispatchTouchEvent(motionEvent)
+        //flingScroll(x.toInt(), y.toInt())
         delay(300)
 
         clearFocus()

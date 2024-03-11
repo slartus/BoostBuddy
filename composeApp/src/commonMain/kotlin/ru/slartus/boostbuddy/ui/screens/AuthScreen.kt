@@ -19,6 +19,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -52,6 +53,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import ru.slartus.boostbuddy.components.auth.AuthComponent
 import ru.slartus.boostbuddy.ui.common.LocalPlatformConfiguration
+import ru.slartus.boostbuddy.ui.common.keyboardAsState
 import ru.slartus.boostbuddy.ui.widgets.WebView
 import ru.slartus.boostbuddy.utils.Platform
 
@@ -62,6 +64,7 @@ fun AuthScreen(component: AuthComponent) {
 
     val platformConfiguration = LocalPlatformConfiguration.current
     var useCursor by remember { mutableStateOf(platformConfiguration.platform == Platform.AndroidTV) }
+    val isKeyboardOpen by keyboardAsState()
     Scaffold(
         topBar = {
             TopAppBar(
@@ -95,6 +98,14 @@ fun AuthScreen(component: AuthComponent) {
         val focusRequester = remember { FocusRequester() }
         val coroutineScope = rememberCoroutineScope()
 
+        LaunchedEffect(isKeyboardOpen) {
+            if (useCursor) {
+                if (isKeyboardOpen)
+                    focusRequester.freeFocus()
+                else
+                    focusRequester.requestFocus()
+            }
+        }
         Box(
             modifier = Modifier
                 .padding(innerPadding)
@@ -104,6 +115,7 @@ fun AuthScreen(component: AuthComponent) {
                         .focusable()
                         .focusRequester(focusRequester)
                         .onPreviewKeyEvent { keyEvent ->
+                            if (isKeyboardOpen) return@onPreviewKeyEvent false
                             if (!isOwnKeyCode(keyEvent)) return@onPreviewKeyEvent false
                             if (keyEvent.type == KeyEventType.KeyDown) {
                                 when (keyEvent.key) {
@@ -161,7 +173,8 @@ fun AuthScreen(component: AuthComponent) {
                                                 )
                                             }
                                             delay(500)
-                                            focusRequester.requestFocus()
+                                            if (!isKeyboardOpen)
+                                                focusRequester.requestFocus()
                                         }
                                         true
                                     }
