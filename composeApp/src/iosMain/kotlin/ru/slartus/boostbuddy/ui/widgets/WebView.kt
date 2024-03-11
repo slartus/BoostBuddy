@@ -5,12 +5,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.interop.UIKitView
 import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.cinterop.readValue
-import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.suspendCancellableCoroutine
 import platform.CoreGraphics.CGRectZero
 import platform.Foundation.NSHTTPCookie
 import platform.Foundation.NSMutableURLRequest
@@ -37,13 +35,12 @@ import ru.slartus.boostbuddy.data.ktor.USER_AGENT
 
 @OptIn(ExperimentalForeignApi::class)
 @Composable
-actual fun WebView(url: String, onCookieChange: (String) -> Unit) {
+actual fun WebView(url: String, clickCoors: Offset?, onCookieChange: (String) -> Unit) {
 
     val cookiesObserver = remember {
-        CookieStoreObserver({
-            println(">>>>>>>>>>>>>>>>CookieStoreObserver $it")
+        CookieStoreObserver {
             onCookieChange(it)
-        })
+        }
     }
     DisposableEffect(Unit) {
         WKWebsiteDataStore.defaultDataStore().httpCookieStore.addObserver(cookiesObserver)
@@ -96,6 +93,7 @@ class WKNavigationDelegate(
             didReceiveAuthenticationChallenge.decideSslChallenge(completionHandler)
         }
     }
+
     @Suppress("PARAMETER_NAME_CHANGED_ON_OVERRIDE")
     override fun webView(webView: WKWebView, didCommitNavigation: WKNavigation?) {
         webView.URL?.absoluteString?.let { onPageStarted(it, webView.title) }
@@ -106,7 +104,7 @@ class WKNavigationDelegate(
         webView.URL?.absoluteString?.let { onPageLoaded(it, webView.title) }
     }
 
-    companion object{
+    companion object {
         @OptIn(ExperimentalForeignApi::class)
         private fun NSURLAuthenticationChallenge.decideSslChallenge(completionHandler: (NSURLSessionAuthChallengeDisposition, NSURLCredential?) -> Unit) {
             if (protectionSpace.authenticationMethod != NSURLAuthenticationMethodServerTrust) {
