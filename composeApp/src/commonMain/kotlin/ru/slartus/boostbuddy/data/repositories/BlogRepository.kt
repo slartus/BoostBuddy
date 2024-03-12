@@ -40,7 +40,7 @@ internal class BlogRepository(
         }
 }
 
-val playerUrlsComparator = object : Comparator<PlayerUrl> {
+private val playerUrlsComparator = object : Comparator<PlayerUrl> {
     private val sortedQualities =
         listOf("tiny", "lowest", "low", "hls", "medium", "high", "quad_hd", "full_hd")
             .reversed()
