@@ -128,8 +128,6 @@ actual fun VideoPlayer(
             }
         }
 
-
-
         var shouldShowController by remember { mutableStateOf(false) }
         AndroidView(
             modifier = Modifier
@@ -138,6 +136,11 @@ actual fun VideoPlayer(
                     if (!isOwnKeyCode(keyEvent)) return@onKeyEvent false
                     if (keyEvent.nativeKeyEvent.action == KeyEvent.ACTION_DOWN) {
                         when (keyEvent.nativeKeyEvent.keyCode) {
+                            KeyEvent.KEYCODE_DPAD_UP -> {
+                                shouldShowController = true
+                                true
+                            }
+
                             KeyEvent.KEYCODE_DPAD_LEFT,
                             KeyEvent.KEYCODE_MEDIA_PREVIOUS,
                             KeyEvent.KEYCODE_MEDIA_STEP_BACKWARD -> {
@@ -155,7 +158,6 @@ actual fun VideoPlayer(
 
                             KeyEvent.KEYCODE_DPAD_CENTER,
                             KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE -> {
-                                shouldShowController = shouldShowController.not()
                                 when {
                                     exoPlayer.isPlaying -> {
                                         shouldShowController = true
@@ -221,6 +223,7 @@ private fun ExoPlayer.pausePlayer() {
 
 private fun isOwnKeyCode(keyEvent: androidx.compose.ui.input.key.KeyEvent): Boolean =
     when (keyEvent.nativeKeyEvent.keyCode) {
+        KeyEvent.KEYCODE_DPAD_UP,
         KeyEvent.KEYCODE_DPAD_LEFT,
         KeyEvent.KEYCODE_DPAD_RIGHT,
         KeyEvent.KEYCODE_DPAD_CENTER,
