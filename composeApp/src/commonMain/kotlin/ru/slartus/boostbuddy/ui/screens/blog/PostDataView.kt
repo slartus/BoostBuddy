@@ -19,11 +19,19 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import com.seiko.imageloader.rememberImagePainter
 import ru.slartus.boostbuddy.data.repositories.models.PostData
+import ru.slartus.boostbuddy.data.repositories.models.PostDataTextContent
 import ru.slartus.boostbuddy.ui.common.LocalPlatformConfiguration
 import ru.slartus.boostbuddy.ui.theme.LightColorScheme
 
@@ -54,14 +62,38 @@ private fun PostDataUnknownView() {
 
 @Composable
 private fun PostDataTextView(postData: PostData.Text) {
+    val text = postData.content.rememberAnnotatedString()
     Text(
         modifier = Modifier.fillMaxWidth().focusable(),
-        text = postData.content.text,
+        text = text,
         color = MaterialTheme.colorScheme.primary,
         style = MaterialTheme.typography.bodySmall
     )
 }
 
+@Composable
+private fun PostDataTextContent.rememberAnnotatedString(): AnnotatedString = remember {
+    // todo: ссылки внутри текста
+    runCatching {
+        buildAnnotatedString {
+            append(text)
+            styleData?.forEach { styleData ->
+                addStyle(
+                    styleData.style.toSpanStyle(),
+                    styleData.from,
+                    styleData.from + styleData.length
+                )
+            }
+        }
+    }.getOrDefault(AnnotatedString(text))
+}
+
+private fun PostDataTextContent.Style.toSpanStyle(): SpanStyle = when (this) {
+    PostDataTextContent.Style.Normal -> SpanStyle(fontStyle = FontStyle.Normal)
+    PostDataTextContent.Style.Italic -> SpanStyle(fontStyle = FontStyle.Italic)
+    PostDataTextContent.Style.Bold -> SpanStyle(fontWeight = FontWeight.Bold)
+    PostDataTextContent.Style.Underline -> SpanStyle(textDecoration = TextDecoration.Underline)
+}
 
 @Composable
 private fun PostDataAudioFileView(
