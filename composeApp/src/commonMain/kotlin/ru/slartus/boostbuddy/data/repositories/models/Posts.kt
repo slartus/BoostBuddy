@@ -37,8 +37,8 @@ data class PostUser(
 @Immutable
 sealed class PostData {
     data class Text(
-        val content: PostDataTextContent,
-        val modificator: String
+        val content: PostDataTextContent?,
+        val modificator: String?
     ) : PostData()
 
     @Serializable
@@ -54,11 +54,11 @@ sealed class PostData {
     ) : PostData()
 
     data class Link(
-        val rawContent: String,
-        val url: String
+        val content: PostDataTextContent?,
+        val url: String,
+        val modificator: String?
     ) : PostData() {
-        private val content: PostDataTextContent? = PostDataTextContent.ofRaw(rawContent)
-        val text: String = content?.text ?: url
+        val text: String = content?.text.orEmpty()
     }
 
     data class Video(
@@ -86,22 +86,23 @@ sealed class PostData {
 
 data class PostDataTextContent(
     val text: String,
-    val styleData: List<StyleData>?
+    val styleData: List<StyleData>?,
+    val urls: List<UrlData>?
 ) {
     companion object {
         fun ofRaw(rawContent: String): PostDataTextContent? = runCatching {
             if (rawContent.isEmpty()) return null
             val x = Json.parseToJsonElement(rawContent) as? JsonArray ?: return null
 
-            val text = x.firstOrNull()?.jsonPrimitive?.content?.ifEmpty { null } ?: return null
+            val text = x.firstOrNull()?.jsonPrimitive?.content.orEmpty()
 
             val styleData =
                 (x.getOrNull(2) as? JsonArray)
                     ?.map { styleRaw -> (styleRaw as? JsonArray)?.map { it.jsonPrimitive.content } }
                     ?.mapNotNull { StyleData.ofRaw(it) }
 
-            return PostDataTextContent(text, styleData)
-        }.getOrDefault(PostDataTextContent(rawContent, null))
+            return PostDataTextContent(text, styleData, null)
+        }.getOrDefault(PostDataTextContent(rawContent, null, null))
     }
 
     data class StyleData(val style: Style, val from: Int, val length: Int) {
@@ -122,6 +123,7 @@ data class PostDataTextContent(
         }
     }
 
+    data class UrlData(val url: String, val from: Int, val length: Int)
     enum class Style {
         Normal, Italic, Bold, Underline
     }
