@@ -4,6 +4,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -19,11 +20,23 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.TextLayoutResult
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import com.seiko.imageloader.rememberImagePainter
 import ru.slartus.boostbuddy.data.repositories.models.PostData
+import ru.slartus.boostbuddy.data.repositories.models.PostDataTextContent
 import ru.slartus.boostbuddy.ui.common.LocalPlatformConfiguration
 import ru.slartus.boostbuddy.ui.theme.LightColorScheme
 
@@ -54,14 +67,69 @@ private fun PostDataUnknownView() {
 
 @Composable
 private fun PostDataTextView(postData: PostData.Text) {
+    val annotatedText = postData.content?.rememberAnnotatedString() ?: return
+
+    val platformConfiguration = LocalPlatformConfiguration.current
+
+    val layoutResult = remember { mutableStateOf<TextLayoutResult?>(null) }
+    val onClick: (Int) -> Unit = { offset ->
+        annotatedText.getStringAnnotations(start = offset, end = offset).firstOrNull()?.let {
+            platformConfiguration.openBrowser(it.item)
+        }
+    }
+    val pressIndicator = Modifier.pointerInput(onClick) {
+        detectTapGestures { pos ->
+            layoutResult.value?.let { layoutResult ->
+                onClick(layoutResult.getOffsetForPosition(pos))
+            }
+        }
+    }
     Text(
-        modifier = Modifier.fillMaxWidth().focusable(),
-        text = postData.content.text,
-        color = MaterialTheme.colorScheme.primary,
-        style = MaterialTheme.typography.bodySmall
+        modifier = Modifier.then(pressIndicator).fillMaxWidth().focusable(),
+        text = annotatedText,
+        style = MaterialTheme.typography.bodySmall,
+        onTextLayout = {
+            layoutResult.value = it
+        }
     )
 }
 
+@Composable
+private fun PostDataTextContent.rememberAnnotatedString(): AnnotatedString {
+    val linkColor = remember { Color(241, 95, 44) }
+    return remember {
+        buildAnnotatedString {
+            append(text)
+            styleData?.forEach { styleData ->
+                addStyle(
+                    styleData.style.toSpanStyle(),
+                    styleData.from,
+                    styleData.from + styleData.length
+                )
+            }
+            urls?.forEach { url ->
+                addStringAnnotation(
+                    tag = "URL",
+                    annotation = url.url,
+                    start = url.from,
+                    end = url.from + url.length
+                )
+                addStyle(
+                    SpanStyle(color = linkColor),
+                    start = url.from,
+                    end = url.from + url.length
+                )
+            }
+        }
+    }
+}
+
+private fun PostDataTextContent.Style.toSpanStyle(): SpanStyle = when (this) {
+    PostDataTextContent.Style.Normal -> SpanStyle(fontStyle = FontStyle.Normal)
+    PostDataTextContent.Style.Italic -> SpanStyle(fontStyle = FontStyle.Italic)
+    PostDataTextContent.Style.Bold -> SpanStyle(fontWeight = FontWeight.Bold)
+    PostDataTextContent.Style.Underline -> SpanStyle(textDecoration = TextDecoration.Underline)
+}
 
 @Composable
 private fun PostDataAudioFileView(

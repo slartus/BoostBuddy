@@ -40,7 +40,7 @@ internal class BlogRepository(
         }
 }
 
-val playerUrlsComparator = object : Comparator<PlayerUrl> {
+private val playerUrlsComparator = object : Comparator<PlayerUrl> {
     private val sortedQualities =
         listOf("tiny", "lowest", "low", "hls", "medium", "high", "quad_hd", "full_hd")
             .reversed()
@@ -67,7 +67,7 @@ private fun PostResponse.PostData.mapToPostDataOrNull(): PostData? {
 
         "text" -> {
             PostData.Text(
-                content = PostDataTextContent.ofRaw(content.orEmpty()) ?: return null,
+                content = PostDataTextContent.ofRaw(content.orEmpty()),
                 modificator = modificator.orEmpty(),
             )
         }
@@ -77,8 +77,9 @@ private fun PostResponse.PostData.mapToPostDataOrNull(): PostData? {
         )
 
         "link" -> PostData.Link(
-            rawContent = content.orEmpty(),
+            content = PostDataTextContent.ofRaw(content.orEmpty()),
             url = url ?: return null,
+            modificator = modificator
         )
 
         "audio_file" -> PostData.AudioFile(
@@ -100,7 +101,7 @@ private fun PostResponse.Post.mapToPostOrNull(): Post? {
         createdAt = createdAt ?: return null,
         intId = intId ?: return null,
         title = title ?: return null,
-        data = data?.mapNotNull { it.mapToPostDataOrNull() }.orEmpty(),
+        data = data?.mapNotNull { it.mapToPostDataOrNull() }.orEmpty().mergeText(),
         user = user?.let {
             PostUser(
                 name = it.name ?: return null,
@@ -110,4 +111,78 @@ private fun PostResponse.Post.mapToPostOrNull(): Post? {
     )
 
     return post
+}
+
+private fun List<PostData>.mergeText(): List<PostData> {
+    val result: MutableList<PostData> = mutableListOf()
+    var mergeContainer: PostData.Text? = null
+    forEach { item ->
+        when (item) {
+            is PostData.Link -> {
+                mergeContainer.let { container ->
+                    if (container != null && item.modificator != "BLOCK_END") {
+                        mergeContainer = container.copy(
+                            content = container.content?.copy(
+                                text = container.content.text + item.content?.text,
+                                styleData = container.content.styleData.orEmpty() + item.content?.styleData.orEmpty(),
+                                urls = container.content.urls.orEmpty() +
+                                        PostDataTextContent.UrlData(
+                                            item.url,
+                                            container.content.text.length,
+                                            item.content?.text?.length ?: 0
+                                        )
+                            ),
+                        )
+                    } else if (item.modificator != "BLOCK_END") {
+                        mergeContainer = PostData.Text(
+                            item.content?.copy(
+                                urls = listOf(
+                                    PostDataTextContent.UrlData(
+                                        item.url,
+                                        0,
+                                        item.content.text.length
+                                    )
+                                )
+                            ), ""
+                        )
+                    }
+                    if (mergeContainer != null && item.modificator == "BLOCK_END") {
+                        result.add(mergeContainer!!)
+                        mergeContainer = null
+                    }
+                }
+            }
+
+            is PostData.Text -> {
+                mergeContainer.let { container ->
+                    if (container != null && item.modificator != "BLOCK_END") {
+                        mergeContainer = container.copy(
+                            content = container.content?.copy(
+                                text = container.content.text + item.content?.text,
+                                styleData = container.content.styleData.orEmpty() + item.content?.styleData.orEmpty()
+                            ),
+                        )
+                    } else if (item.modificator != "BLOCK_END") {
+                        mergeContainer = PostData.Text(item.content, "")
+                    }
+                    if (mergeContainer != null && item.modificator == "BLOCK_END") {
+                        result.add(mergeContainer!!)
+                        mergeContainer = null
+                    }
+                }
+            }
+
+            else -> {
+                if (mergeContainer != null) {
+                    result.add(mergeContainer!!)
+                    mergeContainer = null
+                }
+                result.add(item)
+            }
+        }
+    }
+    if (mergeContainer != null)
+        result.add(mergeContainer!!)
+
+    return result
 }
