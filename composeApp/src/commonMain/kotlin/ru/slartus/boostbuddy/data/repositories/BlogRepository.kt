@@ -128,7 +128,7 @@ private fun List<PostData>.mergeText(): List<PostData> {
                                 urls = container.content.urls.orEmpty() +
                                         PostDataTextContent.UrlData(
                                             item.url,
-                                            container.content.text.length - 1,
+                                            container.content.text.length,
                                             item.content?.text?.length ?: 0
                                         )
                             ),
