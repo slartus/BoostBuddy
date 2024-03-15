@@ -24,6 +24,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
@@ -94,23 +95,31 @@ private fun PostDataTextView(postData: PostData.Text) {
 }
 
 @Composable
-private fun PostDataTextContent.rememberAnnotatedString(): AnnotatedString = remember {
-    buildAnnotatedString {
-        append(text)
-        styleData?.forEach { styleData ->
-            addStyle(
-                styleData.style.toSpanStyle(),
-                styleData.from,
-                styleData.from + styleData.length
-            )
-        }
-        urls?.forEach { url ->
-            addStringAnnotation(
-                tag = "URL",
-                annotation = url.url,
-                start = url.from,
-                end = url.from + url.length
-            )
+private fun PostDataTextContent.rememberAnnotatedString(): AnnotatedString {
+    val linkColor = remember { Color(241, 95, 44) }
+    return remember {
+        buildAnnotatedString {
+            append(text)
+            styleData?.forEach { styleData ->
+                addStyle(
+                    styleData.style.toSpanStyle(),
+                    styleData.from,
+                    styleData.from + styleData.length
+                )
+            }
+            urls?.forEach { url ->
+                addStringAnnotation(
+                    tag = "URL",
+                    annotation = url.url,
+                    start = url.from,
+                    end = url.from + url.length
+                )
+                addStyle(
+                    SpanStyle(color = linkColor),
+                    start = url.from,
+                    end = url.from + url.length
+                )
+            }
         }
     }
 }
