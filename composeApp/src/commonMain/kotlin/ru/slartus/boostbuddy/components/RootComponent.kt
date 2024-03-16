@@ -49,6 +49,8 @@ interface RootComponent {
     fun onDialogVersionDismissed()
     fun onDialogVersionAcceptClicked(child: DialogChild.NewVersion)
     fun onDialogVersionCancelClicked()
+    fun onDialogErrorDismissed()
+    fun onErrorReceived(ex: Throwable)
 
     // Defines all possible child components
     sealed class Child {
@@ -61,6 +63,8 @@ interface RootComponent {
     sealed class DialogChild {
         data class NewVersion(val version: String, val info: String, val releaseInfo: ReleaseInfo) :
             DialogChild()
+
+        data class Error(val message: String) : DialogChild()
     }
 }
 
@@ -126,19 +130,15 @@ class RootComponentImpl(
 
     private fun downloadAndInstallNewVersion(releaseInfo: ReleaseInfo) {
         scope.launch {
-            runCatching {
-                val url = when (platformConfiguration.platform) {
-                    Platform.Android,
-                    Platform.AndroidTV -> releaseInfo.androidDownloadUrl
+            val url = when (platformConfiguration.platform) {
+                Platform.Android,
+                Platform.AndroidTV -> releaseInfo.androidDownloadUrl
 
-                    Platform.iOS -> null
-                } ?: return@launch
+                Platform.iOS -> null
+            } ?: return@launch
 
-                val path = githubRepository.downloadFile(url).getOrThrow()
-                platformConfiguration.installApp(path)
-            }.onFailure {
-                println(it)
-            }
+            val path = githubRepository.downloadFile(url).getOrThrow()
+            platformConfiguration.installApp(path)
         }
     }
 
@@ -180,6 +180,8 @@ class RootComponentImpl(
                 config.info,
                 config.releaseInfo
             )
+
+            is DialogConfig.Error -> RootComponent.DialogChild.Error(config.message)
         }
 
     private fun authComponent(componentContext: ComponentContext): AuthComponent =
@@ -259,6 +261,18 @@ class RootComponentImpl(
         dialogNavigation.dismiss()
     }
 
+    override fun onDialogErrorDismissed() {
+        dialogNavigation.dismiss()
+    }
+
+    override fun onErrorReceived(ex: Throwable) {
+        dialogNavigation.activate(
+            DialogConfig.Error(
+                message = ex.message ?: ex.toString()
+            )
+        )
+    }
+
     @Serializable
     private sealed interface Config {
         @Serializable
@@ -281,5 +295,8 @@ class RootComponentImpl(
             val version: String = releaseInfo.version
             val info: String = releaseInfo.info.orEmpty()
         }
+
+        @Serializable
+        data class Error(val message: String) : DialogConfig
     }
 }

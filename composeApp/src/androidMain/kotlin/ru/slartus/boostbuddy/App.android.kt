@@ -65,6 +65,7 @@ open class BaseComponentActivity : ComponentActivity() {
                 }
 
                 else -> {
+                    root.onErrorReceived(error)
                     // some bug in android:
                     true
                 }
