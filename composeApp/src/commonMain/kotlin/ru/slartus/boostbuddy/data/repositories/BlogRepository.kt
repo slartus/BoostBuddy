@@ -14,13 +14,12 @@ import ru.slartus.boostbuddy.data.repositories.models.PostDataTextContent
 import ru.slartus.boostbuddy.data.repositories.models.PostResponse
 import ru.slartus.boostbuddy.data.repositories.models.PostUser
 import ru.slartus.boostbuddy.data.repositories.models.Posts
-import ru.slartus.boostbuddy.utils.Response
 import ru.slartus.boostbuddy.utils.fetchOrError
 
 internal class BlogRepository(
     private val httpClient: HttpClient,
 ) {
-    suspend fun getData(accessToken: String, url: String, offset: Offset?): Response<Posts> =
+    suspend fun getData(accessToken: String, url: String, offset: Offset?): Result<Posts> =
         fetchOrError {
             val response: PostResponse =
                 httpClient.get("https://api.boosty.to/v1/blog/$url/post/") {

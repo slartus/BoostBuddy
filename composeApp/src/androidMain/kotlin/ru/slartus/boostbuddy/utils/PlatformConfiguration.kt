@@ -5,8 +5,10 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.widget.Toast
+import ru.slartus.boostbuddy.BuildConfig
 
 actual class PlatformConfiguration(var androidContext: Context, actual val platform: Platform) {
+    actual val appVersion: String = BuildConfig.VERSION_NAME
     actual fun openBrowser(url: String) {
         val browserIntent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
         browserIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)

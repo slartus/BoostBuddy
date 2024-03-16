@@ -19,7 +19,6 @@ import ru.slartus.boostbuddy.data.repositories.SettingsRepository
 import ru.slartus.boostbuddy.data.repositories.models.Offset
 import ru.slartus.boostbuddy.data.repositories.models.PlayerUrl
 import ru.slartus.boostbuddy.data.repositories.models.PostData
-import ru.slartus.boostbuddy.utils.Response
 import ru.slartus.boostbuddy.utils.messageOrThrow
 import ru.slartus.boostbuddy.utils.unauthorizedError
 
@@ -79,29 +78,29 @@ class BlogComponentImpl(
         viewState =
             viewState.copy(progressProgressState = BlogViewState.ProgressState.Loading)
         scope.launch {
-            when (val response = blogRepository.getData(
+            val response = blogRepository.getData(
                 accessToken = token,
                 url = blog.blogUrl,
                 offset = null
-            )) {
-                is Response.Error -> viewState =
+            )
+            if (response.isSuccess) {
+                val data = response.getOrNull()
+                val newItems = data?.items.orEmpty()
+                    .map { BlogItem.PostItem(it) }
+                    .toImmutableList()
+                viewState =
+                    viewState.copy(
+                        items = newItems,
+                        hasMore = data?.isLast != true,
+                        progressProgressState = BlogViewState.ProgressState.Loaded
+                    )
+            } else {
+                viewState =
                     viewState.copy(
                         progressProgressState = BlogViewState.ProgressState.Error(
-                            response.exception.messageOrThrow()
+                            response.exceptionOrNull()?.messageOrThrow()?: "Ошибка загрузки"
                         )
                     )
-
-                is Response.Success -> {
-                    val newItems = response.data.items
-                        .map { BlogItem.PostItem(it) }
-                        .toImmutableList()
-                    viewState =
-                        viewState.copy(
-                            items = newItems,
-                            hasMore = !response.data.isLast,
-                            progressProgressState = BlogViewState.ProgressState.Loaded
-                        )
-                }
             }
         }
     }
@@ -109,25 +108,31 @@ class BlogComponentImpl(
     private fun fetchBlog(token: String, offset: Offset? = null) {
         viewState = viewState.copy(items = viewState.items.plusItem(BlogItem.LoadingItem))
         scope.launch {
-            when (val response = blogRepository.getData(
+            val response = blogRepository.getData(
                 accessToken = token,
                 url = blog.blogUrl,
                 offset = offset
-            )) {
-                is Response.Error -> viewState =
-                    viewState.copy(items = viewState.items.plusItem(BlogItem.ErrorItem(response.exception.messageOrThrow())))
+            )
+            if (response.isSuccess) {
+                val data = response.getOrNull()
+                val newItems =
+                    viewState.items.plusItems(data?.items.orEmpty().map { BlogItem.PostItem(it) })
 
-                is Response.Success -> {
-                    val newItems =
-                        viewState.items.plusItems(response.data.items.map { BlogItem.PostItem(it) })
-
-                    viewState =
-                        viewState.copy(
-                            items = newItems,
-                            hasMore = !response.data.isLast,
-                            progressProgressState = BlogViewState.ProgressState.Loaded
+                viewState =
+                    viewState.copy(
+                        items = newItems,
+                        hasMore = data?.isLast != true,
+                        progressProgressState = BlogViewState.ProgressState.Loaded
+                    )
+            } else {
+                viewState =
+                    viewState.copy(
+                        items = viewState.items.plusItem(
+                            BlogItem.ErrorItem(
+                                response.exceptionOrNull()?.messageOrThrow() ?: "Ошибка загрузки"
+                            )
                         )
-                }
+                    )
             }
         }
     }

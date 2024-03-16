@@ -1,6 +1,11 @@
 package ru.slartus.boostbuddy.components
 
 import com.arkivanov.decompose.ComponentContext
+import com.arkivanov.decompose.router.slot.ChildSlot
+import com.arkivanov.decompose.router.slot.SlotNavigation
+import com.arkivanov.decompose.router.slot.activate
+import com.arkivanov.decompose.router.slot.childSlot
+import com.arkivanov.decompose.router.slot.dismiss
 import com.arkivanov.decompose.router.stack.ChildStack
 import com.arkivanov.decompose.router.stack.StackNavigation
 import com.arkivanov.decompose.router.stack.childStack
@@ -21,22 +26,38 @@ import ru.slartus.boostbuddy.components.video.VideoComponent
 import ru.slartus.boostbuddy.components.video.VideoComponentImpl
 import ru.slartus.boostbuddy.data.Inject
 import ru.slartus.boostbuddy.data.repositories.Blog
+import ru.slartus.boostbuddy.data.repositories.GithubRepository
+import ru.slartus.boostbuddy.data.repositories.ReleaseInfo
 import ru.slartus.boostbuddy.data.repositories.SettingsRepository
 import ru.slartus.boostbuddy.data.repositories.models.PlayerUrl
 import ru.slartus.boostbuddy.data.repositories.models.PostData
+import ru.slartus.boostbuddy.utils.PlatformConfiguration
+import ru.slartus.boostbuddy.utils.VersionsComparer.greaterThan
 
 interface RootComponent {
     val stack: Value<ChildStack<*, Child>>
+    val dialogSlot: Value<ChildSlot<*, DialogChild>>
     val viewStates: Value<RootViewState>
+
     // It's possible to pop multiple screens at a time on iOS
     fun onBackClicked(toIndex: Int)
     fun showAuthorizeComponent()
+
+    fun onDialogVersionDismissed()
+    fun onDialogVersionAcceptClicked(child: DialogChild)
+    fun onDialogVersionCancelClicked()
+
     // Defines all possible child components
     sealed class Child {
         class AuthChild(val component: AuthComponent) : Child()
         class SubscribesChild(val component: SubscribesComponent) : Child()
         class BlogChild(val component: BlogComponent) : Child()
         class VideoChild(val component: VideoComponent) : Child()
+    }
+
+    sealed class DialogChild {
+        data class NewVersion(val version: String, val info: String, val releaseInfo: ReleaseInfo) :
+            DialogChild()
     }
 }
 
@@ -48,7 +69,19 @@ class RootComponentImpl(
     componentContext: ComponentContext,
 ) : BaseComponent<RootViewState>(componentContext, RootViewState(darkMode = null)), RootComponent {
     private val navigation = StackNavigation<Config>()
+    private val dialogNavigation = SlotNavigation<DialogConfig>()
     private val settingsRepository by Inject.lazy<SettingsRepository>()
+    private val githubRepository by Inject.lazy<GithubRepository>()
+    private val platformConfiguration by Inject.lazy<PlatformConfiguration>()
+
+    override val dialogSlot: Value<ChildSlot<*, RootComponent.DialogChild>> =
+        childSlot(
+            source = dialogNavigation,
+            serializer = DialogConfig.serializer(),
+            handleBackButton = true,
+            childFactory = ::dialogChild
+        )
+
     override val stack: Value<ChildStack<*, RootComponent.Child>> =
         childStack(
             source = navigation,
@@ -60,12 +93,32 @@ class RootComponentImpl(
 
     init {
         subscribeSettings()
+        fetchLastReleaseInfo()
     }
 
     private fun subscribeSettings() {
         scope.launch {
             settingsRepository.darkModeFlow.collect {
                 viewState = viewState.copy(darkMode = it)
+            }
+        }
+    }
+
+    private fun fetchLastReleaseInfo() {
+        scope.launch {
+            runCatching {
+                val lastReleaseInfo =
+                    githubRepository.getLastReleaseInfo().getOrNull() ?: return@launch
+                val lastReleaseVersion = lastReleaseInfo.version
+                //if (!lastReleaseVersion.greaterThan(platformConfiguration.appVersion)) return@launch
+                if (!lastReleaseVersion.greaterThan("1.0.0")) return@launch
+                dialogNavigation.activate(
+                    DialogConfig.NewVersion(
+                        version = lastReleaseVersion,
+                        info = lastReleaseInfo.info.orEmpty(),
+                        releaseInfo = lastReleaseInfo
+                    )
+                )
             }
         }
     }
@@ -95,6 +148,18 @@ class RootComponentImpl(
                     componentContext,
                     config
                 )
+            )
+        }
+
+    private fun dialogChild(
+        config: DialogConfig,
+        componentContext: ComponentContext
+    ): RootComponent.DialogChild =
+        when (config) {
+            is DialogConfig.NewVersion -> RootComponent.DialogChild.NewVersion(
+                config.version,
+                config.info,
+                config.releaseInfo
             )
         }
 
@@ -147,6 +212,18 @@ class RootComponentImpl(
         navigation.popTo(index = toIndex)
     }
 
+    override fun onDialogVersionDismissed() {
+        dialogNavigation.dismiss()
+    }
+
+    override fun onDialogVersionAcceptClicked(child: RootComponent.DialogChild) {
+        dialogNavigation.dismiss()
+    }
+
+    override fun onDialogVersionCancelClicked() {
+        dialogNavigation.dismiss()
+    }
+
     @Serializable
     private sealed interface Config {
         @Serializable
@@ -160,5 +237,12 @@ class RootComponentImpl(
 
         @Serializable
         data class VideoConfig(val postData: PostData.OkVideo, val playerUrl: PlayerUrl) : Config
+    }
+
+    @Serializable
+    private sealed interface DialogConfig {
+        @Serializable
+        data class NewVersion(val version: String, val info: String, val releaseInfo: ReleaseInfo) :
+            DialogConfig
     }
 }

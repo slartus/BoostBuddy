@@ -16,7 +16,6 @@ import ru.slartus.boostbuddy.data.Inject
 import ru.slartus.boostbuddy.data.repositories.SettingsRepository
 import ru.slartus.boostbuddy.data.repositories.SubscribeItem
 import ru.slartus.boostbuddy.data.repositories.SubscribesRepository
-import ru.slartus.boostbuddy.utils.Response
 import ru.slartus.boostbuddy.utils.WebManager
 import ru.slartus.boostbuddy.utils.messageOrThrow
 import ru.slartus.boostbuddy.utils.unauthorizedError
@@ -63,10 +62,7 @@ class SubscribesComponentImpl(
             handleBackButton = true,
             childFactory = { _, _ ->
                 LogoutDialogComponentImpl(
-                    onDismissed = {
-                        println(">>>>>>>>>>>>>>>>onDismissed")
-                        dialogNavigation.dismiss()
-                    },
+                    onDismissed = dialogNavigation::dismiss,
                     onAcceptClicked = ::logout,
                     onCancelClicked = dialogNavigation::dismiss
                 )
@@ -101,21 +97,24 @@ class SubscribesComponentImpl(
             viewState.copy(progressProgressState = SubscribesViewState.ProgressState.Loading)
 
         scope.launch {
-            when (val response = subscribesRepository.getSubscribes(token)) {
-                is Response.Error -> viewState =
+            val response = subscribesRepository.getSubscribes(token)
+
+            if (response.isFailure) {
+                viewState =
                     viewState.copy(
                         progressProgressState = SubscribesViewState.ProgressState.Error(
-                            response.exception.messageOrThrow()
+                            response.exceptionOrNull()?.messageOrThrow() ?: "Ошибка загрузки"
                         )
                     )
-
-                is Response.Success -> viewState =
+            } else {
+                viewState =
                     viewState.copy(
                         progressProgressState = SubscribesViewState.ProgressState.Loaded(
-                            response.data.toImmutableList()
+                            response.getOrDefault(emptyList()).toImmutableList()
                         )
                     )
             }
+
         }
     }
 
