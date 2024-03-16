@@ -24,7 +24,7 @@ fun Throwable.toServerException(): ServerException =
 
     }
 
-fun ServerException.messageOrThrow(): String {
+fun Throwable.messageOrThrow(): String {
     val message = when (this) {
         is ServerException.Unauthorized -> {
             unauthorizedError()
@@ -34,7 +34,7 @@ fun ServerException.messageOrThrow(): String {
             message ?: code.toString()
         }
 
-        is ServerException.Other -> {
+        else -> {
             toString()
         }
     }

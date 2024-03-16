@@ -6,13 +6,12 @@ import io.ktor.client.request.get
 import io.ktor.client.request.header
 import io.ktor.http.HttpHeaders
 import kotlinx.serialization.Serializable
-import ru.slartus.boostbuddy.utils.Response
 import ru.slartus.boostbuddy.utils.fetchOrError
 
 class SubscribesRepository(
     private val httpClient: HttpClient
 ) {
-    suspend fun getSubscribes(accessToken: String): Response<List<SubscribeItem>> =
+    suspend fun getSubscribes(accessToken: String): Result<List<SubscribeItem>> =
         fetchOrError {
             val response: SubscribesResponse =
                 httpClient.get("https://api.boosty.to/v1/user/subscriptions?limit=30&with_follow=true") {
