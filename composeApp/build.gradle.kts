@@ -1,5 +1,3 @@
-import org.jetbrains.kotlin.konan.properties.loadProperties
-
 plugins {
     alias(libs.plugins.multiplatform)
     alias(libs.plugins.compose)
@@ -55,6 +53,7 @@ kotlin {
             implementation(libs.ktor.negotiation)
             implementation(libs.kotlinx.serialization.json)
             implementation(libs.kotlinx.datetime)
+            implementation(libs.kotlinx.io.core)
             implementation(libs.multiplatformSettings)
             implementation(libs.kodein.core)
             implementation(libs.kodein.conf)
