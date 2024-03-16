@@ -35,6 +35,7 @@ import ru.slartus.boostbuddy.utils.Permission
 import ru.slartus.boostbuddy.utils.Permissions
 import ru.slartus.boostbuddy.utils.Platform
 import ru.slartus.boostbuddy.utils.PlatformConfiguration
+import ru.slartus.boostbuddy.utils.VersionsComparer.greaterThan
 
 interface RootComponent {
     val stack: Value<ChildStack<*, Child>>
