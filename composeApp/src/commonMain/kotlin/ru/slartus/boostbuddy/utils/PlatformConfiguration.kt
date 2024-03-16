@@ -3,6 +3,7 @@ package ru.slartus.boostbuddy.utils
 expect class PlatformConfiguration {
     val platform: Platform
     val appVersion: String
+    val isDebug: Boolean
     fun openBrowser(url: String)
 }
 

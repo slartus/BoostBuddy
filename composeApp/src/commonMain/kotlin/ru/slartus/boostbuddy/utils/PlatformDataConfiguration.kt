@@ -18,8 +18,8 @@ object PlatformDataConfiguration {
         Inject.createDependenciesTree {
             bindSingleton { GlobalExceptionHandlersChain() }
             bindSingleton { platformConfiguration }
-            bindSingleton(TAG_HTTP_CLIENT_BOOSTY) { buildHttpClient(false) }
-            bindSingleton(TAG_HTTP_CLIENT_GITHUB) { buildHttpClient(false) }
+            bindSingleton(TAG_HTTP_CLIENT_BOOSTY) { buildHttpClient(platformConfiguration.isDebug) }
+            bindSingleton(TAG_HTTP_CLIENT_GITHUB) { buildHttpClient(platformConfiguration.isDebug) }
             bindSingleton { AuthRepository(httpClient = instance(TAG_HTTP_CLIENT_BOOSTY)) }
             bindSingleton { SettingsFactory(platformConfiguration = instance()).createDefault() }
             bindSingleton { SettingsRepository(settings = instance()) }

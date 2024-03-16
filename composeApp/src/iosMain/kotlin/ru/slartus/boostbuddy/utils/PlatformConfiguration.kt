@@ -10,7 +10,9 @@ actual open class PlatformConfiguration private constructor() {
     actual val appVersion: String by lazy(LazyThreadSafetyMode.NONE) {
         infoValue(VERSION_KEY) ?: "1.0"
     }
-
+    actual val isDebug: Boolean by lazy(LazyThreadSafetyMode.NONE) {
+        infoValue(CONFIGURATION_KEY)?.startsWith("debug", ignoreCase = true) ?: false
+    }
     actual fun openBrowser(url: String) {
         NSURL.URLWithString(url)?.let {
             UIApplication.sharedApplication().openURL(it)
@@ -19,6 +21,7 @@ actual open class PlatformConfiguration private constructor() {
 
     companion object : PlatformConfiguration() {
         private const val VERSION_KEY = "CFBundleShortVersionString"
+        private const val CONFIGURATION_KEY = "Configuration"
         @Suppress("unused")
         val shared = PlatformConfiguration()
 
