@@ -18,6 +18,7 @@ object PlatformDataConfiguration {
         Inject.createDependenciesTree {
             bindSingleton { GlobalExceptionHandlersChain() }
             bindSingleton { platformConfiguration }
+            bindSingleton { Permissions(platformConfiguration = instance()) }
             bindSingleton(TAG_HTTP_CLIENT_BOOSTY) { buildHttpClient(platformConfiguration.isDebug) }
             bindSingleton(TAG_HTTP_CLIENT_GITHUB) { buildHttpClient(platformConfiguration.isDebug) }
             bindSingleton { AuthRepository(httpClient = instance(TAG_HTTP_CLIENT_BOOSTY)) }

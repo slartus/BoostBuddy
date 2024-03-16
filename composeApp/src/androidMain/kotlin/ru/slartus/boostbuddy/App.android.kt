@@ -7,14 +7,18 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import androidx.lifecycle.LifecycleOwner
 import com.arkivanov.decompose.defaultComponentContext
 import ru.slartus.boostbuddy.components.RootComponentImpl
 import ru.slartus.boostbuddy.data.Inject
 import ru.slartus.boostbuddy.ui.common.LocalPlatformConfiguration
 import ru.slartus.boostbuddy.ui.screens.RootScreen
 import ru.slartus.boostbuddy.utils.GlobalExceptionHandlersChain
+import ru.slartus.boostbuddy.utils.Permissions
 import ru.slartus.boostbuddy.utils.Platform
 import ru.slartus.boostbuddy.utils.PlatformConfiguration
 import ru.slartus.boostbuddy.utils.PlatformDataConfiguration
@@ -47,15 +51,13 @@ class AppActivity : BaseComponentActivity()
 class TvAppActivity : BaseComponentActivity()
 
 open class BaseComponentActivity : ComponentActivity() {
-    private val globalExceptionHandlersChain by Inject.lazy<GlobalExceptionHandlersChain>()
-    private val platformConfiguration by Inject.lazy<PlatformConfiguration>()
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen()
         super.onCreate(savedInstanceState)
 
         val root = RootComponentImpl(componentContext = defaultComponentContext())
 
-        globalExceptionHandlersChain.registerHandler { error ->
+        Inject.instance<GlobalExceptionHandlersChain>().registerHandler { error ->
             when (error) {
                 is UnauthorizedException -> {
                     root.showAuthorizeComponent()
@@ -69,8 +71,12 @@ open class BaseComponentActivity : ComponentActivity() {
             }
         }
         setContent {
+            val lifecycleOwner: LifecycleOwner = LocalLifecycleOwner.current
+            LaunchedEffect(lifecycleOwner) {
+                Inject.instance<Permissions>().bind(lifecycleOwner.lifecycle)
+            }
             CompositionLocalProvider(
-                LocalPlatformConfiguration provides platformConfiguration
+                LocalPlatformConfiguration provides Inject.instance<PlatformConfiguration>()
             ) {
                 RootScreen(component = root, modifier = Modifier.fillMaxSize())
             }

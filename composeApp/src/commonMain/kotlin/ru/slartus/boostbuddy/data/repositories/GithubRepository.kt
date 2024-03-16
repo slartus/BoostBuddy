@@ -3,6 +3,14 @@ package ru.slartus.boostbuddy.data.repositories
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.get
+import io.ktor.client.request.prepareGet
+import io.ktor.utils.io.ByteReadChannel
+import io.ktor.utils.io.core.isEmpty
+import io.ktor.utils.io.core.readBytes
+import kotlinx.io.Buffer
+import kotlinx.io.files.Path
+import kotlinx.io.files.SystemFileSystem
+import kotlinx.io.files.SystemTemporaryDirectory
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import ru.slartus.boostbuddy.utils.fetchOrError
@@ -22,6 +30,29 @@ internal class GithubRepository(
                 androidDownloadUrl = response.assets?.firstOrNull { it.browserDownloadUrl != null }?.browserDownloadUrl
             )
         }
+
+    suspend fun downloadFile(url: String): Result<Path> = fetchOrError {
+        val tempFilePath = Path(SystemTemporaryDirectory, url.substringAfterLast('/'))
+        val file = SystemFileSystem.sink(tempFilePath, append = false)
+        val byteBufferSize = 1024 * 100
+        val buffer = Buffer()
+        httpClient.prepareGet(url).execute { httpResponse ->
+            val channel: ByteReadChannel = httpResponse.body()
+            while (!channel.isClosedForRead) {
+                val packet = channel.readRemaining(byteBufferSize.toLong())
+                while (!packet.isEmpty) {
+                    val bytes = packet.readBytes()
+                    buffer.write(bytes, 0, bytes.size)
+                    file.write(buffer, bytes.size.toLong())
+                    file.flush()
+                    buffer.clear()
+                }
+            }
+        }
+        file.close()
+        tempFilePath
+    }
+
 }
 
 @Serializable

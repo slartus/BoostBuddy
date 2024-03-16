@@ -105,13 +105,15 @@ private fun NewVersionDialogView(
             )
             Spacer(Modifier.height(16.dp))
             Text(
-                modifier = Modifier.fillMaxWidth().clickable { onAcceptClicked() }.padding(vertical = 16.dp),
-                text = "Скачать",
+                modifier = Modifier.fillMaxWidth().clickable { onAcceptClicked() }
+                    .padding(vertical = 16.dp),
+                text = "Скачать и установить",
                 textAlign = TextAlign.Center,
                 style = MaterialTheme.typography.bodyLarge
             )
             Text(
-                modifier = Modifier.fillMaxWidth().clickable { onCancelClicked() }.padding(vertical = 16.dp),
+                modifier = Modifier.fillMaxWidth().clickable { onCancelClicked() }
+                    .padding(vertical = 16.dp),
                 text = "Отложить",
                 textAlign = TextAlign.Center,
                 style = MaterialTheme.typography.bodyLarge

@@ -31,8 +31,10 @@ import ru.slartus.boostbuddy.data.repositories.ReleaseInfo
 import ru.slartus.boostbuddy.data.repositories.SettingsRepository
 import ru.slartus.boostbuddy.data.repositories.models.PlayerUrl
 import ru.slartus.boostbuddy.data.repositories.models.PostData
+import ru.slartus.boostbuddy.utils.Permission
+import ru.slartus.boostbuddy.utils.Permissions
+import ru.slartus.boostbuddy.utils.Platform
 import ru.slartus.boostbuddy.utils.PlatformConfiguration
-import ru.slartus.boostbuddy.utils.VersionsComparer.greaterThan
 
 interface RootComponent {
     val stack: Value<ChildStack<*, Child>>
@@ -44,7 +46,7 @@ interface RootComponent {
     fun showAuthorizeComponent()
 
     fun onDialogVersionDismissed()
-    fun onDialogVersionAcceptClicked(child: DialogChild)
+    fun onDialogVersionAcceptClicked(child: DialogChild.NewVersion)
     fun onDialogVersionCancelClicked()
 
     // Defines all possible child components
@@ -73,6 +75,7 @@ class RootComponentImpl(
     private val settingsRepository by Inject.lazy<SettingsRepository>()
     private val githubRepository by Inject.lazy<GithubRepository>()
     private val platformConfiguration by Inject.lazy<PlatformConfiguration>()
+    private val permissions by Inject.lazy<Permissions>()
 
     override val dialogSlot: Value<ChildSlot<*, RootComponent.DialogChild>> =
         childSlot(
@@ -110,15 +113,30 @@ class RootComponentImpl(
                 val lastReleaseInfo =
                     githubRepository.getLastReleaseInfo().getOrNull() ?: return@launch
                 val lastReleaseVersion = lastReleaseInfo.version
-                //if (!lastReleaseVersion.greaterThan(platformConfiguration.appVersion)) return@launch
-                if (!lastReleaseVersion.greaterThan("1.0.0")) return@launch
+
+                if (!lastReleaseVersion.greaterThan(platformConfiguration.appVersion)) return@launch
+
                 dialogNavigation.activate(
-                    DialogConfig.NewVersion(
-                        version = lastReleaseVersion,
-                        info = lastReleaseInfo.info.orEmpty(),
-                        releaseInfo = lastReleaseInfo
-                    )
+                    DialogConfig.NewVersion(releaseInfo = lastReleaseInfo)
                 )
+            }
+        }
+    }
+
+    private fun downloadAndInstallNewVersion(releaseInfo: ReleaseInfo) {
+        scope.launch {
+            runCatching {
+                val url = when (platformConfiguration.platform) {
+                    Platform.Android,
+                    Platform.AndroidTV -> releaseInfo.androidDownloadUrl
+
+                    Platform.iOS -> null
+                } ?: return@launch
+
+                val path = githubRepository.downloadFile(url).getOrThrow()
+                platformConfiguration.installApp(path)
+            }.onFailure {
+                println(it)
             }
         }
     }
@@ -216,8 +234,24 @@ class RootComponentImpl(
         dialogNavigation.dismiss()
     }
 
-    override fun onDialogVersionAcceptClicked(child: RootComponent.DialogChild) {
+    override fun onDialogVersionAcceptClicked(child: RootComponent.DialogChild.NewVersion) {
         dialogNavigation.dismiss()
+        scope.launch {
+            if (!permissions.isPermissionGranted(Permission.InstallApplication)) {
+                runCatching {
+                    permissions.providePermission(Permission.InstallApplication)
+                    downloadAndInstallNewVersion(child.releaseInfo)
+                }.onFailure {
+                    dialogNavigation.activate(
+                        DialogConfig.NewVersion(
+                            releaseInfo = child.releaseInfo
+                        )
+                    )
+                }
+            } else {
+                downloadAndInstallNewVersion(child.releaseInfo)
+            }
+        }
     }
 
     override fun onDialogVersionCancelClicked() {
@@ -242,7 +276,9 @@ class RootComponentImpl(
     @Serializable
     private sealed interface DialogConfig {
         @Serializable
-        data class NewVersion(val version: String, val info: String, val releaseInfo: ReleaseInfo) :
-            DialogConfig
+        data class NewVersion(val releaseInfo: ReleaseInfo) : DialogConfig {
+            val version: String = releaseInfo.version
+            val info: String = releaseInfo.info.orEmpty()
+        }
     }
 }
