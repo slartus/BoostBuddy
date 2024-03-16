@@ -15,6 +15,7 @@ import com.arkivanov.decompose.router.stack.popWhile
 import com.arkivanov.decompose.router.stack.push
 import com.arkivanov.decompose.value.Value
 import kotlinx.coroutines.launch
+import kotlinx.io.files.SystemFileSystem
 import kotlinx.serialization.Serializable
 import ru.slartus.boostbuddy.components.auth.AuthComponent
 import ru.slartus.boostbuddy.components.auth.AuthComponentImpl
@@ -138,7 +139,13 @@ class RootComponentImpl(
             } ?: return@launch
 
             val path = githubRepository.downloadFile(url).getOrThrow()
-            platformConfiguration.installApp(path)
+            try {
+                platformConfiguration.installApp(path)
+            } finally {
+                runCatching {
+                    SystemFileSystem.delete(path)
+                }
+            }
         }
     }
 
