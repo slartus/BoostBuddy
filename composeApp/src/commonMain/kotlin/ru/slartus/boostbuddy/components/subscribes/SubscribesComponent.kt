@@ -47,7 +47,7 @@ class SubscribesComponentImpl(
     componentContext: ComponentContext,
     private val onItemSelected: (item: SubscribeItem) -> Unit,
     private val onBackClicked: () -> Unit,
-) : BaseComponent<SubscribesViewState>(
+) : BaseComponent<SubscribesViewState, Any>(
     componentContext,
     SubscribesViewState(SubscribesViewState.ProgressState.Init)
 ), SubscribesComponent {

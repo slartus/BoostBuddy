@@ -17,7 +17,7 @@ interface AuthComponent {
 class AuthComponentImpl(
     componentContext: ComponentContext,
     private val onLogined: () -> Unit,
-) : BaseComponent<Unit>(componentContext, Unit), AuthComponent {
+) : BaseComponent<Unit, Any>(componentContext, Unit), AuthComponent {
     private val settingsRepository by Inject.lazy<SettingsRepository>()
 
     init {

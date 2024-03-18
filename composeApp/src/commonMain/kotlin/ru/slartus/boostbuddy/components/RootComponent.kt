@@ -38,7 +38,7 @@ import ru.slartus.boostbuddy.utils.Platform
 import ru.slartus.boostbuddy.utils.PlatformConfiguration
 import ru.slartus.boostbuddy.utils.VersionsComparer.greaterThan
 
-interface RootComponent {
+interface RootComponent : AppComponent<RootViewAction> {
     val stack: Value<ChildStack<*, Child>>
     val dialogSlot: Value<ChildSlot<*, DialogChild>>
     val viewStates: Value<RootViewState>
@@ -73,9 +73,17 @@ data class RootViewState(
     val darkMode: Boolean?
 )
 
+sealed class RootViewAction {
+    data class ShowSnackBar(val message: String) : RootViewAction()
+}
+
 class RootComponentImpl(
     componentContext: ComponentContext,
-) : BaseComponent<RootViewState>(componentContext, RootViewState(darkMode = null)), RootComponent {
+) : BaseComponent<RootViewState, RootViewAction>(
+    componentContext,
+    RootViewState(darkMode = null)
+),
+    RootComponent {
     private val navigation = StackNavigation<Config>()
     private val dialogNavigation = SlotNavigation<DialogConfig>()
     private val settingsRepository by Inject.lazy<SettingsRepository>()
@@ -85,6 +93,7 @@ class RootComponentImpl(
 
     override val dialogSlot: Value<ChildSlot<*, RootComponent.DialogChild>> =
         childSlot(
+            key = "dialogSlot",
             source = dialogNavigation,
             serializer = DialogConfig.serializer(),
             handleBackButton = true,
@@ -93,6 +102,7 @@ class RootComponentImpl(
 
     override val stack: Value<ChildStack<*, RootComponent.Child>> =
         childStack(
+            key = "DefaultChildStack",
             source = navigation,
             serializer = Config.serializer(),
             initialConfiguration = Config.Subscribes,
@@ -138,13 +148,15 @@ class RootComponentImpl(
                 Platform.iOS -> null
             } ?: return@launch
 
+            viewAction = RootViewAction.ShowSnackBar("Загрузка файла началась")
             val path = githubRepository.downloadFile(url).getOrThrow()
-            try {
+            runCatching {
                 platformConfiguration.installApp(path)
-            } finally {
-                runCatching {
-                    SystemFileSystem.delete(path)
-                }
+            }.onFailure {
+                viewAction = RootViewAction.ShowSnackBar("Ошибка загрузки файла")
+            }
+            runCatching {
+                SystemFileSystem.delete(path)
             }
         }
     }
@@ -273,11 +285,7 @@ class RootComponentImpl(
     }
 
     override fun onErrorReceived(ex: Throwable) {
-        dialogNavigation.activate(
-            DialogConfig.Error(
-                message = ex.message ?: ex.toString()
-            )
-        )
+        viewAction = RootViewAction.ShowSnackBar(ex.message ?: ex.toString())
     }
 
     @Serializable
