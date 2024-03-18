@@ -4,14 +4,12 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.NorthWest
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -63,7 +61,7 @@ fun AuthScreen(component: AuthComponent) {
     val density = LocalDensity.current
 
     val platformConfiguration = LocalPlatformConfiguration.current
-    var useCursor by remember { mutableStateOf(platformConfiguration.platform == Platform.AndroidTV) }
+    var useCursor by remember { mutableStateOf(false) }
     val isKeyboardOpen by keyboardAsState()
     Scaffold(
         topBar = {
@@ -73,20 +71,19 @@ fun AuthScreen(component: AuthComponent) {
                         modifier = Modifier.fillMaxWidth().padding(16.dp),
                         verticalAlignment = CenterVertically
                     ) {
-                        CircularProgressIndicator(modifier = Modifier.size(24.dp))
-                        Spacer(modifier = Modifier.padding(8.dp))
                         Text(
-                            text = "Ожидание авторизационной куки"
+                            text = "Авторизация"
                         )
                     }
                 },
                 actions = {
-                    IconButton(onClick = { useCursor = !useCursor }) {
-                        Icon(
-                            imageVector = Icons.Filled.NorthWest,
-                            contentDescription = "Обновить"
-                        )
-                    }
+                    if (platformConfiguration.platform == Platform.AndroidTV)
+                        IconButton(onClick = { useCursor = !useCursor }) {
+                            Icon(
+                                imageVector = Icons.Filled.NorthWest,
+                                contentDescription = "Обновить"
+                            )
+                        }
                 }
 
             )
