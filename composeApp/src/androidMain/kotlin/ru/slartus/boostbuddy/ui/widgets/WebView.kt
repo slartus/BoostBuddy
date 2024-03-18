@@ -65,6 +65,7 @@ actual fun WebView(url: String, clickCoors: Offset?, onCookieChange: (String) ->
                 }
 
                 override fun onPageFinished(view: WebView?, currentUrl: String?) {
+                    view?.injectCSS()
                     super.onPageFinished(view, currentUrl)
                     if (currentUrl != null)
                         onCookieChange(
@@ -88,6 +89,21 @@ actual fun WebView(url: String, clickCoors: Offset?, onCookieChange: (String) ->
     }
     LaunchedEffect(url) {
         webView.loadUrl(url)
+    }
+}
+
+private fun WebView.injectCSS() {
+    try {
+       val style = ":focus { border: 2px solid red; }"
+        val script =
+                "var parent = document.getElementsByTagName('head').item(0);\n" +
+                "var style = document.createElement('style');\n" +
+                "style.type = 'text/css';\n" +
+                "style.innerHTML = \"$style\";\n" +
+                "parent.appendChild(style)"
+        evaluateJavascript(script, null)
+    } catch (e: Exception) {
+        e.printStackTrace()
     }
 }
 
