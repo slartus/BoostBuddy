@@ -10,6 +10,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.NorthWest
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -203,6 +205,30 @@ fun AuthScreen(component: AuthComponent) {
                     contentDescription = "Обновить"
                 )
         }
+        InfoDialogView()
+    }
+}
+
+@Composable
+private fun InfoDialogView() {
+    var isDialogOpen by remember { mutableStateOf(true) }
+    if (isDialogOpen) {
+        AlertDialog(
+            onDismissRequest = {
+                isDialogOpen = false
+            },
+            confirmButton = {
+                Button(onClick = {
+                    isDialogOpen = false
+                }) {
+                    Text("ОК")
+                }
+            },
+            title = { Text("Внимание") },
+            text = {
+                Text("Необходимо принять соглашение по использованию cookies и залогиниться.\n\nКлиент использует полученный в cookie токен.")
+            },
+        )
     }
 }
 
