@@ -1,7 +1,6 @@
 package ru.slartus.boostbuddy.components.auth
 
 import com.arkivanov.decompose.ComponentContext
-import com.arkivanov.essenty.backhandler.BackCallback
 import io.ktor.http.decodeURLQueryComponent
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
@@ -22,11 +21,6 @@ class AuthComponentImpl(
 
     init {
         clearToken()
-        backHandler.register(object : BackCallback() {
-            override fun onBack() {
-
-            }
-        })
     }
 
     private fun clearToken() {
