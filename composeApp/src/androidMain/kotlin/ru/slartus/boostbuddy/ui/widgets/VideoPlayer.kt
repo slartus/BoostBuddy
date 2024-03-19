@@ -1,11 +1,9 @@
 package ru.slartus.boostbuddy.ui.widgets
 
 import android.graphics.Color
-import android.util.Log
 import android.view.KeyEvent
 import android.view.ViewGroup
 import android.widget.FrameLayout
-import androidx.annotation.OptIn
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -81,7 +79,6 @@ actual fun VideoPlayer(
 ) {
     val coroutineScope = rememberCoroutineScope()
     var playingPosition by remember { mutableLongStateOf(0L) }
-    val mediaItems = rememberMediaItems(vid = vid, url = url, title = title)
     val exoPlayer = rememberPlayer(
         onVideoStateChange = onVideoStateChange,
         onContentPositionChange = {
@@ -93,7 +90,6 @@ actual fun VideoPlayer(
         launch {
             while (true) {
                 playingPosition = exoPlayer.contentPosition
-                Log.e("VideoPlayer", ">>>>>$playingPosition")
                 delay(1.seconds)
             }
         }
@@ -101,24 +97,27 @@ actual fun VideoPlayer(
 
     exoPlayer.observeLifeCycle()
 
-    LaunchedEffect(mediaItems, exoPlayer) {
+    DisposableEffect(exoPlayer) {
         exoPlayer.apply {
-            setMediaItems(mediaItems)
+            setMediaItems(
+                listOf(
+                    MediaItem.Builder()
+                        .setUri(url)
+                        .setMediaId(vid)
+                        .setTag(url)
+                        .setMediaMetadata(MediaMetadata.Builder().setDisplayTitle(title).build())
+                        .build()
+                )
+            )
+            seekTo(position)
+            playWhenReady = true
             prepare()
         }
-    }
-
-    DisposableEffect(Unit) {
         exoPlayer.seekTo(position)
         exoPlayer.playWhenReady = true
         onDispose {
             exoPlayer.release()
         }
-    }
-
-    val playerView = rememberPlayerView()
-    LaunchedEffect(exoPlayer) {
-        playerView.player = exoPlayer
     }
 
     var shouldShowController by remember { mutableStateOf(false) }
@@ -204,7 +203,23 @@ actual fun VideoPlayer(
                         }
                     }
                 },
-            factory = { playerView }
+            factory = { context ->
+                PlayerView(context).apply {
+                    layoutParams = FrameLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.MATCH_PARENT
+                    )
+                    setBackgroundColor(Color.BLACK)
+                    resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FIXED_WIDTH
+                    controllerAutoShow = false
+                    useController = false
+                    setShowNextButton(false)
+                    setShowPreviousButton(false)
+                    setShowFastForwardButton(false)
+                    setShowRewindButton(false)
+                    player = exoPlayer
+                }
+            }
         )
         AnimatedVisibility(
             visible = shouldShowController,
@@ -261,8 +276,7 @@ private fun PlayerControllerView(
         }
         Slider(
             modifier = Modifier
-                .fillMaxWidth()
-                .focusable(),
+                .fillMaxWidth(),
             value = position,
             valueRange = valueRange,
             onValueChange = {
@@ -325,7 +339,6 @@ private fun Modifier.onPlayerKeyEvent(
     onStopClick: () -> Unit
 ): Modifier {
     return onKeyEvent { keyEvent ->
-        Log.e("onKeyEvent", ">>>>>>>>>>>>>>>>${keyEvent.nativeKeyEvent.keyCode} $keyEvent")
         if (!isOwnKeyCode(keyEvent)) return@onKeyEvent false
         if (keyEvent.nativeKeyEvent.action == KeyEvent.ACTION_DOWN) {
             when (keyEvent.nativeKeyEvent.keyCode) {
@@ -386,57 +399,14 @@ private fun ExoPlayer.observeLifeCycle() {
     LocalLifecycleOwner.current.lifecycle.addObserver(object : LifecycleEventObserver {
         override fun onStateChanged(source: LifecycleOwner, event: Lifecycle.Event) {
             when (event) {
-                Lifecycle.Event.ON_PAUSE -> {
+                Lifecycle.Event.ON_PAUSE, Lifecycle.Event.ON_STOP -> {
                     pause()
-                }
-
-                Lifecycle.Event.ON_STOP -> {
-                    stop()
                 }
 
                 else -> Unit
             }
         }
     })
-}
-
-@OptIn(UnstableApi::class)
-@Composable
-private fun rememberPlayerView(): PlayerView {
-    val context = LocalContext.current
-    return remember {
-        PlayerView(context).apply {
-            layoutParams = FrameLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.MATCH_PARENT
-            )
-            setBackgroundColor(Color.BLACK)
-            resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FIXED_WIDTH
-            controllerAutoShow = false
-            useController = false
-            setShowNextButton(false)
-            setShowPreviousButton(false)
-            setShowFastForwardButton(false)
-            setShowRewindButton(false)
-        }
-    }
-}
-
-@Composable
-private fun rememberMediaItems(
-    vid: String,
-    url: String,
-    title: String,
-) = remember {
-    listOf(
-        MediaItem.Builder()
-            .setUri(url)
-            .setMediaId(vid)
-            .setTag(url)
-            .setMediaMetadata(MediaMetadata.Builder().setDisplayTitle(title).build())
-            .build()
-    )
-
 }
 
 @Composable
