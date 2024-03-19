@@ -13,6 +13,7 @@ import com.arkivanov.decompose.router.stack.pop
 import com.arkivanov.decompose.router.stack.popTo
 import com.arkivanov.decompose.router.stack.popWhile
 import com.arkivanov.decompose.router.stack.push
+import com.arkivanov.decompose.router.stack.replaceAll
 import com.arkivanov.decompose.value.Value
 import kotlinx.coroutines.launch
 import kotlinx.io.files.SystemFileSystem
@@ -105,7 +106,7 @@ class RootComponentImpl(
             key = "DefaultChildStack",
             source = navigation,
             serializer = Config.serializer(),
-            initialConfiguration = Config.Subscribes,
+            initialConfiguration = Config.Auth,
             handleBackButton = true,
             childFactory = ::child,
         )
@@ -162,7 +163,7 @@ class RootComponentImpl(
     }
 
     override fun showAuthorizeComponent() {
-        navigation.push(Config.Auth)
+        navigation.replaceAll(Config.Auth)
     }
 
     private fun child(config: Config, componentContext: ComponentContext): RootComponent.Child =
@@ -207,7 +208,7 @@ class RootComponentImpl(
         AuthComponentImpl(
             componentContext = componentContext,
             onLogined = {
-                navigation.popWhile { it == Config.Auth }
+                navigation.replaceAll(Config.Subscribes)
             },
         )
 
