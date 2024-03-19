@@ -31,9 +31,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -64,6 +64,9 @@ import kotlinx.coroutines.launch
 import ru.slartus.boostbuddy.components.video.VideoState
 import ru.slartus.boostbuddy.ui.common.noRippleClickable
 import ru.slartus.boostbuddy.ui.theme.LightColorScheme
+import kotlin.time.Duration.Companion.seconds
+
+private val HIDE_CONTROLLER_DELAY = 3.seconds
 
 @UnstableApi
 @Composable
@@ -76,11 +79,25 @@ actual fun VideoPlayer(
     onContentPositionChange: (Long) -> Unit,
     onStopClick: () -> Unit
 ) {
+    val coroutineScope = rememberCoroutineScope()
+    var playingPosition by remember { mutableLongStateOf(0L) }
     val mediaItems = rememberMediaItems(vid = vid, url = url, title = title)
     val exoPlayer = rememberPlayer(
         onVideoStateChange = onVideoStateChange,
-        onContentPositionChange = onContentPositionChange
+        onContentPositionChange = {
+            playingPosition = it
+            onContentPositionChange(it)
+        }
     )
+    LaunchedEffect(Unit) {
+        launch {
+            while (true) {
+                playingPosition = exoPlayer.contentPosition
+                Log.e("VideoPlayer", ">>>>>$playingPosition")
+                delay(1.seconds)
+            }
+        }
+    }
 
     exoPlayer.observeLifeCycle()
 
@@ -106,7 +123,6 @@ actual fun VideoPlayer(
 
     var shouldShowController by remember { mutableStateOf(false) }
     val focusRequester = remember { FocusRequester() }
-    val coroutineScope = rememberCoroutineScope()
     var hideControllerJob: Job by remember { mutableStateOf(Job(null)) }
     var changePositionJob: Job by remember { mutableStateOf(Job(null)) }
     val hideJobActive = hideControllerJob.isActive
@@ -114,7 +130,7 @@ actual fun VideoPlayer(
         {
             hideControllerJob.cancel()
             hideControllerJob = coroutineScope.launch(SupervisorJob()) {
-                delay(2000)
+                delay(HIDE_CONTROLLER_DELAY)
                 shouldShowController = false
             }
         }
@@ -140,15 +156,11 @@ actual fun VideoPlayer(
     Box {
         AndroidView(
             modifier = Modifier
-
                 .focusable()
                 .focusRequester(focusRequester)
                 .onPlayerKeyEvent(
                     onUpClick = {
                         showControllerTimed()
-                    },
-                    onDownClick = {
-                        hideController()
                     },
                     onPauseClick = {
                         showController()
@@ -208,7 +220,8 @@ actual fun VideoPlayer(
                 PlayerControllerView(
                     modifier = Modifier.align(Alignment.BottomCenter),
                     title = title,
-                    player = exoPlayer,
+                    playingPosition = playingPosition,
+                    playingDuration = exoPlayer.contentDuration,
                     onChangePosition = {
                         changePositionJob.cancel()
                         changePositionJob = coroutineScope.launch(SupervisorJob()) {
@@ -230,7 +243,8 @@ actual fun VideoPlayer(
 @Composable
 private fun PlayerControllerView(
     title: String,
-    player: ExoPlayer,
+    playingPosition: Long,
+    playingDuration: Long,
     onChangePosition: (Long) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -241,12 +255,14 @@ private fun PlayerControllerView(
             style = MaterialTheme.typography.titleLarge
         )
         Spacer(modifier = Modifier.height(8.dp))
-        val valueRange = remember(player.contentDuration) { 0f..player.contentDuration.toFloat() }
-        var position by remember {
-            mutableFloatStateOf(player.contentPosition.toFloat())
+        val valueRange = remember(playingDuration) { 0f..playingDuration.toFloat() }
+        var position by remember(playingPosition) {
+            mutableFloatStateOf(playingPosition.toFloat())
         }
         Slider(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .focusable(),
             value = position,
             valueRange = valueRange,
             onValueChange = {
@@ -256,10 +272,8 @@ private fun PlayerControllerView(
         )
         Row {
             Spacer(modifier = Modifier.weight(1f))
-            val positionText by remember {
-                derivedStateOf {
-                    "${formatDuration(position.toLong())} / ${formatDuration(player.contentDuration)}"
-                }
+            val positionText = remember(position, playingDuration) {
+                "${formatDuration(position.toLong())} / ${formatDuration(playingDuration)}"
             }
             Text(
                 text = positionText,
@@ -303,7 +317,6 @@ private fun formatDuration(duration: Long): String {
 
 private fun Modifier.onPlayerKeyEvent(
     onUpClick: () -> Unit,
-    onDownClick: () -> Unit,
     onPauseClick: () -> Unit,
     onPlayClick: () -> Unit,
     onPlayPauseClick: () -> Unit,
@@ -318,11 +331,6 @@ private fun Modifier.onPlayerKeyEvent(
             when (keyEvent.nativeKeyEvent.keyCode) {
                 KeyEvent.KEYCODE_DPAD_UP -> {
                     onUpClick()
-                    true
-                }
-
-                KeyEvent.KEYCODE_DPAD_DOWN -> {
-                    onDownClick()
                     true
                 }
 
