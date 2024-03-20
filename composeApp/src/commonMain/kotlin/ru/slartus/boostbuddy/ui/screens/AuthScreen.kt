@@ -211,7 +211,11 @@ fun AuthScreen(component: AuthComponent) {
 
 @Composable
 private fun InfoDialogView() {
-    var isDialogOpen by remember { mutableStateOf(true) }
+    var isDialogOpen by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        delay(1000)
+        isDialogOpen = true
+    }
     if (isDialogOpen) {
         AlertDialog(
             onDismissRequest = {
