@@ -37,7 +37,7 @@ class BlogComponentImpl(
     private val blog: Blog,
     private val onItemSelected: (postData: PostData.OkVideo, playerUrl: PlayerUrl) -> Unit,
     private val onBackClicked: () -> Unit,
-) : BaseComponent<BlogViewState>(
+) : BaseComponent<BlogViewState, Any>(
     componentContext,
     BlogViewState(blog)
 ), BlogComponent {

@@ -13,8 +13,10 @@ import com.arkivanov.decompose.router.stack.pop
 import com.arkivanov.decompose.router.stack.popTo
 import com.arkivanov.decompose.router.stack.popWhile
 import com.arkivanov.decompose.router.stack.push
+import com.arkivanov.decompose.router.stack.replaceAll
 import com.arkivanov.decompose.value.Value
 import kotlinx.coroutines.launch
+import kotlinx.io.files.SystemFileSystem
 import kotlinx.serialization.Serializable
 import ru.slartus.boostbuddy.components.auth.AuthComponent
 import ru.slartus.boostbuddy.components.auth.AuthComponentImpl
@@ -37,7 +39,7 @@ import ru.slartus.boostbuddy.utils.Platform
 import ru.slartus.boostbuddy.utils.PlatformConfiguration
 import ru.slartus.boostbuddy.utils.VersionsComparer.greaterThan
 
-interface RootComponent {
+interface RootComponent : AppComponent<RootViewAction> {
     val stack: Value<ChildStack<*, Child>>
     val dialogSlot: Value<ChildSlot<*, DialogChild>>
     val viewStates: Value<RootViewState>
@@ -72,9 +74,17 @@ data class RootViewState(
     val darkMode: Boolean?
 )
 
+sealed class RootViewAction {
+    data class ShowSnackBar(val message: String) : RootViewAction()
+}
+
 class RootComponentImpl(
     componentContext: ComponentContext,
-) : BaseComponent<RootViewState>(componentContext, RootViewState(darkMode = null)), RootComponent {
+) : BaseComponent<RootViewState, RootViewAction>(
+    componentContext,
+    RootViewState(darkMode = null)
+),
+    RootComponent {
     private val navigation = StackNavigation<Config>()
     private val dialogNavigation = SlotNavigation<DialogConfig>()
     private val settingsRepository by Inject.lazy<SettingsRepository>()
@@ -84,6 +94,7 @@ class RootComponentImpl(
 
     override val dialogSlot: Value<ChildSlot<*, RootComponent.DialogChild>> =
         childSlot(
+            key = "dialogSlot",
             source = dialogNavigation,
             serializer = DialogConfig.serializer(),
             handleBackButton = true,
@@ -92,9 +103,10 @@ class RootComponentImpl(
 
     override val stack: Value<ChildStack<*, RootComponent.Child>> =
         childStack(
+            key = "DefaultChildStack",
             source = navigation,
             serializer = Config.serializer(),
-            initialConfiguration = Config.Subscribes,
+            initialConfiguration = Config.Auth,
             handleBackButton = true,
             childFactory = ::child,
         )
@@ -137,13 +149,21 @@ class RootComponentImpl(
                 Platform.iOS -> null
             } ?: return@launch
 
+            viewAction = RootViewAction.ShowSnackBar("Загрузка файла началась")
             val path = githubRepository.downloadFile(url).getOrThrow()
-            platformConfiguration.installApp(path)
+            runCatching {
+                platformConfiguration.installApp(path)
+            }.onFailure {
+                viewAction = RootViewAction.ShowSnackBar("Ошибка загрузки файла")
+            }
+            runCatching {
+                SystemFileSystem.delete(path)
+            }
         }
     }
 
     override fun showAuthorizeComponent() {
-        navigation.push(Config.Auth)
+        navigation.replaceAll(Config.Auth)
     }
 
     private fun child(config: Config, componentContext: ComponentContext): RootComponent.Child =
@@ -188,7 +208,7 @@ class RootComponentImpl(
         AuthComponentImpl(
             componentContext = componentContext,
             onLogined = {
-                navigation.popWhile { it == Config.Auth }
+                navigation.replaceAll(Config.Subscribes)
             },
         )
 
@@ -266,11 +286,7 @@ class RootComponentImpl(
     }
 
     override fun onErrorReceived(ex: Throwable) {
-        dialogNavigation.activate(
-            DialogConfig.Error(
-                message = ex.message ?: ex.toString()
-            )
-        )
+        viewAction = RootViewAction.ShowSnackBar(ex.message ?: ex.toString())
     }
 
     @Serializable

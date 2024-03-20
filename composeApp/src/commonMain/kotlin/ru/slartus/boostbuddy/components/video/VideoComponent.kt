@@ -36,7 +36,7 @@ class VideoComponentImpl(
     postData: PostData.OkVideo,
     playerUrl: PlayerUrl,
     private val onStopClicked: () -> Unit
-) : BaseComponent<VideoViewState>(componentContext, VideoViewState(postData, playerUrl)),
+) : BaseComponent<VideoViewState, Any>(componentContext, VideoViewState(postData, playerUrl)),
     VideoComponent {
     private val settingsRepository by Inject.lazy<SettingsRepository>()
 
