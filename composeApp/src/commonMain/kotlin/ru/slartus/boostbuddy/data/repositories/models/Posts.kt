@@ -15,7 +15,7 @@ data class Offset(
 
 data class Posts(
     val items: List<Post>,
-    val isLast: Boolean
+    val isLast: Boolean,
 )
 
 @Immutable
@@ -25,8 +25,11 @@ data class Post(
     val intId: Long,
     val title: String,
     val data: List<PostData>,
-    val user: PostUser
+    val user: PostUser,
+    val count: PostCount
 )
+
+data class PostCount(val likes: Int, val comments: Int)
 
 data class PostUser(
     val name: String,

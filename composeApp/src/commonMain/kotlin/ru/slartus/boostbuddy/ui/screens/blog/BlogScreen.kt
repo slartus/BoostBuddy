@@ -6,7 +6,7 @@ import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -15,7 +15,9 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Comment
+import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -33,6 +35,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Alignment.Companion.CenterHorizontally
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
 import kotlinx.collections.immutable.ImmutableList
@@ -41,6 +44,8 @@ import ru.slartus.boostbuddy.components.blog.BlogItem
 import ru.slartus.boostbuddy.components.blog.BlogViewState
 import ru.slartus.boostbuddy.data.repositories.models.Post
 import ru.slartus.boostbuddy.data.repositories.models.PostData
+import ru.slartus.boostbuddy.ui.common.HorizontalSpacer
+import ru.slartus.boostbuddy.ui.common.VerticalSpacer
 import ru.slartus.boostbuddy.ui.common.isEndOfListReached
 import ru.slartus.boostbuddy.ui.widgets.ErrorView
 import ru.slartus.boostbuddy.ui.widgets.LoaderView
@@ -59,7 +64,7 @@ fun BlogScreen(component: BlogComponent) {
                         component.onBackClicked()
                     }) {
                         Icon(
-                            imageVector = Icons.Filled.ArrowBack,
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Localized description"
                         )
                     }
@@ -166,8 +171,7 @@ private fun PostView(post: Post, onVideoClick: (okVideoData: PostData.OkVideo) -
                 style = MaterialTheme.typography.titleMedium
             )
         }
-        Spacer(modifier = Modifier.size(16.dp))
-
+        VerticalSpacer(16.dp)
         Column(
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
@@ -175,6 +179,34 @@ private fun PostView(post: Post, onVideoClick: (okVideoData: PostData.OkVideo) -
                 PostDataView(postData, onVideoClick)
             }
         }
+        VerticalSpacer(8.dp)
+        Row(modifier = Modifier.fillMaxWidth()) {
+            CountView(
+                icon = Icons.Default.Favorite,
+                text = post.count.likes.toString()
+            )
+            HorizontalSpacer(16.dp)
+            CountView(
+                icon = Icons.AutoMirrored.Default.Comment,
+                text = post.count.comments.toString()
+            )
+        }
+    }
+}
+
+@Composable
+private fun CountView(icon: ImageVector, text: String) {
+    Row {
+        Icon(
+            modifier = Modifier.size(24.dp),
+            imageVector = icon,
+            contentDescription = "Icon"
+        )
+        HorizontalSpacer(8.dp)
+        Text(
+            text = text,
+            style = MaterialTheme.typography.titleMedium,
+        )
     }
 }
 

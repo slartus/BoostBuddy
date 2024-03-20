@@ -9,6 +9,7 @@ import io.ktor.http.HttpHeaders
 import ru.slartus.boostbuddy.data.repositories.models.Offset
 import ru.slartus.boostbuddy.data.repositories.models.PlayerUrl
 import ru.slartus.boostbuddy.data.repositories.models.Post
+import ru.slartus.boostbuddy.data.repositories.models.PostCount
 import ru.slartus.boostbuddy.data.repositories.models.PostData
 import ru.slartus.boostbuddy.data.repositories.models.PostDataTextContent
 import ru.slartus.boostbuddy.data.repositories.models.PostResponse
@@ -106,7 +107,8 @@ private fun PostResponse.Post.mapToPostOrNull(): Post? {
                 name = it.name ?: return null,
                 avatarUrl = it.avatarUrl
             )
-        } ?: return null
+        } ?: return null,
+        count = PostCount(likes = count?.likes ?: 0, comments = count?.comments ?: 0)
     )
 
     return post

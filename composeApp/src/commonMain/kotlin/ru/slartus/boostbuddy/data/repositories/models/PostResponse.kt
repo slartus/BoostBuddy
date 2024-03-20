@@ -17,9 +17,15 @@ internal data class PostResponse(
         @SerialName("int_id") val intId: Long? = null,
         val data: List<PostData>? = null,
         val user: PostUser? = null,
-        val teaser: List<Teaser>? = null
+        val teaser: List<Teaser>? = null,
+        val count:PostCount? = null
     )
 
+    @Serializable
+    data class PostCount(
+        val likes: Int? = null,
+        val comments: Int? = null
+    )
 
     @Serializable
     data class Teaser(
