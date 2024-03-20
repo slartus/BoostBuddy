@@ -64,7 +64,7 @@ import ru.slartus.boostbuddy.ui.common.noRippleClickable
 import ru.slartus.boostbuddy.ui.theme.LightColorScheme
 import kotlin.time.Duration.Companion.seconds
 
-private val HIDE_CONTROLLER_DELAY = 3.seconds
+private val HIDE_CONTROLLER_DELAY = 5.seconds
 
 @UnstableApi
 @Composable
