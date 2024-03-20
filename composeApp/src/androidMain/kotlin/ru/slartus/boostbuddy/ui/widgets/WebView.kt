@@ -113,7 +113,8 @@ actual fun WebView(url: String, clickCoors: Offset?, onCookieChange: (String) ->
                 }
 
                 override fun onPageFinished(view: WebView?, currentUrl: String?) {
-                    view?.injectCSS()
+                    if (isAtv)
+                        view?.injectCSS()
                     super.onPageFinished(view, currentUrl)
                     if (currentUrl != null)
                         onCookieChange(
