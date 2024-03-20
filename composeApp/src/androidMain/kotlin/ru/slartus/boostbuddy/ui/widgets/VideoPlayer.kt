@@ -233,7 +233,7 @@ actual fun VideoPlayer(
                 )
 
                 PlayerControllerView(
-                    modifier = Modifier.align(Alignment.BottomCenter),
+                    modifier = Modifier.align(Alignment.BottomCenter).padding(16.dp),
                     title = title,
                     playingPosition = playingPosition,
                     playingDuration = exoPlayer.contentDuration,
@@ -275,8 +275,7 @@ private fun PlayerControllerView(
             mutableFloatStateOf(playingPosition.toFloat())
         }
         Slider(
-            modifier = Modifier
-                .fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth(),
             value = position,
             valueRange = valueRange,
             onValueChange = {
