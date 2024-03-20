@@ -180,7 +180,7 @@ private fun PostView(post: Post, onVideoClick: (okVideoData: PostData.OkVideo) -
             }
         }
         VerticalSpacer(8.dp)
-        Row(modifier = Modifier.fillMaxWidth()) {
+        Row(modifier = Modifier.fillMaxWidth().focusable()) {
             CountView(
                 icon = Icons.Default.Favorite,
                 text = post.count.likes.toString()
