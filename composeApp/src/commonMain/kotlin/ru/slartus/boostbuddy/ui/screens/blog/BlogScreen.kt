@@ -65,7 +65,7 @@ fun BlogScreen(component: BlogComponent) {
                     }) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Localized description"
+                            contentDescription = "Назад"
                         )
                     }
                 },
