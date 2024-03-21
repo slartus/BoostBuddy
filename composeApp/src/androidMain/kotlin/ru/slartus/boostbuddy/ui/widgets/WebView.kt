@@ -52,7 +52,6 @@ import ru.slartus.boostbuddy.utils.Platform
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 import kotlin.coroutines.suspendCoroutine
-import kotlin.time.Duration.Companion.seconds
 
 
 @Composable
@@ -102,7 +101,6 @@ actual fun WebView(url: String, clickCoors: Offset?, onCookieChange: (String) ->
                     if (isAtv) {
                         buttonsJob.cancel()
                         buttonsJob = scope.launch(SupervisorJob()) {
-                            delay(1.seconds)
                             buttons =
                                 view?.getAllButtons().orEmpty()
                                     .filter { !it.text.isNullOrEmpty() }
