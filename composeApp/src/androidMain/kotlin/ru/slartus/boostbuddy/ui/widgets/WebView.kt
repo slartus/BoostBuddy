@@ -6,7 +6,6 @@ import android.view.MotionEvent
 import android.view.MotionEvent.PointerCoords
 import android.view.MotionEvent.PointerProperties
 import android.webkit.CookieManager
-import android.webkit.HttpAuthHandler
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.compose.foundation.background
@@ -72,24 +71,6 @@ actual fun WebView(url: String, clickCoors: Offset?, onCookieChange: (String) ->
                 userAgentString = USER_AGENT
             }
             webViewClient = object : WebViewClient() {
-                override fun onReceivedHttpAuthRequest(
-                    view: WebView?,
-                    handler: HttpAuthHandler?,
-                    host: String?,
-                    realm: String?,
-                ) {
-
-                }
-
-                override fun onReceivedLoginRequest(
-                    view: WebView?,
-                    realm: String?,
-                    account: String?,
-                    args: String?
-                ) {
-
-                }
-
                 override fun onPageStarted(webView: WebView, url: String?, favicon: Bitmap?) {
                     if (url != null)
                         onCookieChange(CookieManager.getInstance().getCookie(url).orEmpty())
@@ -115,9 +96,7 @@ actual fun WebView(url: String, clickCoors: Offset?, onCookieChange: (String) ->
                         view?.injectCSS()
                     super.onPageFinished(view, currentUrl)
                     if (currentUrl != null)
-                        onCookieChange(
-                            CookieManager.getInstance().getCookie(currentUrl).orEmpty()
-                        )
+                        onCookieChange(CookieManager.getInstance().getCookie(currentUrl).orEmpty())
                 }
             }
         }
