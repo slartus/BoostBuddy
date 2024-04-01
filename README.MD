@@ -2,6 +2,8 @@
 
 BoostBuddy - simple client for Boosty
 
+[Обсуждение на 4pda](https://4pda.to/forum/index.php?showtopic=1085976)
+
 Compose Multiplatform. Android and iOS targets
 
 ![1f8bceb4-b697-42b1-93c5-1c53fd6475b1.jpeg](images%2F1f8bceb4-b697-42b1-93c5-1c53fd6475b1.jpeg)
