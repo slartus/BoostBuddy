@@ -8,3 +8,10 @@ internal data class UserResponse(
     val name: String? = null,
     val avatarUrl: String? = null
 )
+
+internal fun UserResponse.mapToUserOrNull(): User? {
+    return User(
+        name = name ?: return null,
+        avatarUrl = avatarUrl
+    )
+}

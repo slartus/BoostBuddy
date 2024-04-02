@@ -11,8 +11,8 @@ import ru.slartus.boostbuddy.data.repositories.models.Post
 import ru.slartus.boostbuddy.data.repositories.models.PostCount
 import ru.slartus.boostbuddy.data.repositories.models.PostResponse
 import ru.slartus.boostbuddy.data.repositories.models.Posts
-import ru.slartus.boostbuddy.data.repositories.models.User
 import ru.slartus.boostbuddy.data.repositories.models.mapToContentOrNull
+import ru.slartus.boostbuddy.data.repositories.models.mapToUserOrNull
 import ru.slartus.boostbuddy.data.repositories.models.mergeText
 import ru.slartus.boostbuddy.utils.fetchOrError
 
@@ -46,12 +46,7 @@ private fun PostResponse.Post.mapToPostOrNull(): Post? {
         intId = intId ?: return null,
         title = title ?: return null,
         data = data?.mapNotNull { it.mapToContentOrNull() }.orEmpty().mergeText(),
-        user = user?.let {
-            User(
-                name = it.name ?: return null,
-                avatarUrl = it.avatarUrl
-            )
-        } ?: return null,
+        user = user?.mapToUserOrNull() ?: return null,
         count = PostCount(likes = count?.likes ?: 0, comments = count?.comments ?: 0)
     )
 
