@@ -2,11 +2,15 @@ package ru.slartus.boostbuddy.ui.screens
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.windowInsetsBottomHeight
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -44,7 +48,7 @@ fun RootScreen(component: RootComponent, modifier: Modifier = Modifier) {
     val snackState = remember { SnackbarHostState() }
 
     AppTheme(state.darkMode) {
-        Box {
+        WindowInsetsBox {
             var isDarkState by LocalThemeIsDark.current
             isDarkState = state.darkMode ?: isDarkState
             Children(
@@ -97,6 +101,17 @@ fun RootScreen(component: RootComponent, modifier: Modifier = Modifier) {
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun WindowInsetsBox(modifier: Modifier = Modifier, content: @Composable BoxScope.() -> Unit) {
+    Column(modifier) {
+        Box(Modifier.weight(1f)) {
+            content()
+        }
+
+        Spacer(Modifier.windowInsetsBottomHeight(WindowInsets.ime))
     }
 }
 
