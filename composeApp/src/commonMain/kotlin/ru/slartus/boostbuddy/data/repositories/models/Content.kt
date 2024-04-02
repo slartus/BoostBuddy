@@ -52,5 +52,12 @@ sealed class Content {
         val url: String
     ) : Content()
 
+    data class Smile(
+        val name: String,
+        val largeUrl: String?,
+        val smallUrl: String?,
+        val mediumUrl: String?
+    ) : Content()
+
     data object Unknown : Content()
 }

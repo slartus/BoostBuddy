@@ -18,6 +18,7 @@ data class Posts(
 )
 
 @Immutable
+@Serializable
 data class Post(
     val id: String,
     val createdAt: Long,
@@ -28,6 +29,7 @@ data class Post(
     val count: PostCount
 )
 
+@Serializable
 data class PostCount(val likes: Int, val comments: Int)
 
 data class PostDataTextContent(

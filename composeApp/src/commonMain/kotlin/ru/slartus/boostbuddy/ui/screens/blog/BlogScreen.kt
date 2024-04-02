@@ -34,6 +34,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Alignment.Companion.CenterHorizontally
+import androidx.compose.ui.Alignment.Companion.Start
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
@@ -100,6 +101,7 @@ fun BlogScreen(component: BlogComponent) {
                         onVideoItemClick = { component.onVideoItemClicked(it) },
                         onScrolledToEnd = { component.onScrolledToEnd() },
                         onErrorItemClick = { component.onErrorItemClicked() },
+                        onCommentsClick = { component.onCommentsClicked(it) },
                     )
             }
         }
@@ -121,7 +123,8 @@ private fun PostsView(
     canLoadMore: Boolean,
     onVideoItemClick: (Content.OkVideo) -> Unit,
     onScrolledToEnd: () -> Unit,
-    onErrorItemClick: () -> Unit
+    onErrorItemClick: () -> Unit,
+    onCommentsClick: (post: Post) -> Unit
 ) {
     val listScrollState = rememberLazyListState()
 
@@ -144,7 +147,9 @@ private fun PostsView(
                 BlogItem.LoadingItem -> LoadingView()
                 is BlogItem.PostItem -> PostView(
                     item.post,
-                    onVideoClick = { onVideoItemClick(it) })
+                    onVideoClick = { onVideoItemClick(it) },
+                    onCommentsClick = { onCommentsClick(item.post) }
+                )
             }
         }
     }
@@ -156,7 +161,11 @@ private fun PostsView(
 }
 
 @Composable
-private fun PostView(post: Post, onVideoClick: (okVideoData: Content.OkVideo) -> Unit) {
+private fun PostView(
+    post: Post,
+    onVideoClick: (okVideoData: Content.OkVideo) -> Unit,
+    onCommentsClick: () -> Unit
+) {
     Column(
         modifier = Modifier
             .background(MaterialTheme.colorScheme.onPrimary)
@@ -176,11 +185,16 @@ private fun PostView(post: Post, onVideoClick: (okVideoData: Content.OkVideo) ->
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             post.data.forEach { postData ->
-                PostDataView(postData, onVideoClick)
+                ContentView(postData, onVideoClick)
             }
         }
         VerticalSpacer(8.dp)
-        Row(modifier = Modifier.fillMaxWidth().focusable()) {
+        Row(
+            modifier = Modifier
+                .align(Start)
+                .focusable()
+                .clickable { onCommentsClick() }
+        ) {
             CountView(
                 icon = Icons.Default.Favorite,
                 text = post.count.likes.toString()

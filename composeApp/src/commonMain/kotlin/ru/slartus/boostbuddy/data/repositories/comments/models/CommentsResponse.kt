@@ -18,7 +18,8 @@ internal data class CommentsResponse(
         val data: List<ContentResponse>? = null,
         val author: UserResponse? = null,
         val replies: CommentsResponse? = null,
-        val replyCount: Int? = null
+        val replyCount: Int? = null,
+        val replyToUser: UserResponse? = null
     )
 
     @Serializable
@@ -35,6 +36,7 @@ internal fun CommentsResponse.Comment.mapToCommentOrNull(): Comment? {
         author = author?.mapToUserOrNull() ?: return null,
         content = data?.mapNotNull { it.mapToContentOrNull() }.orEmpty().mergeText(),
         replyCount = replyCount ?: 0,
-        replies = replies?.mapToComments().orEmpty()
+        replies = replies?.mapToComments().orEmpty(),
+        replyToUser = replyToUser?.mapToUserOrNull()
     )
 }

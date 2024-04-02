@@ -37,6 +37,7 @@ import ru.slartus.boostbuddy.components.RootComponent
 import ru.slartus.boostbuddy.components.RootViewAction
 import ru.slartus.boostbuddy.components.observeAction
 import ru.slartus.boostbuddy.ui.screens.blog.BlogScreen
+import ru.slartus.boostbuddy.ui.screens.post.PostScreen
 import ru.slartus.boostbuddy.ui.theme.AppTheme
 import ru.slartus.boostbuddy.ui.theme.LocalThemeIsDark
 
@@ -61,6 +62,7 @@ fun RootScreen(component: RootComponent, modifier: Modifier = Modifier) {
                     is RootComponent.Child.SubscribesChild -> SubscribesScreen(child.component)
                     is RootComponent.Child.BlogChild -> BlogScreen(child.component)
                     is RootComponent.Child.VideoChild -> VideoScreen(child.component)
+                    is RootComponent.Child.PostChild -> PostScreen(child.component)
                 }
             }
 

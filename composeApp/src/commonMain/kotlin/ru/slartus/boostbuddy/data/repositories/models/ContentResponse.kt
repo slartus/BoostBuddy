@@ -13,8 +13,12 @@ internal data class ContentResponse(
     val defaultPreview: String? = null,
     val playerUrls: List<PlayerUrl>? = null,
     val content: String? = null,
-    val modificator: String? = null
-){
+    val modificator: String? = null,
+    val name: String? = null,
+    val largeUrl: String? = null,
+    val mediumUrl: String? = null,
+    val smallUrl: String? = null
+) {
     @Serializable
     data class PlayerUrl(
         val type: String? = null,// full_hd, high, medium, lowest, hls, ultra_hd, dash, low, tiny,
@@ -66,6 +70,13 @@ internal fun ContentResponse.mapToContentOrNull(): Content? {
         "audio_file" -> Content.AudioFile(
             title = title.orEmpty(),
             url = url ?: return null,
+        )
+
+        "smile" -> Content.Smile(
+            name = name.orEmpty(),
+            largeUrl = largeUrl,
+            mediumUrl = mediumUrl,
+            smallUrl = smallUrl
         )
 
         else -> Content.Unknown

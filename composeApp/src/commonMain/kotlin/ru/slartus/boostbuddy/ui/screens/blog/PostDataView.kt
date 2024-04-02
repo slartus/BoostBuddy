@@ -41,7 +41,7 @@ import ru.slartus.boostbuddy.ui.common.LocalPlatformConfiguration
 import ru.slartus.boostbuddy.ui.theme.LightColorScheme
 
 @Composable
-fun PostDataView(postData: Content, onVideoClick: (okVideoData: Content.OkVideo) -> Unit) {
+fun ContentView(postData: Content, onVideoClick: (okVideoData: Content.OkVideo) -> Unit) {
     FocusableBox {
         when (postData) {
             is Content.Text -> PostDataTextView(postData)
@@ -51,8 +51,19 @@ fun PostDataView(postData: Content, onVideoClick: (okVideoData: Content.OkVideo)
             is Content.Link -> PostDataLinkView(postData)
             is Content.Video -> PostDataVideoView(postData)
             is Content.AudioFile -> PostDataAudioFileView(postData)
+            is Content.Smile -> ContentSmileView(postData)
         }
     }
+}
+
+@Composable
+private fun ContentSmileView(data: Content.Smile) {
+    val url = remember(data) { data.mediumUrl ?: data.smallUrl ?: data.smallUrl.orEmpty() }
+    Image(
+        modifier = Modifier.size(24.dp),
+        painter = rememberImagePainter(url),
+        contentDescription = "smile",
+    )
 }
 
 @Composable
