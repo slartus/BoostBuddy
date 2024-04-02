@@ -1,5 +1,8 @@
 package ru.slartus.boostbuddy.data.repositories.comments.models
 
+import kotlinx.datetime.Instant
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 import kotlinx.serialization.Serializable
 import ru.slartus.boostbuddy.data.repositories.models.ContentResponse
 import ru.slartus.boostbuddy.data.repositories.models.UserResponse
@@ -19,7 +22,8 @@ internal data class CommentsResponse(
         val author: UserResponse? = null,
         val replies: CommentsResponse? = null,
         val replyCount: Int? = null,
-        val replyToUser: UserResponse? = null
+        val replyToUser: UserResponse? = null,
+        val createdAt: Long? = null
     )
 
     @Serializable
@@ -34,6 +38,10 @@ internal fun CommentsResponse.Comment.mapToCommentOrNull(): Comment? {
     return Comment(
         id = id ?: return null,
         author = author?.mapToUserOrNull() ?: return null,
+        createdAt = createdAt?.let {
+            Instant.fromEpochMilliseconds(it * 1000)
+                .toLocalDateTime(TimeZone.currentSystemDefault())
+        } ?: return null,
         content = data?.mapNotNull { it.mapToContentOrNull() }.orEmpty().mergeText(),
         replyCount = replyCount ?: 0,
         replies = replies?.mapToComments().orEmpty(),

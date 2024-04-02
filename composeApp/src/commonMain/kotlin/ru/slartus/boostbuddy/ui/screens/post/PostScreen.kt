@@ -124,6 +124,13 @@ private fun CommentView(comment: Comment, isReply: Boolean = false) {
             comment.content.forEach { postData ->
                 ContentView(postData, {})
             }
+
+            Text(
+                modifier = Modifier.fillMaxWidth(),
+                text = comment.createdAtText,
+                style = MaterialTheme.typography.bodySmall
+            )
+
             comment.replies.forEach { reply ->
                 CommentView(reply, isReply = true)
             }

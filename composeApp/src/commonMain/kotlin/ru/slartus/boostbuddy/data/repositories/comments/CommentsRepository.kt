@@ -25,7 +25,7 @@ internal class CommentsRepository(
                 httpClient.get("https://api.boosty.to/v1/blog/$url/post/$postId/comment/") {
                     header(HttpHeaders.Authorization, "Bearer $accessToken")
                     parameter("limit", "20")
-                    parameter("reply_limit", "10")
+                    parameter("reply_limit", "2")
                     parameter("order", "top")
                     if (offsetId != null)
                         parameter("offset", "$offsetId")

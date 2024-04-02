@@ -212,14 +212,14 @@ private fun PostView(
 private fun CountView(icon: ImageVector, text: String) {
     Row {
         Icon(
-            modifier = Modifier.size(24.dp),
+            modifier = Modifier.size(18.dp),
             imageVector = icon,
             contentDescription = "Icon"
         )
         HorizontalSpacer(8.dp)
         Text(
             text = text,
-            style = MaterialTheme.typography.titleMedium,
+            style = MaterialTheme.typography.bodySmall,
         )
     }
 }
