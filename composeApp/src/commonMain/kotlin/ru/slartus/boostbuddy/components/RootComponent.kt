@@ -31,8 +31,8 @@ import ru.slartus.boostbuddy.data.repositories.Blog
 import ru.slartus.boostbuddy.data.repositories.GithubRepository
 import ru.slartus.boostbuddy.data.repositories.ReleaseInfo
 import ru.slartus.boostbuddy.data.repositories.SettingsRepository
+import ru.slartus.boostbuddy.data.repositories.models.Content
 import ru.slartus.boostbuddy.data.repositories.models.PlayerUrl
-import ru.slartus.boostbuddy.data.repositories.models.PostData
 import ru.slartus.boostbuddy.utils.Permission
 import ru.slartus.boostbuddy.utils.Permissions
 import ru.slartus.boostbuddy.utils.Platform
@@ -301,7 +301,7 @@ class RootComponentImpl(
         data class BlogConfig(val blog: Blog) : Config
 
         @Serializable
-        data class VideoConfig(val postData: PostData.OkVideo, val playerUrl: PlayerUrl) : Config
+        data class VideoConfig(val postData: Content.OkVideo, val playerUrl: PlayerUrl) : Config
     }
 
     @Serializable

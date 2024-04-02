@@ -15,8 +15,8 @@ internal data class PostResponse(
         val title: String? = null,
         val createdAt: Long? = null,
         @SerialName("int_id") val intId: Long? = null,
-        val data: List<PostData>? = null,
-        val user: PostUser? = null,
+        val data: List<ContentResponse>? = null,
+        val user: UserResponse? = null,
         val teaser: List<Teaser>? = null,
         val count:PostCount? = null
     )
@@ -32,33 +32,6 @@ internal data class PostResponse(
         val url: String? = null,
         val type: String? = null,//image
     )
-
-    @Serializable
-    data class PostData(
-        val id: String? = null,
-        val vid: String? = null,
-        val title: String? = null,
-        val type: String? = null,//image, text, link, ok_video
-        val url: String? = null,
-        val preview: String? = null,
-        val defaultPreview: String? = null,
-        val playerUrls: List<PlayerUrl>? = null,
-        val content: String? = null,
-        val modificator: String? = null
-    )
-
-    @Serializable
-    data class PostUser(
-        val name: String? = null,
-        val avatarUrl: String? = null
-    )
-
-    @Serializable
-    data class PlayerUrl(
-        val type: String? = null,// full_hd, high, medium, lowest, hls, ultra_hd, dash, low, tiny,
-        val url: String? = null
-    )
-
 
     @Serializable
     data class Extra(

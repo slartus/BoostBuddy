@@ -42,8 +42,8 @@ import kotlinx.collections.immutable.ImmutableList
 import ru.slartus.boostbuddy.components.blog.BlogComponent
 import ru.slartus.boostbuddy.components.blog.BlogItem
 import ru.slartus.boostbuddy.components.blog.BlogViewState
+import ru.slartus.boostbuddy.data.repositories.models.Content
 import ru.slartus.boostbuddy.data.repositories.models.Post
-import ru.slartus.boostbuddy.data.repositories.models.PostData
 import ru.slartus.boostbuddy.ui.common.HorizontalSpacer
 import ru.slartus.boostbuddy.ui.common.VerticalSpacer
 import ru.slartus.boostbuddy.ui.common.isEndOfListReached
@@ -119,7 +119,7 @@ fun BlogScreen(component: BlogComponent) {
 private fun PostsView(
     items: ImmutableList<BlogItem>,
     canLoadMore: Boolean,
-    onVideoItemClick: (PostData.OkVideo) -> Unit,
+    onVideoItemClick: (Content.OkVideo) -> Unit,
     onScrolledToEnd: () -> Unit,
     onErrorItemClick: () -> Unit
 ) {
@@ -156,7 +156,7 @@ private fun PostsView(
 }
 
 @Composable
-private fun PostView(post: Post, onVideoClick: (okVideoData: PostData.OkVideo) -> Unit) {
+private fun PostView(post: Post, onVideoClick: (okVideoData: Content.OkVideo) -> Unit) {
     Column(
         modifier = Modifier
             .background(MaterialTheme.colorScheme.onPrimary)

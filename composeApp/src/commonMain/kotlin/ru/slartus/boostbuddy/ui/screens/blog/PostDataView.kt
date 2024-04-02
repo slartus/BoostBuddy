@@ -35,22 +35,22 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import com.seiko.imageloader.rememberImagePainter
-import ru.slartus.boostbuddy.data.repositories.models.PostData
+import ru.slartus.boostbuddy.data.repositories.models.Content
 import ru.slartus.boostbuddy.data.repositories.models.PostDataTextContent
 import ru.slartus.boostbuddy.ui.common.LocalPlatformConfiguration
 import ru.slartus.boostbuddy.ui.theme.LightColorScheme
 
 @Composable
-fun PostDataView(postData: PostData, onVideoClick: (okVideoData: PostData.OkVideo) -> Unit) {
+fun PostDataView(postData: Content, onVideoClick: (okVideoData: Content.OkVideo) -> Unit) {
     FocusableBox {
         when (postData) {
-            is PostData.Text -> PostDataTextView(postData)
-            PostData.Unknown -> PostDataUnknownView()
-            is PostData.OkVideo -> PostDataOkVideoView(postData, onVideoClick)
-            is PostData.Image -> PostDataImageView(postData)
-            is PostData.Link -> PostDataLinkView(postData)
-            is PostData.Video -> PostDataVideoView(postData)
-            is PostData.AudioFile -> PostDataAudioFileView(postData)
+            is Content.Text -> PostDataTextView(postData)
+            Content.Unknown -> PostDataUnknownView()
+            is Content.OkVideo -> PostDataOkVideoView(postData, onVideoClick)
+            is Content.Image -> PostDataImageView(postData)
+            is Content.Link -> PostDataLinkView(postData)
+            is Content.Video -> PostDataVideoView(postData)
+            is Content.AudioFile -> PostDataAudioFileView(postData)
         }
     }
 }
@@ -66,7 +66,7 @@ private fun PostDataUnknownView() {
 }
 
 @Composable
-private fun PostDataTextView(postData: PostData.Text) {
+private fun PostDataTextView(postData: Content.Text) {
     val annotatedText = postData.content?.rememberAnnotatedString() ?: return
 
     val platformConfiguration = LocalPlatformConfiguration.current
@@ -133,7 +133,7 @@ private fun PostDataTextContent.Style.toSpanStyle(): SpanStyle = when (this) {
 
 @Composable
 private fun PostDataAudioFileView(
-    postData: PostData.AudioFile
+    postData: Content.AudioFile
 ) {
     val platformConfiguration = LocalPlatformConfiguration.current
     Text(
@@ -148,7 +148,7 @@ private fun PostDataAudioFileView(
 
 @Composable
 private fun PostDataVideoView(
-    postData: PostData.Video
+    postData: Content.Video
 ) {
     val platformConfiguration = LocalPlatformConfiguration.current
     if (postData.previewUrl != null) {
@@ -206,7 +206,7 @@ private fun VideoPreview(url: String, onClick: () -> Unit) {
 
 @Composable
 private fun PostDataLinkView(
-    postData: PostData.Link
+    postData: Content.Link
 ) {
     val platformConfiguration = LocalPlatformConfiguration.current
 
@@ -221,7 +221,7 @@ private fun PostDataLinkView(
 }
 
 @Composable
-private fun PostDataImageView(postData: PostData.Image) {
+private fun PostDataImageView(postData: Content.Image) {
     Box(modifier = Modifier.heightIn(min = 200.dp).focusable()) {
         Image(
             modifier = Modifier.widthIn(max = 640.dp).fillMaxWidth()
@@ -234,8 +234,8 @@ private fun PostDataImageView(postData: PostData.Image) {
 
 @Composable
 private fun PostDataOkVideoView(
-    postData: PostData.OkVideo,
-    onVideoClick: (okVideoData: PostData.OkVideo) -> Unit,
+    postData: Content.OkVideo,
+    onVideoClick: (okVideoData: Content.OkVideo) -> Unit,
 ) {
     VideoPreview(postData.previewUrl, onClick = { onVideoClick(postData) })
 }
