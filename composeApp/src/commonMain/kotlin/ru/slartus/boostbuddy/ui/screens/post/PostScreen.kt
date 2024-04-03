@@ -41,6 +41,7 @@ import ru.slartus.boostbuddy.data.repositories.comments.models.Comment
 import ru.slartus.boostbuddy.ui.common.HorizontalSpacer
 import ru.slartus.boostbuddy.ui.common.VerticalSpacer
 import ru.slartus.boostbuddy.ui.screens.blog.ContentView
+import ru.slartus.boostbuddy.ui.screens.blog.FocusableBox
 import ru.slartus.boostbuddy.ui.widgets.ErrorView
 import ru.slartus.boostbuddy.ui.widgets.LoaderView
 
@@ -106,7 +107,7 @@ private fun CommentsView(
 ) {
     Column {
         if (hasMore) {
-            Box(Modifier.clickable { onMoreClick() }.padding(8.dp)) {
+            FocusableBox(Modifier.clickable { onMoreClick() }.padding(8.dp)) {
                 Text(
                     text = "Показать ещё комментарии",
                     style = MaterialTheme.typography.bodyMedium,
@@ -176,7 +177,7 @@ private fun CommentView(
             )
 
             if (comment.replies.hasMore) {
-                Box(Modifier.clickable { onMoreRepliesClick() }.padding(8.dp)) {
+                FocusableBox(Modifier.clickable { onMoreRepliesClick() }.padding(8.dp)) {
                     Text(
                         text = "ещё ответы",
                         style = MaterialTheme.typography.bodyMedium,
