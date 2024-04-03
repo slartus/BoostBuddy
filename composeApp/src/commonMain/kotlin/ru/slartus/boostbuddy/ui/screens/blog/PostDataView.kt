@@ -42,26 +42,16 @@ fun ContentView(postData: Content, onVideoClick: (okVideoData: Content.OkVideo) 
         when (postData) {
             is Content.Link,
             is Content.Text,
+            is Content.Smile,
             Content.Unknown -> PostDataUnknownView()
 
             is Content.OkVideo -> PostDataOkVideoView(postData, onVideoClick)
             is Content.Image -> PostDataImageView(postData)
             is Content.Video -> PostDataVideoView(postData)
             is Content.AudioFile -> PostDataAudioFileView(postData)
-            is Content.Smile -> ContentSmileView(postData)
             is Content.AnnotatedText -> AnnotatedTextView(postData)
         }
     }
-}
-
-@Composable
-private fun ContentSmileView(data: Content.Smile) {
-    val url = remember(data) { data.mediumUrl ?: data.smallUrl ?: data.smallUrl.orEmpty() }
-    Image(
-        modifier = Modifier.size(24.dp),
-        painter = rememberImagePainter(url),
-        contentDescription = "smile",
-    )
 }
 
 @Composable
