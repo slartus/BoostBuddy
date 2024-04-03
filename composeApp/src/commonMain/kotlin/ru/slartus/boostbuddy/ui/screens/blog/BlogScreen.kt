@@ -6,7 +6,7 @@ import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -15,7 +15,9 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Comment
+import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -33,14 +35,17 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Alignment.Companion.CenterHorizontally
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
 import kotlinx.collections.immutable.ImmutableList
 import ru.slartus.boostbuddy.components.blog.BlogComponent
 import ru.slartus.boostbuddy.components.blog.BlogItem
 import ru.slartus.boostbuddy.components.blog.BlogViewState
+import ru.slartus.boostbuddy.data.repositories.models.Content
 import ru.slartus.boostbuddy.data.repositories.models.Post
-import ru.slartus.boostbuddy.data.repositories.models.PostData
+import ru.slartus.boostbuddy.ui.common.HorizontalSpacer
+import ru.slartus.boostbuddy.ui.common.VerticalSpacer
 import ru.slartus.boostbuddy.ui.common.isEndOfListReached
 import ru.slartus.boostbuddy.ui.widgets.ErrorView
 import ru.slartus.boostbuddy.ui.widgets.LoaderView
@@ -59,8 +64,8 @@ fun BlogScreen(component: BlogComponent) {
                         component.onBackClicked()
                     }) {
                         Icon(
-                            imageVector = Icons.Filled.ArrowBack,
-                            contentDescription = "Localized description"
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Назад"
                         )
                     }
                 },
@@ -95,6 +100,7 @@ fun BlogScreen(component: BlogComponent) {
                         onVideoItemClick = { component.onVideoItemClicked(it) },
                         onScrolledToEnd = { component.onScrolledToEnd() },
                         onErrorItemClick = { component.onErrorItemClicked() },
+                        onCommentsClick = { component.onCommentsClicked(it) },
                     )
             }
         }
@@ -114,9 +120,10 @@ fun BlogScreen(component: BlogComponent) {
 private fun PostsView(
     items: ImmutableList<BlogItem>,
     canLoadMore: Boolean,
-    onVideoItemClick: (PostData.OkVideo) -> Unit,
+    onVideoItemClick: (Content.OkVideo) -> Unit,
     onScrolledToEnd: () -> Unit,
-    onErrorItemClick: () -> Unit
+    onErrorItemClick: () -> Unit,
+    onCommentsClick: (post: Post) -> Unit
 ) {
     val listScrollState = rememberLazyListState()
 
@@ -139,7 +146,9 @@ private fun PostsView(
                 BlogItem.LoadingItem -> LoadingView()
                 is BlogItem.PostItem -> PostView(
                     item.post,
-                    onVideoClick = { onVideoItemClick(it) })
+                    onVideoClick = { onVideoItemClick(it) },
+                    onCommentsClick = { onCommentsClick(item.post) }
+                )
             }
         }
     }
@@ -151,7 +160,11 @@ private fun PostsView(
 }
 
 @Composable
-private fun PostView(post: Post, onVideoClick: (okVideoData: PostData.OkVideo) -> Unit) {
+private fun PostView(
+    post: Post,
+    onVideoClick: (okVideoData: Content.OkVideo) -> Unit,
+    onCommentsClick: () -> Unit
+) {
     Column(
         modifier = Modifier
             .background(MaterialTheme.colorScheme.onPrimary)
@@ -166,15 +179,47 @@ private fun PostView(post: Post, onVideoClick: (okVideoData: PostData.OkVideo) -
                 style = MaterialTheme.typography.titleMedium
             )
         }
-        Spacer(modifier = Modifier.size(16.dp))
-
+        VerticalSpacer(16.dp)
         Column(
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             post.data.forEach { postData ->
-                PostDataView(postData, onVideoClick)
+                ContentView(postData, onVideoClick)
             }
         }
+        VerticalSpacer(8.dp)
+        FocusableBox(Modifier.fillMaxWidth()) {
+            Row(
+                modifier = Modifier
+                    .clickable { onCommentsClick() }
+            ) {
+                CountView(
+                    icon = Icons.Default.Favorite,
+                    text = post.count.likes.toString()
+                )
+                HorizontalSpacer(16.dp)
+                CountView(
+                    icon = Icons.AutoMirrored.Default.Comment,
+                    text = post.count.comments.toString()
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun CountView(icon: ImageVector, text: String) {
+    Row {
+        Icon(
+            modifier = Modifier.size(18.dp),
+            imageVector = icon,
+            contentDescription = "Icon"
+        )
+        HorizontalSpacer(8.dp)
+        Text(
+            text = text,
+            style = MaterialTheme.typography.bodySmall,
+        )
     }
 }
 

@@ -22,6 +22,8 @@ import ru.slartus.boostbuddy.components.auth.AuthComponent
 import ru.slartus.boostbuddy.components.auth.AuthComponentImpl
 import ru.slartus.boostbuddy.components.blog.BlogComponent
 import ru.slartus.boostbuddy.components.blog.BlogComponentImpl
+import ru.slartus.boostbuddy.components.post.PostComponent
+import ru.slartus.boostbuddy.components.post.PostComponentImpl
 import ru.slartus.boostbuddy.components.subscribes.SubscribesComponent
 import ru.slartus.boostbuddy.components.subscribes.SubscribesComponentImpl
 import ru.slartus.boostbuddy.components.video.VideoComponent
@@ -31,8 +33,9 @@ import ru.slartus.boostbuddy.data.repositories.Blog
 import ru.slartus.boostbuddy.data.repositories.GithubRepository
 import ru.slartus.boostbuddy.data.repositories.ReleaseInfo
 import ru.slartus.boostbuddy.data.repositories.SettingsRepository
+import ru.slartus.boostbuddy.data.repositories.models.Content
 import ru.slartus.boostbuddy.data.repositories.models.PlayerUrl
-import ru.slartus.boostbuddy.data.repositories.models.PostData
+import ru.slartus.boostbuddy.data.repositories.models.Post
 import ru.slartus.boostbuddy.utils.Permission
 import ru.slartus.boostbuddy.utils.Permissions
 import ru.slartus.boostbuddy.utils.Platform
@@ -60,6 +63,7 @@ interface RootComponent : AppComponent<RootViewAction> {
         class SubscribesChild(val component: SubscribesComponent) : Child()
         class BlogChild(val component: BlogComponent) : Child()
         class VideoChild(val component: VideoComponent) : Child()
+        class PostChild(val component: PostComponent) : Child()
     }
 
     sealed class DialogChild {
@@ -188,6 +192,13 @@ class RootComponentImpl(
                     config
                 )
             )
+
+            is Config.PostConfig -> RootComponent.Child.PostChild(
+                postComponent(
+                    componentContext,
+                    config
+                )
+            )
         }
 
     private fun dialogChild(
@@ -235,7 +246,21 @@ class RootComponentImpl(
             },
             onBackClicked = {
                 navigation.popWhile { it == config }
+            },
+            onPostSelected = { blog, post ->
+                navigation.push(Config.PostConfig(blogUrl = blog.blogUrl, post = post))
             }
+        )
+
+    private fun postComponent(
+        componentContext: ComponentContext,
+        config: Config.PostConfig
+    ): PostComponent =
+        PostComponentImpl(
+            componentContext = componentContext,
+            blogUrl = config.blogUrl,
+            post = config.post,
+            onBackClicked = { navigation.popWhile { it == config } }
         )
 
     private fun videoComponent(
@@ -301,7 +326,10 @@ class RootComponentImpl(
         data class BlogConfig(val blog: Blog) : Config
 
         @Serializable
-        data class VideoConfig(val postData: PostData.OkVideo, val playerUrl: PlayerUrl) : Config
+        data class VideoConfig(val postData: Content.OkVideo, val playerUrl: PlayerUrl) : Config
+
+        @Serializable
+        data class PostConfig(val blogUrl: String, val post: Post) : Config
     }
 
     @Serializable

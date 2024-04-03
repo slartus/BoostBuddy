@@ -83,7 +83,7 @@ fun AuthScreen(component: AuthComponent) {
                         IconButton(onClick = { useCursor = !useCursor }) {
                             Icon(
                                 imageVector = Icons.Filled.NorthWest,
-                                contentDescription = "Обновить"
+                                contentDescription = "Программный курсор"
                             )
                         }
                 }

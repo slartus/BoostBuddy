@@ -10,8 +10,8 @@ import ru.slartus.boostbuddy.components.video.VideoState.Idle
 import ru.slartus.boostbuddy.components.video.VideoState.Ready
 import ru.slartus.boostbuddy.data.Inject
 import ru.slartus.boostbuddy.data.repositories.SettingsRepository
+import ru.slartus.boostbuddy.data.repositories.models.Content
 import ru.slartus.boostbuddy.data.repositories.models.PlayerUrl
-import ru.slartus.boostbuddy.data.repositories.models.PostData
 
 interface VideoComponent {
     val viewStates: Value<VideoViewState>
@@ -21,7 +21,7 @@ interface VideoComponent {
 }
 
 data class VideoViewState(
-    val postData: PostData.OkVideo,
+    val postData: Content.OkVideo,
     val playerUrl: PlayerUrl,
     val loading: Boolean = false,
     val position: Long? = null,
@@ -33,7 +33,7 @@ enum class VideoState {
 
 class VideoComponentImpl(
     componentContext: ComponentContext,
-    postData: PostData.OkVideo,
+    postData: Content.OkVideo,
     playerUrl: PlayerUrl,
     private val onStopClicked: () -> Unit
 ) : BaseComponent<VideoViewState, Any>(componentContext, VideoViewState(postData, playerUrl)),

@@ -1,7 +1,6 @@
 package ru.slartus.boostbuddy.data.repositories.models
 
 import androidx.compose.runtime.Immutable
-import io.ktor.http.Url
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
@@ -15,74 +14,23 @@ data class Offset(
 
 data class Posts(
     val items: List<Post>,
-    val isLast: Boolean
+    val isLast: Boolean,
 )
 
 @Immutable
+@Serializable
 data class Post(
     val id: String,
     val createdAt: Long,
     val intId: Long,
     val title: String,
-    val data: List<PostData>,
-    val user: PostUser
-)
-
-data class PostUser(
-    val name: String,
-    val avatarUrl: String?
+    val data: List<Content>,
+    val user: User,
+    val count: PostCount
 )
 
 @Serializable
-@Immutable
-sealed class PostData {
-    data class Text(
-        val content: PostDataTextContent?,
-        val modificator: String?
-    ) : PostData()
-
-    @Serializable
-    data class OkVideo(
-        val vid: String,
-        val title: String,
-        val playerUrls: List<PlayerUrl>,
-        val previewUrl: String,
-    ) : PostData()
-
-    data class Image(
-        val url: String
-    ) : PostData()
-
-    data class Link(
-        val content: PostDataTextContent?,
-        val url: String,
-        val modificator: String?
-    ) : PostData() {
-        val text: String = content?.text.orEmpty()
-    }
-
-    data class Video(
-        val url: String
-    ) : PostData() {
-        private val uri: Url? = runCatching { Url(url) }.getOrNull()
-        private val isYoutube: Boolean =
-            uri?.host?.equals("www.youtube.com", ignoreCase = true) == true
-        val previewUrl: String? =
-            if (isYoutube && uri != null) getYoutubePreviewUrl(uri.parameters["v"]) else null
-
-        companion object {
-            private fun getYoutubePreviewUrl(youtubeId: String?): String =
-                "https://img.youtube.com/vi/$youtubeId/maxresdefault.jpg"
-        }
-    }
-
-    data class AudioFile(
-        val title: String,
-        val url: String
-    ) : PostData()
-
-    data object Unknown : PostData()
-}
+data class PostCount(val likes: Int, val comments: Int)
 
 data class PostDataTextContent(
     val text: String,

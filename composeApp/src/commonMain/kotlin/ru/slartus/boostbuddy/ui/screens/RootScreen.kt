@@ -2,11 +2,15 @@ package ru.slartus.boostbuddy.ui.screens
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.windowInsetsBottomHeight
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -33,6 +37,7 @@ import ru.slartus.boostbuddy.components.RootComponent
 import ru.slartus.boostbuddy.components.RootViewAction
 import ru.slartus.boostbuddy.components.observeAction
 import ru.slartus.boostbuddy.ui.screens.blog.BlogScreen
+import ru.slartus.boostbuddy.ui.screens.post.PostScreen
 import ru.slartus.boostbuddy.ui.theme.AppTheme
 import ru.slartus.boostbuddy.ui.theme.LocalThemeIsDark
 
@@ -44,7 +49,7 @@ fun RootScreen(component: RootComponent, modifier: Modifier = Modifier) {
     val snackState = remember { SnackbarHostState() }
 
     AppTheme(state.darkMode) {
-        Box {
+        WindowInsetsBox {
             var isDarkState by LocalThemeIsDark.current
             isDarkState = state.darkMode ?: isDarkState
             Children(
@@ -57,6 +62,7 @@ fun RootScreen(component: RootComponent, modifier: Modifier = Modifier) {
                     is RootComponent.Child.SubscribesChild -> SubscribesScreen(child.component)
                     is RootComponent.Child.BlogChild -> BlogScreen(child.component)
                     is RootComponent.Child.VideoChild -> VideoScreen(child.component)
+                    is RootComponent.Child.PostChild -> PostScreen(child.component)
                 }
             }
 
@@ -97,6 +103,17 @@ fun RootScreen(component: RootComponent, modifier: Modifier = Modifier) {
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun WindowInsetsBox(modifier: Modifier = Modifier, content: @Composable BoxScope.() -> Unit) {
+    Column(modifier) {
+        Box(Modifier.weight(1f)) {
+            content()
+        }
+
+        Spacer(Modifier.windowInsetsBottomHeight(WindowInsets.ime))
     }
 }
 
