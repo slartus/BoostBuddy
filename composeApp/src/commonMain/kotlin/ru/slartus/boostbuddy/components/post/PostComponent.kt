@@ -108,8 +108,8 @@ class PostComponentImpl(
                 parentCommentId = commentItem.comment.intId
             )
 
-            val data = response.getOrNull()
-            val newItems = data?.comments.orEmpty()
+            val data = response.getOrNull() ?: return@launch
+            val newItems = data.comments
             viewState =
                 viewState.copy(
                     comments = viewState.comments.map { item ->
@@ -118,7 +118,7 @@ class PostComponentImpl(
                                 comment = item.comment.copy(
                                     replies = Comments(
                                         comments = newItems + item.comment.replies.comments,
-                                        hasMore = data?.hasMore == true
+                                        hasMore = data.hasMore
                                     )
                                 )
                             )
