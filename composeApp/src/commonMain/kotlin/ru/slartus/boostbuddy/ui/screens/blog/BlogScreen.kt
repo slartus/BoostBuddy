@@ -34,7 +34,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Alignment.Companion.CenterHorizontally
-import androidx.compose.ui.Alignment.Companion.Start
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
@@ -189,7 +188,7 @@ private fun PostView(
             }
         }
         VerticalSpacer(8.dp)
-        FocusableBox(Modifier.align(Start)) {
+        FocusableBox(Modifier.fillMaxWidth()) {
             Row(
                 modifier = Modifier
                     .clickable { onCommentsClick() }

@@ -107,12 +107,14 @@ private fun CommentsView(
 ) {
     Column {
         if (hasMore) {
-            FocusableBox(Modifier.clickable { onMoreClick() }.padding(8.dp)) {
-                Text(
-                    text = "Показать ещё комментарии",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.tertiary
-                )
+            FocusableBox(Modifier.fillMaxWidth()) {
+                Box(Modifier.clickable { onMoreClick() }.padding(8.dp)) {
+                    Text(
+                        text = "Показать ещё комментарии",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.tertiary
+                    )
+                }
             }
         }
         LazyColumn(
@@ -177,12 +179,14 @@ private fun CommentView(
             )
 
             if (comment.replies.hasMore) {
-                FocusableBox(Modifier.clickable { onMoreRepliesClick() }.padding(8.dp)) {
-                    Text(
-                        text = "ещё ответы",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.tertiary
-                    )
+                FocusableBox(Modifier.fillMaxWidth()) {
+                    Box(Modifier.clickable { onMoreRepliesClick() }.padding(8.dp)) {
+                        Text(
+                            text = "ещё ответы",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.tertiary
+                        )
+                    }
                 }
             }
             comment.replies.comments.forEach { reply ->
