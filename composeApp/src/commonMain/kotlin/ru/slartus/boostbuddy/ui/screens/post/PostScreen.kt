@@ -2,6 +2,7 @@ package ru.slartus.boostbuddy.ui.screens.post
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -73,7 +74,7 @@ internal fun PostScreen(component: PostComponent) {
                 is PostViewState.ProgressState.Error -> ErrorView(
                     message = progressState.description,
                     onRepeatClick = {
-                        //    component.onRepeatClicked()
+                        component.onRepeatClicked()
                     }
                 )
 
@@ -81,19 +82,36 @@ internal fun PostScreen(component: PostComponent) {
                 PostViewState.ProgressState.Loading -> LoaderView()
 
                 is PostViewState.ProgressState.Loaded ->
-                    CommentsView(state.comments)
+                    CommentsView(state.comments, state.hasMoreComments, onMoreClick = {
+                        component.onMoreCommentsClicked()
+                    })
             }
         }
     }
 }
 
 @Composable
-private fun CommentsView(comments: ImmutableList<CommentItem>) {
-    LazyColumn(
-        verticalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        items(comments) { commentItem ->
-            CommentView(commentItem.comment)
+private fun CommentsView(
+    comments: ImmutableList<CommentItem>,
+    hasMore: Boolean,
+    onMoreClick: () -> Unit
+) {
+    Column {
+        if (hasMore) {
+            Box(Modifier.clickable { onMoreClick() }.padding(8.dp)) {
+                Text(
+                    text = "Показать ещё комментарии",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.tertiary
+                )
+            }
+        }
+        LazyColumn(
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            items(comments) { commentItem ->
+                CommentView(commentItem.comment)
+            }
         }
     }
 }
@@ -105,19 +123,23 @@ private fun CommentView(comment: Comment, isReply: Boolean = false) {
             .background(MaterialTheme.colorScheme.onPrimary)
             .padding(8.dp)
     ) {
-        if (comment.author.avatarUrl != null) {
+        if (!comment.author.avatarUrl.isNullOrEmpty()) {
             Image(
                 modifier = Modifier
                     .size(if (isReply) 36.dp else 48.dp)
                     .clip(CircleShape),
                 painter = rememberImagePainter(comment.author.avatarUrl),
-                contentDescription = "url",
+                contentDescription = "avatar",
                 contentScale = ContentScale.Fit
             )
         } else {
             Icon(
+                modifier = Modifier
+                    .size(if (isReply) 36.dp else 48.dp)
+                    .clip(CircleShape),
                 imageVector = Icons.Default.Person,
-                contentDescription = "avatar"
+                tint = MaterialTheme.colorScheme.primary,
+                contentDescription = "empty avatar"
             )
         }
         HorizontalSpacer(8.dp)

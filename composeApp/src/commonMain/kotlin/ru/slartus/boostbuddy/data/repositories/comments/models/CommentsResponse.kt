@@ -18,6 +18,7 @@ internal data class CommentsResponse(
     @Serializable
     internal data class Comment(
         val id: String? = null,
+        val intId: Int? = null,
         val data: List<ContentResponse>? = null,
         val author: UserResponse? = null,
         val replies: CommentsResponse? = null,
@@ -30,13 +31,17 @@ internal data class CommentsResponse(
     internal data class Extra(val isLast: Boolean? = null, val isFirst: Boolean? = null)
 }
 
-internal fun CommentsResponse.mapToComments(): List<Comment> {
-    return data.orEmpty().mapNotNull { it.mapToCommentOrNull() }
+internal fun CommentsResponse.mapToComments(): Comments {
+    return Comments(
+        comments = data.orEmpty().mapNotNull { it.mapToCommentOrNull() },
+        hasMode = extra?.isLast == false
+    )
 }
 
 internal fun CommentsResponse.Comment.mapToCommentOrNull(): Comment? {
     return Comment(
         id = id ?: return null,
+        intId = intId ?: return null,
         author = author?.mapToUserOrNull() ?: return null,
         createdAt = createdAt?.let {
             Instant.fromEpochMilliseconds(it * 1000)
@@ -44,7 +49,7 @@ internal fun CommentsResponse.Comment.mapToCommentOrNull(): Comment? {
         } ?: return null,
         content = data?.mapNotNull { it.mapToContentOrNull() }.orEmpty().mergeText(),
         replyCount = replyCount ?: 0,
-        replies = replies?.mapToComments().orEmpty(),
+        replies = replies?.mapToComments()?.comments.orEmpty(),
         replyToUser = replyToUser?.mapToUserOrNull()
     )
 }

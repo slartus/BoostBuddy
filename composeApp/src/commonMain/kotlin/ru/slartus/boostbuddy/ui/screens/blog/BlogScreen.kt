@@ -189,21 +189,21 @@ private fun PostView(
             }
         }
         VerticalSpacer(8.dp)
-        Row(
-            modifier = Modifier
-                .align(Start)
-                .focusable()
-                .clickable { onCommentsClick() }
-        ) {
-            CountView(
-                icon = Icons.Default.Favorite,
-                text = post.count.likes.toString()
-            )
-            HorizontalSpacer(16.dp)
-            CountView(
-                icon = Icons.AutoMirrored.Default.Comment,
-                text = post.count.comments.toString()
-            )
+        FocusableBox(Modifier.align(Start)) {
+            Row(
+                modifier = Modifier
+                    .clickable { onCommentsClick() }
+            ) {
+                CountView(
+                    icon = Icons.Default.Favorite,
+                    text = post.count.likes.toString()
+                )
+                HorizontalSpacer(16.dp)
+                CountView(
+                    icon = Icons.AutoMirrored.Default.Comment,
+                    text = post.count.comments.toString()
+                )
+            }
         }
     }
 }

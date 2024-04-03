@@ -8,9 +8,15 @@ import kotlinx.datetime.toLocalDateTime
 import ru.slartus.boostbuddy.data.repositories.models.Content
 import ru.slartus.boostbuddy.data.repositories.models.User
 
+data class Comments(
+    val comments: List<Comment>,
+    val hasMode: Boolean
+)
+
 @Immutable
 data class Comment(
     val id: String,
+    val intId: Int,
     val author: User,
     val content: List<Content>,
     val replies: List<Comment>,

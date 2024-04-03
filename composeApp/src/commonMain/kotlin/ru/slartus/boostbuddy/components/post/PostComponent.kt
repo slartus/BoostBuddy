@@ -10,8 +10,12 @@ import ru.slartus.boostbuddy.data.repositories.SettingsRepository
 import ru.slartus.boostbuddy.data.repositories.comments.CommentsRepository
 import ru.slartus.boostbuddy.data.repositories.models.Post
 import ru.slartus.boostbuddy.utils.messageOrThrow
+import ru.slartus.boostbuddy.utils.unauthorizedError
 
 interface PostComponent {
+    fun onRepeatClicked()
+    fun onMoreCommentsClicked()
+
     val viewStates: Value<PostViewState>
     val onBackClicked: () -> Unit
 }
@@ -41,7 +45,7 @@ class PostComponentImpl(
         }
     }
 
-    private fun fetchPost(token: String) {
+    private fun fetchPost(token: String, offsetId: Int? = null) {
         viewState =
             viewState.copy(progressProgressState = PostViewState.ProgressState.Loading)
         scope.launch {
@@ -49,17 +53,20 @@ class PostComponentImpl(
                 accessToken = token,
                 url = blogUrl,
                 postId = post.id,
-                offsetId = null
+                offsetId = offsetId
             )
             if (response.isSuccess) {
                 val data = response.getOrNull()
-                val newItems = data.orEmpty()
-                    .map { CommentItem(it) }
-                    .toImmutableList()
+                val newItems = buildList {
+                    addAll(data?.comments.orEmpty().map { CommentItem(it) })
+                    if (offsetId != null)
+                        addAll(viewState.comments)
+                }.toImmutableList()
                 viewState =
                     viewState.copy(
                         comments = newItems,
-                        progressProgressState = PostViewState.ProgressState.Loaded
+                        progressProgressState = PostViewState.ProgressState.Loaded,
+                        hasMoreComments = data?.hasMode == true
                     )
             } else {
                 viewState =
@@ -69,6 +76,20 @@ class PostComponentImpl(
                         )
                     )
             }
+        }
+    }
+
+    override fun onRepeatClicked() {
+        scope.launch {
+            val token = settingsRepository.getAccessToken() ?: unauthorizedError()
+            fetchPost(token)
+        }
+    }
+
+    override fun onMoreCommentsClicked() {
+        scope.launch {
+            val token = settingsRepository.getAccessToken() ?: unauthorizedError()
+            fetchPost(token, offsetId = viewState.comments.firstOrNull()?.comment?.intId)
         }
     }
 

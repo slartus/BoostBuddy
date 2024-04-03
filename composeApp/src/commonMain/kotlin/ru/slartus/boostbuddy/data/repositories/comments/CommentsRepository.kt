@@ -6,7 +6,7 @@ import io.ktor.client.request.get
 import io.ktor.client.request.header
 import io.ktor.client.request.parameter
 import io.ktor.http.HttpHeaders
-import ru.slartus.boostbuddy.data.repositories.comments.models.Comment
+import ru.slartus.boostbuddy.data.repositories.comments.models.Comments
 import ru.slartus.boostbuddy.data.repositories.comments.models.CommentsResponse
 import ru.slartus.boostbuddy.data.repositories.comments.models.mapToComments
 import ru.slartus.boostbuddy.utils.fetchOrError
@@ -18,8 +18,8 @@ internal class CommentsRepository(
         accessToken: String,
         url: String,
         postId: String,
-        offsetId: String?
-    ): Result<List<Comment>> =
+        offsetId: Int?
+    ): Result<Comments> =
         fetchOrError {
             val response: CommentsResponse =
                 httpClient.get("https://api.boosty.to/v1/blog/$url/post/$postId/comment/") {
@@ -28,7 +28,7 @@ internal class CommentsRepository(
                     parameter("reply_limit", "2")
                     parameter("order", "top")
                     if (offsetId != null)
-                        parameter("offset", "$offsetId")
+                        parameter("offset", offsetId)
                 }.body()
 
             response.mapToComments()

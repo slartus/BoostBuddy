@@ -9,8 +9,9 @@ import ru.slartus.boostbuddy.data.repositories.models.Post
 data class PostViewState(
     val post: Post,
     val progressProgressState: ProgressState = ProgressState.Init,
-    val comments: ImmutableList<CommentItem> = persistentListOf()
-){
+    val comments: ImmutableList<CommentItem> = persistentListOf(),
+    val hasMoreComments: Boolean = true
+) {
     sealed class ProgressState {
         data object Init : ProgressState()
         data object Loading : ProgressState()
