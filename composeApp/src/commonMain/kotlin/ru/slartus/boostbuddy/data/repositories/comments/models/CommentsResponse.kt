@@ -34,7 +34,7 @@ internal data class CommentsResponse(
 internal fun CommentsResponse.mapToComments(): Comments {
     return Comments(
         comments = data.orEmpty().mapNotNull { it.mapToCommentOrNull() },
-        hasMode = extra?.isLast == false
+        hasMore = extra?.isLast == false
     )
 }
 
@@ -49,7 +49,7 @@ internal fun CommentsResponse.Comment.mapToCommentOrNull(): Comment? {
         } ?: return null,
         content = data?.mapNotNull { it.mapToContentOrNull() }.orEmpty().mergeText(),
         replyCount = replyCount ?: 0,
-        replies = replies?.mapToComments()?.comments.orEmpty(),
+        replies = replies?.mapToComments() ?: Comments(emptyList(), false),
         replyToUser = replyToUser?.mapToUserOrNull()
     )
 }

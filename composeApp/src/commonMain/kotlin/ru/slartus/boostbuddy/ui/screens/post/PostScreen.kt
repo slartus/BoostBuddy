@@ -82,9 +82,16 @@ internal fun PostScreen(component: PostComponent) {
                 PostViewState.ProgressState.Loading -> LoaderView()
 
                 is PostViewState.ProgressState.Loaded ->
-                    CommentsView(state.comments, state.hasMoreComments, onMoreClick = {
-                        component.onMoreCommentsClicked()
-                    })
+                    CommentsView(
+                        comments = state.comments,
+                        hasMore = state.hasMoreComments,
+                        onMoreClick = {
+                            component.onMoreCommentsClicked()
+                        },
+                        onMoreRepliesClick = {
+                            component.onMoreRepliesClicked(it)
+                        }
+                    )
             }
         }
     }
@@ -94,7 +101,8 @@ internal fun PostScreen(component: PostComponent) {
 private fun CommentsView(
     comments: ImmutableList<CommentItem>,
     hasMore: Boolean,
-    onMoreClick: () -> Unit
+    onMoreClick: () -> Unit,
+    onMoreRepliesClick: (CommentItem) -> Unit
 ) {
     Column {
         if (hasMore) {
@@ -109,15 +117,21 @@ private fun CommentsView(
         LazyColumn(
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            items(comments) { commentItem ->
-                CommentView(commentItem.comment)
+            items(comments, key = { it.comment.id }) { commentItem ->
+                CommentView(
+                    commentItem.comment,
+                    onMoreRepliesClick = { onMoreRepliesClick(commentItem) })
             }
         }
     }
 }
 
 @Composable
-private fun CommentView(comment: Comment, isReply: Boolean = false) {
+private fun CommentView(
+    comment: Comment,
+    isReply: Boolean = false,
+    onMoreRepliesClick: () -> Unit
+) {
     Row(
         Modifier
             .background(MaterialTheme.colorScheme.onPrimary)
@@ -161,8 +175,17 @@ private fun CommentView(comment: Comment, isReply: Boolean = false) {
                 style = MaterialTheme.typography.bodySmall
             )
 
-            comment.replies.forEach { reply ->
-                CommentView(reply, isReply = true)
+            if (comment.replies.hasMore) {
+                Box(Modifier.clickable { onMoreRepliesClick() }.padding(8.dp)) {
+                    Text(
+                        text = "ещё ответы",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.tertiary
+                    )
+                }
+            }
+            comment.replies.comments.forEach { reply ->
+                CommentView(reply, isReply = true, onMoreRepliesClick = {})
             }
         }
     }

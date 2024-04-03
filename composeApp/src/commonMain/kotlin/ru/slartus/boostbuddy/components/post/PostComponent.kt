@@ -8,6 +8,7 @@ import ru.slartus.boostbuddy.components.BaseComponent
 import ru.slartus.boostbuddy.data.Inject
 import ru.slartus.boostbuddy.data.repositories.SettingsRepository
 import ru.slartus.boostbuddy.data.repositories.comments.CommentsRepository
+import ru.slartus.boostbuddy.data.repositories.comments.models.Comments
 import ru.slartus.boostbuddy.data.repositories.models.Post
 import ru.slartus.boostbuddy.utils.messageOrThrow
 import ru.slartus.boostbuddy.utils.unauthorizedError
@@ -15,6 +16,7 @@ import ru.slartus.boostbuddy.utils.unauthorizedError
 interface PostComponent {
     fun onRepeatClicked()
     fun onMoreCommentsClicked()
+    fun onMoreRepliesClicked(commentItem: CommentItem)
 
     val viewStates: Value<PostViewState>
     val onBackClicked: () -> Unit
@@ -61,12 +63,14 @@ class PostComponentImpl(
                     addAll(data?.comments.orEmpty().map { CommentItem(it) })
                     if (offsetId != null)
                         addAll(viewState.comments)
-                }.toImmutableList()
+                }
+                    .distinctBy { it.comment.id }
+                    .toImmutableList()
                 viewState =
                     viewState.copy(
                         comments = newItems,
                         progressProgressState = PostViewState.ProgressState.Loaded,
-                        hasMoreComments = data?.hasMode == true
+                        hasMoreComments = data?.hasMore == true
                     )
             } else {
                 viewState =
@@ -90,6 +94,39 @@ class PostComponentImpl(
         scope.launch {
             val token = settingsRepository.getAccessToken() ?: unauthorizedError()
             fetchPost(token, offsetId = viewState.comments.firstOrNull()?.comment?.intId)
+        }
+    }
+
+    override fun onMoreRepliesClicked(commentItem: CommentItem) {
+        scope.launch {
+            val token = settingsRepository.getAccessToken() ?: unauthorizedError()
+            val response = commentsRepository.getComments(
+                accessToken = token,
+                url = blogUrl,
+                postId = post.id,
+                offsetId = commentItem.comment.replies.comments.firstOrNull()?.intId,
+                parentCommentId = commentItem.comment.intId
+            )
+
+            val data = response.getOrNull()
+            val newItems = data?.comments.orEmpty()
+            viewState =
+                viewState.copy(
+                    comments = viewState.comments.map { item ->
+                        if (item.comment.id == commentItem.comment.id) {
+                            item.copy(
+                                comment = item.comment.copy(
+                                    replies = Comments(
+                                        comments = newItems + item.comment.replies.comments,
+                                        hasMore = data?.hasMore == true
+                                    )
+                                )
+                            )
+                        } else {
+                            item
+                        }
+                    }.toImmutableList()
+                )
         }
     }
 

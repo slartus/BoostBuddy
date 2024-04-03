@@ -18,7 +18,8 @@ internal class CommentsRepository(
         accessToken: String,
         url: String,
         postId: String,
-        offsetId: Int?
+        offsetId: Int?,
+        parentCommentId: Int? = null
     ): Result<Comments> =
         fetchOrError {
             val response: CommentsResponse =
@@ -29,6 +30,8 @@ internal class CommentsRepository(
                     parameter("order", "top")
                     if (offsetId != null)
                         parameter("offset", offsetId)
+                    if (parentCommentId != null)
+                        parameter("parent_id", parentCommentId)
                 }.body()
 
             response.mapToComments()

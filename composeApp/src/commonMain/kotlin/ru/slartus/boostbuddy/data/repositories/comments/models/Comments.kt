@@ -10,7 +10,7 @@ import ru.slartus.boostbuddy.data.repositories.models.User
 
 data class Comments(
     val comments: List<Comment>,
-    val hasMode: Boolean
+    val hasMore: Boolean
 )
 
 @Immutable
@@ -19,7 +19,7 @@ data class Comment(
     val intId: Int,
     val author: User,
     val content: List<Content>,
-    val replies: List<Comment>,
+    val replies: Comments,
     val replyCount: Int,
     val replyToUser: User?,
     val createdAt: LocalDateTime
