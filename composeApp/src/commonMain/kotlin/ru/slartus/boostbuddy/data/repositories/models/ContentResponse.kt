@@ -160,12 +160,36 @@ internal fun List<Content>.mergeText(): List<Content> {
                         mergeContainer = container.copy(
                             content = buildAnnotatedString {
                                 append(container.content)
-                                item.content?.let { append(it) }
+                                item.content?.let {
+                                    append(
+                                        it.copy(
+                                            urls = listOf(
+                                                PostDataTextContent.UrlData(
+                                                    item.url,
+                                                    container.content.text.length,
+                                                    item.content.text.length
+                                                )
+                                            )
+                                        )
+                                    )
+                                }
                             }
                         )
                     } else if (item.modificator != "BLOCK_END") {
                         mergeContainer = Content.AnnotatedText(buildAnnotatedString {
-                            item.content?.let { append(it) }
+                            item.content?.let {
+                                append(
+                                    it.copy(
+                                        urls = listOf(
+                                            PostDataTextContent.UrlData(
+                                                item.url,
+                                                0,
+                                                item.content.text.length
+                                            )
+                                        )
+                                    )
+                                )
+                            }
                         })
                     }
                     if (mergeContainer != null && item.modificator == "BLOCK_END") {
