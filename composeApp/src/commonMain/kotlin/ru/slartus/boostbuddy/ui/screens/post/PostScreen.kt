@@ -15,6 +15,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -27,6 +28,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
 import com.seiko.imageloader.rememberImagePainter
@@ -103,16 +105,22 @@ private fun CommentView(comment: Comment, isReply: Boolean = false) {
             .background(MaterialTheme.colorScheme.onPrimary)
             .padding(8.dp)
     ) {
-        comment.author.avatarUrl?.let { avatarUrl ->
+        if (comment.author.avatarUrl != null) {
             Image(
                 modifier = Modifier
                     .size(if (isReply) 36.dp else 48.dp)
                     .clip(CircleShape),
-                painter = rememberImagePainter(avatarUrl),
+                painter = rememberImagePainter(comment.author.avatarUrl),
                 contentDescription = "url",
+                contentScale = ContentScale.Fit
             )
-            HorizontalSpacer(8.dp)
+        } else {
+            Icon(
+                imageVector = Icons.Default.Person,
+                contentDescription = "avatar"
+            )
         }
+        HorizontalSpacer(8.dp)
         Column {
             Text(
                 modifier = Modifier.fillMaxWidth(),
