@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.text.InlineTextContent
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.Icon
@@ -24,19 +25,14 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.Placeholder
+import androidx.compose.ui.text.PlaceholderVerticalAlign
 import androidx.compose.ui.text.TextLayoutResult
-import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.ui.text.font.FontStyle
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.seiko.imageloader.rememberImagePainter
 import ru.slartus.boostbuddy.data.repositories.models.Content
-import ru.slartus.boostbuddy.data.repositories.models.PostDataTextContent
 import ru.slartus.boostbuddy.ui.common.LocalPlatformConfiguration
 import ru.slartus.boostbuddy.ui.theme.LightColorScheme
 
@@ -44,14 +40,16 @@ import ru.slartus.boostbuddy.ui.theme.LightColorScheme
 fun ContentView(postData: Content, onVideoClick: (okVideoData: Content.OkVideo) -> Unit) {
     FocusableBox {
         when (postData) {
-            is Content.Text -> PostDataTextView(postData)
+            is Content.Link,
+            is Content.Text,
             Content.Unknown -> PostDataUnknownView()
+
             is Content.OkVideo -> PostDataOkVideoView(postData, onVideoClick)
             is Content.Image -> PostDataImageView(postData)
-            is Content.Link -> PostDataLinkView(postData)
             is Content.Video -> PostDataVideoView(postData)
             is Content.AudioFile -> PostDataAudioFileView(postData)
             is Content.Smile -> ContentSmileView(postData)
+            is Content.AnnotatedText -> AnnotatedTextView(postData)
         }
     }
 }
@@ -77,14 +75,12 @@ private fun PostDataUnknownView() {
 }
 
 @Composable
-private fun PostDataTextView(postData: Content.Text) {
-    val annotatedText = postData.content?.rememberAnnotatedString() ?: return
-
+private fun AnnotatedTextView(postData: Content.AnnotatedText) {
     val platformConfiguration = LocalPlatformConfiguration.current
 
     val layoutResult = remember { mutableStateOf<TextLayoutResult?>(null) }
     val onClick: (Int) -> Unit = { offset ->
-        annotatedText.getStringAnnotations(start = offset, end = offset).firstOrNull()?.let {
+        postData.content.getStringAnnotations(start = offset, end = offset).firstOrNull()?.let {
             platformConfiguration.openBrowser(it.item)
         }
     }
@@ -95,51 +91,30 @@ private fun PostDataTextView(postData: Content.Text) {
             }
         }
     }
+    val inlineContentMap = remember(postData) {
+        postData.smiles.distinctBy { it.name }.associate { smile ->
+            smile.name to InlineTextContent(
+                Placeholder(20.sp, 20.sp, PlaceholderVerticalAlign.TextCenter)
+            ) {
+                Image(
+                    modifier = Modifier.size(24.dp),
+                    painter = rememberImagePainter(
+                        smile.mediumUrl ?: smile.smallUrl ?: smile.smallUrl.orEmpty()
+                    ),
+                    contentDescription = "smile ${smile.name}",
+                )
+            }
+        }
+    }
     Text(
         modifier = Modifier.then(pressIndicator).fillMaxWidth().focusable(),
-        text = annotatedText,
+        text = postData.content,
+        inlineContent = inlineContentMap,
         style = MaterialTheme.typography.bodySmall,
         onTextLayout = {
             layoutResult.value = it
         }
     )
-}
-
-@Composable
-private fun PostDataTextContent.rememberAnnotatedString(): AnnotatedString {
-    val linkColor = remember { Color(241, 95, 44) }
-    return remember {
-        buildAnnotatedString {
-            append(text)
-            styleData?.forEach { styleData ->
-                addStyle(
-                    styleData.style.toSpanStyle(),
-                    styleData.from,
-                    styleData.from + styleData.length
-                )
-            }
-            urls?.forEach { url ->
-                addStringAnnotation(
-                    tag = "URL",
-                    annotation = url.url,
-                    start = url.from,
-                    end = url.from + url.length
-                )
-                addStyle(
-                    SpanStyle(color = linkColor),
-                    start = url.from,
-                    end = url.from + url.length
-                )
-            }
-        }
-    }
-}
-
-private fun PostDataTextContent.Style.toSpanStyle(): SpanStyle = when (this) {
-    PostDataTextContent.Style.Normal -> SpanStyle(fontStyle = FontStyle.Normal)
-    PostDataTextContent.Style.Italic -> SpanStyle(fontStyle = FontStyle.Italic)
-    PostDataTextContent.Style.Bold -> SpanStyle(fontWeight = FontWeight.Bold)
-    PostDataTextContent.Style.Underline -> SpanStyle(textDecoration = TextDecoration.Underline)
 }
 
 @Composable
@@ -213,22 +188,6 @@ private fun VideoPreview(url: String, onClick: () -> Unit) {
             )
         }
     }
-}
-
-@Composable
-private fun PostDataLinkView(
-    postData: Content.Link
-) {
-    val platformConfiguration = LocalPlatformConfiguration.current
-
-    Text(
-        modifier = Modifier.fillMaxWidth().clickable {
-            platformConfiguration.openBrowser(postData.url)
-        },
-        text = postData.text,
-        color = MaterialTheme.colorScheme.primary,
-        style = MaterialTheme.typography.labelMedium
-    )
 }
 
 @Composable

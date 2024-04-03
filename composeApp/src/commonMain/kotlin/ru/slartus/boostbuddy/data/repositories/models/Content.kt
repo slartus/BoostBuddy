@@ -1,6 +1,7 @@
 package ru.slartus.boostbuddy.data.repositories.models
 
 import androidx.compose.runtime.Immutable
+import androidx.compose.ui.text.AnnotatedString
 import io.ktor.http.Url
 import kotlinx.serialization.Serializable
 
@@ -10,6 +11,11 @@ sealed class Content {
     data class Text(
         val content: PostDataTextContent?,
         val modificator: String?
+    ) : Content()
+
+    data class AnnotatedText(
+        val content: AnnotatedString,
+        val smiles: List<Smile> = emptyList()
     ) : Content()
 
     @Serializable

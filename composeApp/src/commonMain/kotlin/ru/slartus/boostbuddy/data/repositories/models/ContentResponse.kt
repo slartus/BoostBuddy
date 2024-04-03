@@ -1,5 +1,13 @@
 package ru.slartus.boostbuddy.data.repositories.models
 
+import androidx.compose.foundation.text.appendInlineContent
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextDecoration
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -87,38 +95,78 @@ private fun ContentResponse.PlayerUrl.mapToPlayerUrlOrNull(): PlayerUrl? {
     return PlayerUrl(type ?: return null, url ?: return null)
 }
 
+val linkColor = Color(241, 95, 44)
+private fun PostDataTextContent.Style.toSpanStyle(): SpanStyle = when (this) {
+    PostDataTextContent.Style.Normal -> SpanStyle(fontStyle = FontStyle.Normal)
+    PostDataTextContent.Style.Italic -> SpanStyle(fontStyle = FontStyle.Italic)
+    PostDataTextContent.Style.Bold -> SpanStyle(fontWeight = FontWeight.Bold)
+    PostDataTextContent.Style.Underline -> SpanStyle(textDecoration = TextDecoration.Underline)
+}
+
+private fun AnnotatedString.Builder.append(content: PostDataTextContent) {
+    append(content.text)
+    content.styleData?.let { items ->
+        items.forEach { styleData ->
+            addStyle(
+                styleData.style.toSpanStyle(),
+                styleData.from,
+                styleData.from + styleData.length
+            )
+        }
+    }
+    content.urls?.let { items ->
+        items.forEach { url ->
+            addStringAnnotation(
+                tag = "URL",
+                annotation = url.url,
+                start = url.from,
+                end = url.from + url.length
+            )
+            addStyle(
+                SpanStyle(color = linkColor),
+                start = url.from,
+                end = url.from + url.length
+            )
+        }
+    }
+}
+
 internal fun List<Content>.mergeText(): List<Content> {
     val result: MutableList<Content> = mutableListOf()
-    var mergeContainer: Content.Text? = null
+    var mergeContainer: Content.AnnotatedText? = null
     forEach { item ->
         when (item) {
+            is Content.Smile -> {
+                mergeContainer.let { container ->
+                    mergeContainer = container?.copy(
+                        content = buildAnnotatedString {
+                            append(container.content)
+                            appendInlineContent(id = item.name)
+                        },
+                        smiles = container.smiles + item
+                    )
+                        ?: Content.AnnotatedText(
+                            content = buildAnnotatedString {
+                                appendInlineContent(id = item.name)
+                            },
+                            smiles = listOf(item)
+                        )
+                }
+            }
+
             is Content.Link -> {
                 mergeContainer.let { container ->
                     if (container != null && item.modificator != "BLOCK_END") {
                         mergeContainer = container.copy(
-                            content = container.content?.copy(
-                                text = container.content.text + item.content?.text,
-                                styleData = container.content.styleData.orEmpty() + item.content?.styleData.orEmpty(),
-                                urls = container.content.urls.orEmpty() +
-                                        PostDataTextContent.UrlData(
-                                            item.url,
-                                            container.content.text.length,
-                                            item.content?.text?.length ?: 0
-                                        )
-                            ),
+                            content = buildAnnotatedString {
+                                append(container.content)
+                                item.content?.let { append(it) }
+                            }
                         )
                     } else if (item.modificator != "BLOCK_END") {
-                        mergeContainer = Content.Text(
-                            item.content?.copy(
-                                urls = listOf(
-                                    PostDataTextContent.UrlData(
-                                        item.url,
-                                        0,
-                                        item.content.text.length
-                                    )
-                                )
-                            ), ""
-                        )
+                        mergeContainer = Content.AnnotatedText(buildAnnotatedString {
+                            item.content?.let { append(it) }
+                        })
                     }
                     if (mergeContainer != null && item.modificator == "BLOCK_END") {
                         result.add(mergeContainer!!)
@@ -131,13 +179,41 @@ internal fun List<Content>.mergeText(): List<Content> {
                 mergeContainer.let { container ->
                     if (container != null && item.modificator != "BLOCK_END") {
                         mergeContainer = container.copy(
-                            content = container.content?.copy(
-                                text = container.content.text + item.content?.text,
-                                styleData = container.content.styleData.orEmpty() + item.content?.styleData.orEmpty()
-                            ),
+                            content = buildAnnotatedString {
+                                append(container.content)
+                                item.content?.let { append(it) }
+                            }
                         )
                     } else if (item.modificator != "BLOCK_END") {
-                        mergeContainer = Content.Text(item.content, "")
+                        mergeContainer = Content.AnnotatedText(buildAnnotatedString {
+                            item.content?.text?.let {
+                                append(it)
+                            }
+                            item.content?.styleData?.let { items ->
+                                items.forEach { styleData ->
+                                    addStyle(
+                                        styleData.style.toSpanStyle(),
+                                        styleData.from,
+                                        styleData.from + styleData.length
+                                    )
+                                }
+                            }
+                            item.content?.urls?.let { items ->
+                                items.forEach { url ->
+                                    addStringAnnotation(
+                                        tag = "URL",
+                                        annotation = url.url,
+                                        start = url.from,
+                                        end = url.from + url.length
+                                    )
+                                    addStyle(
+                                        SpanStyle(color = linkColor),
+                                        start = url.from,
+                                        end = url.from + url.length
+                                    )
+                                }
+                            }
+                        })
                     }
                     if (mergeContainer != null && item.modificator == "BLOCK_END") {
                         result.add(mergeContainer!!)
