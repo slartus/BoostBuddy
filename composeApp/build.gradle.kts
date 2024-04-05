@@ -51,6 +51,7 @@ kotlin {
             implementation(libs.ktor.json)
             implementation(libs.ktor.serialization.json)
             implementation(libs.ktor.negotiation)
+            implementation(libs.ktor.logging)
             implementation(libs.kotlinx.serialization.json)
             implementation(libs.kotlinx.datetime)
             implementation(libs.kotlinx.io.core)
@@ -58,6 +59,7 @@ kotlin {
             implementation(libs.kodein.core)
             implementation(libs.kodein.conf)
             implementation(libs.collections.immutable)
+            implementation(libs.napier)
         }
 
         commonTest.dependencies {
