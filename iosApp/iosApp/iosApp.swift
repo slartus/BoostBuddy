@@ -5,6 +5,7 @@ import BoostBuddyShared
 @main
 struct iOSApp: App {
     init() {
+        NapierProxyKt.debugLogBuild()
         PlatformDataConfiguration.shared.createDependenciesTree(
             platformConfiguration: PlatformConfiguration.companion.shared
         )

@@ -13,8 +13,11 @@ import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.LifecycleOwner
 import com.arkivanov.decompose.defaultComponentContext
+import io.github.aakira.napier.DebugAntilog
+import io.github.aakira.napier.Napier
 import ru.slartus.boostbuddy.components.RootComponentImpl
 import ru.slartus.boostbuddy.data.Inject
+import ru.slartus.boostbuddy.data.log.debugLogBuild
 import ru.slartus.boostbuddy.ui.common.LocalPlatformConfiguration
 import ru.slartus.boostbuddy.ui.screens.RootScreen
 import ru.slartus.boostbuddy.utils.GlobalExceptionHandlersChain
@@ -33,6 +36,7 @@ class AndroidApp : Application() {
     override fun onCreate() {
         super.onCreate()
         INSTANCE = this
+        debugLogBuild()
         PlatformDataConfiguration.createDependenciesTree(PlatformConfiguration(this, getPlatform()))
     }
 

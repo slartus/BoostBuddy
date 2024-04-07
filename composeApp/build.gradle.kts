@@ -51,6 +51,7 @@ kotlin {
             implementation(libs.ktor.json)
             implementation(libs.ktor.serialization.json)
             implementation(libs.ktor.negotiation)
+            implementation(libs.ktor.logging)
             implementation(libs.kotlinx.serialization.json)
             implementation(libs.kotlinx.datetime)
             implementation(libs.kotlinx.io.core)
@@ -58,6 +59,7 @@ kotlin {
             implementation(libs.kodein.core)
             implementation(libs.kodein.conf)
             implementation(libs.collections.immutable)
+            implementation(libs.napier)
         }
 
         commonTest.dependencies {
@@ -96,8 +98,8 @@ android {
         targetSdk = 34
 
         applicationId = "ru.slartus.boostbuddy"
-        versionCode = 56
-        versionName = "1.0.6"
+        versionCode = 58
+        versionName = "1.0.7"
     }
     sourceSets["main"].apply {
         manifest.srcFile("src/androidMain/AndroidManifest.xml")

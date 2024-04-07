@@ -105,7 +105,7 @@ private fun CommentsView(
     onMoreClick: () -> Unit,
     onMoreRepliesClick: (CommentItem) -> Unit
 ) {
-    Column {
+    Column(Modifier.fillMaxSize()) {
         if (hasMore) {
             FocusableBox(Modifier.fillMaxWidth()) {
                 Box(Modifier.clickable { onMoreClick() }.padding(8.dp)) {
@@ -118,6 +118,7 @@ private fun CommentsView(
             }
         }
         LazyColumn(
+            modifier = Modifier.fillMaxSize(),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             items(comments, key = { it.comment.id }) { commentItem ->
