@@ -1,5 +1,3 @@
-import org.jetbrains.kotlin.konan.properties.loadProperties
-
 plugins {
     alias(libs.plugins.multiplatform)
     alias(libs.plugins.compose)
@@ -118,37 +116,6 @@ android {
     }
     composeOptions {
         kotlinCompilerExtensionVersion = "1.5.4"
-    }
-
-    signingConfigs {
-        create("release") {
-            val credentialsPath = "${rootDir.absolutePath}/keystore/keystore.properties"
-            if (!File(credentialsPath).exists()) return@create
-            val credentials = loadProperties(credentialsPath)
-
-            keyAlias = credentials.getProperty("RELEASE_KEY_ALIAS")
-            keyPassword = credentials.getProperty("RELEASE_KEY_PASSWORD")
-            storePassword = credentials.getProperty("RELEASE_STORE_PASSWORD")
-            storeFile = File("${rootDir.absolutePath}/keystore/release.keystore")
-        }
-    }
-
-    applicationVariants.all { variant ->
-        variant.outputs
-            .map { it as com.android.build.gradle.internal.api.BaseVariantOutputImpl }
-            .forEach { output ->
-                output.outputFileName = "BoostBuddy_${variant.name}_${variant.versionName}.apk"
-            }
-        true
-    }
-
-    buildTypes {
-        val release by getting {
-            isMinifyEnabled = true
-            isShrinkResources = true
-            signingConfig = signingConfigs.getByName("release")
-            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-        }
     }
 }
 
