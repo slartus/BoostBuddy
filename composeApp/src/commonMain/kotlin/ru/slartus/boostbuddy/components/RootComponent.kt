@@ -16,7 +16,6 @@ import com.arkivanov.decompose.router.stack.push
 import com.arkivanov.decompose.router.stack.replaceAll
 import com.arkivanov.decompose.value.Value
 import kotlinx.coroutines.launch
-import kotlinx.io.files.SystemFileSystem
 import kotlinx.serialization.Serializable
 import ru.slartus.boostbuddy.components.auth.AuthComponent
 import ru.slartus.boostbuddy.components.auth.AuthComponentImpl
@@ -159,9 +158,6 @@ class RootComponentImpl(
                 platformConfiguration.installApp(path)
             }.onFailure {
                 viewAction = RootViewAction.ShowSnackBar("Ошибка загрузки файла")
-            }
-            runCatching {
-                SystemFileSystem.delete(path)
             }
         }
     }
