@@ -95,14 +95,11 @@ enum class VideoQuality(val used: Boolean) {
     Q2160P(true),
     Q4320P(true),
 
-    MP4(false),
-    DASH(false),
-    DASH_SEP(false),
-    ONDEMAND_DASH(false),
+    DASH(true),
     HLS(true),
+    MP4(false),
     WEBM(false),
     AV1(false),
-    ONDEMAND_DASH_LIVE(false),
     WEBRTC(false),
     RTMP(false),
     LIVE_CMAF(false),
@@ -134,22 +131,24 @@ enum class VideoQuality(val used: Boolean) {
             "ultrahd" -> Q2160P
 
             "mp4" -> MP4
+
             "live_dash",
             "live_playback_dash",
             "dash_uni",
+            "dash_sep",
+            "ondemand_dash",
+            "ondemand_dash_live",
             "dash" -> DASH
 
-            "dash_sep" -> DASH_SEP
-            "ondemand_dash" -> ONDEMAND_DASH
             "live_hls",
             "live_playback_hls",
             "live_ondemand_hls",
             "ondemand_hls_live",
             "ondemand_hls",
             "hls" -> HLS
+
             "webm" -> WEBM
             "av1" -> AV1
-            "ondemand_dash_live" -> ONDEMAND_DASH_LIVE
             "webrtc" -> WEBRTC
             "rtmp" -> RTMP
             "live_cmaf" -> LIVE_CMAF
