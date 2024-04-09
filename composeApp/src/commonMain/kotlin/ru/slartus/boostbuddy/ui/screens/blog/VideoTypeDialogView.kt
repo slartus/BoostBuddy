@@ -12,6 +12,7 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import ru.slartus.boostbuddy.components.blog.text
 import ru.slartus.boostbuddy.data.repositories.models.Content
 import ru.slartus.boostbuddy.data.repositories.models.PlayerUrl
 
@@ -37,7 +38,7 @@ internal fun VideoTypeDialogView(
                     modifier = Modifier.fillMaxWidth()
                         .clickable { onItemClicked(it) }
                         .padding(16.dp),
-                    text = it.type
+                    text = it.quality.text
                 )
             }
         }

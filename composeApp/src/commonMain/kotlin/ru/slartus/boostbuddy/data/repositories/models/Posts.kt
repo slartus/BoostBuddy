@@ -79,6 +79,84 @@ data class PostDataTextContent(
 
 @Serializable
 data class PlayerUrl(
-    val type: String,
+    val quality: VideoQuality,
     val url: String
 )
+
+enum class VideoQuality(val used: Boolean) {
+    Q144P(true),
+    Q240P(true),
+    Q360P(true),
+    Q480P(true),
+    Q720P(true),
+    Q1080P(true),
+    Q1440P(true),
+    Q2160P(true),
+    Q4320P(true),
+
+    MP4(false),
+    DASH(false),
+    DASH_SEP(false),
+    ONDEMAND_DASH(false),
+    HLS(false),
+    ONDEMAND_HLS(false),
+    WEBM(false),
+    AV1(false),
+    ONDEMAND_DASH_LIVE(false),
+    ONDEMAND_HLS_LIVE(false),
+    WEBRTC(false),
+    RTMP(false),
+    LIVE_CMAF(false),
+    UNKNOWN(false);
+
+    companion object {
+        fun of(string: String?): VideoQuality = when (string?.lowercase()) {
+            "tiny",
+            "mobile" -> Q144P
+
+            "lowest" -> Q240P
+            "low" -> Q360P
+            "sd",
+            "medium" -> Q480P
+
+            "hd",
+            "high" -> Q720P
+
+            "full",
+            "full_hd",
+            "fullhd" -> Q1080P
+
+            "quad",
+            "quad_hd",
+            "quadhd" -> Q1440P
+
+            "ultra",
+            "ultra_hd",
+            "ultrahd" -> Q2160P
+
+            "mp4" -> MP4
+            "live_dash",
+            "live_playback_dash",
+            "dash_uni",
+            "dash" -> DASH
+
+            "dash_sep" -> DASH_SEP
+            "ondemand_dash" -> ONDEMAND_DASH
+            "live_hls",
+            "live_playback_hls",
+            "live_ondemand_hls",
+            "hls" -> HLS
+
+            "ondemand_hls" -> ONDEMAND_HLS
+            "webm" -> WEBM
+            "av1" -> AV1
+            "ondemand_dash_live" -> ONDEMAND_DASH_LIVE
+            "ondemand_hls_live" -> ONDEMAND_HLS_LIVE
+            "webrtc" -> WEBRTC
+            "rtmp" -> RTMP
+            "live_cmaf" -> LIVE_CMAF
+
+            else -> UNKNOWN
+        }
+    }
+}

@@ -36,11 +36,21 @@ internal data class ContentResponse(
 
 private val playerUrlsComparator = object : Comparator<PlayerUrl> {
     private val sortedQualities =
-        listOf("tiny", "lowest", "low", "hls", "medium", "high", "quad_hd", "full_hd")
+        listOf(
+            VideoQuality.Q144P,
+            VideoQuality.Q240P,
+            VideoQuality.Q360P,
+            VideoQuality.Q480P,
+            VideoQuality.Q720P,
+            VideoQuality.Q1080P,
+            VideoQuality.Q1440P,
+            VideoQuality.Q2160P,
+            VideoQuality.Q4320P
+        )
             .reversed()
 
     override fun compare(a: PlayerUrl, b: PlayerUrl): Int =
-        sortedQualities.indexOf(a.type).compareTo(sortedQualities.indexOf(b.type))
+        sortedQualities.indexOf(a.quality).compareTo(sortedQualities.indexOf(b.quality))
 }
 
 internal fun ContentResponse.mapToContentOrNull(): Content? {
@@ -49,6 +59,7 @@ internal fun ContentResponse.mapToContentOrNull(): Content? {
             vid = vid ?: return null,
             title = title.orEmpty(),
             playerUrls = playerUrls?.mapNotNull { it.mapToPlayerUrlOrNull() }.orEmpty()
+                .filter { it.quality.used }
                 .sortedWith(playerUrlsComparator)
                 .ifEmpty { return null },
             previewUrl = preview ?: defaultPreview ?: return null,
@@ -92,7 +103,7 @@ internal fun ContentResponse.mapToContentOrNull(): Content? {
 }
 
 private fun ContentResponse.PlayerUrl.mapToPlayerUrlOrNull(): PlayerUrl? {
-    return PlayerUrl(type ?: return null, url ?: return null)
+    return PlayerUrl(VideoQuality.of(type), url ?: return null)
 }
 
 val linkColor = Color(241, 95, 44)
