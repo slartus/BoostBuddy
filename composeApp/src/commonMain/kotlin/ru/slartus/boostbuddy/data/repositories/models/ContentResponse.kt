@@ -37,6 +37,7 @@ internal data class ContentResponse(
 private val playerUrlsComparator = object : Comparator<PlayerUrl> {
     private val sortedQualities =
         listOf(
+            VideoQuality.HLS,
             VideoQuality.Q144P,
             VideoQuality.Q240P,
             VideoQuality.Q360P,

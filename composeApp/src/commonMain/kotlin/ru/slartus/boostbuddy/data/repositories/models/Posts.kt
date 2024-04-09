@@ -78,6 +78,7 @@ data class PostDataTextContent(
 }
 
 @Serializable
+@Immutable
 data class PlayerUrl(
     val quality: VideoQuality,
     val url: String
@@ -98,12 +99,10 @@ enum class VideoQuality(val used: Boolean) {
     DASH(false),
     DASH_SEP(false),
     ONDEMAND_DASH(false),
-    HLS(false),
-    ONDEMAND_HLS(false),
+    HLS(true),
     WEBM(false),
     AV1(false),
     ONDEMAND_DASH_LIVE(false),
-    ONDEMAND_HLS_LIVE(false),
     WEBRTC(false),
     RTMP(false),
     LIVE_CMAF(false),
@@ -145,13 +144,12 @@ enum class VideoQuality(val used: Boolean) {
             "live_hls",
             "live_playback_hls",
             "live_ondemand_hls",
+            "ondemand_hls_live",
+            "ondemand_hls",
             "hls" -> HLS
-
-            "ondemand_hls" -> ONDEMAND_HLS
             "webm" -> WEBM
             "av1" -> AV1
             "ondemand_dash_live" -> ONDEMAND_DASH_LIVE
-            "ondemand_hls_live" -> ONDEMAND_HLS_LIVE
             "webrtc" -> WEBRTC
             "rtmp" -> RTMP
             "live_cmaf" -> LIVE_CMAF

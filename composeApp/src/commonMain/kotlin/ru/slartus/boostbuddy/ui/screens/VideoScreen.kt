@@ -5,11 +5,8 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -24,9 +21,6 @@ import ru.slartus.boostbuddy.ui.widgets.VideoPlayer
 fun VideoScreen(component: VideoComponent) {
     val state by component.viewStates.subscribeAsState()
 
-    val playerUrl by remember(state.playerUrl) {
-        mutableStateOf(state.playerUrl.url)
-    }
     KeepScreenOnEffect()
     HideSystemBarsEffect()
 
@@ -34,7 +28,7 @@ fun VideoScreen(component: VideoComponent) {
         state.position?.let { position ->
             VideoPlayer(
                 vid = state.postData.vid,
-                url = playerUrl,
+                playerUrl = state.playerUrl,
                 title = state.postData.title,
                 position = position,
                 onVideoStateChange = { state -> component.onVideoStateChanged(state) },

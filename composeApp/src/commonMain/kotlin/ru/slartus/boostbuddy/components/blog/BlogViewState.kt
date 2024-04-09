@@ -39,16 +39,14 @@ val VideoQuality.text
         VideoQuality.Q1440P -> "1440p"
         VideoQuality.Q2160P -> "2160p"
         VideoQuality.Q4320P -> "4320p"
-        VideoQuality.HLS -> "hls"
+        VideoQuality.HLS -> "HTTP Live Streaming"
         VideoQuality.MP4,
         VideoQuality.DASH,
         VideoQuality.DASH_SEP,
         VideoQuality.ONDEMAND_DASH,
-        VideoQuality.ONDEMAND_HLS,
         VideoQuality.WEBM,
         VideoQuality.AV1,
         VideoQuality.ONDEMAND_DASH_LIVE,
-        VideoQuality.ONDEMAND_HLS_LIVE,
         VideoQuality.WEBRTC,
         VideoQuality.UNKNOWN,
         VideoQuality.LIVE_CMAF,

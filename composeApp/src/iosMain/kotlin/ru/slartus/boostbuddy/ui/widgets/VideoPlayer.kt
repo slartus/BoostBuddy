@@ -17,12 +17,13 @@ import platform.QuartzCore.CATransaction
 import platform.QuartzCore.kCATransactionDisableActions
 import platform.UIKit.UIView
 import ru.slartus.boostbuddy.components.video.VideoState
+import ru.slartus.boostbuddy.data.repositories.models.PlayerUrl
 
 @OptIn(ExperimentalForeignApi::class)
 @Composable
 actual fun VideoPlayer(
     vid: String,
-    url: String,
+    playerUrl: PlayerUrl,
     title: String,
     position: Long,
     onVideoStateChange: (VideoState) -> Unit,
@@ -30,7 +31,7 @@ actual fun VideoPlayer(
     onStopClick: () -> Unit
 ) {
 
-    val player = remember { AVPlayer(uRL = NSURL.URLWithString(url)!!) }
+    val player = remember { AVPlayer(uRL = NSURL.URLWithString(playerUrl.url)!!) }
     val playerLayer = remember { AVPlayerLayer() }
     val avPlayerViewController = remember { AVPlayerViewController() }
     avPlayerViewController.player = player
