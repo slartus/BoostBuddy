@@ -4,6 +4,7 @@ import android.graphics.Color
 import android.view.KeyEvent
 import android.view.ViewGroup
 import android.widget.FrameLayout
+import androidx.annotation.OptIn
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -52,7 +53,11 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
+import androidx.media3.datasource.DataSource
+import androidx.media3.datasource.DefaultHttpDataSource
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.dash.DashMediaSource
+import androidx.media3.exoplayer.hls.HlsMediaSource
 import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
 import kotlinx.coroutines.Job
@@ -60,6 +65,8 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import ru.slartus.boostbuddy.components.video.VideoState
+import ru.slartus.boostbuddy.data.repositories.models.PlayerUrl
+import ru.slartus.boostbuddy.data.repositories.models.VideoQuality
 import ru.slartus.boostbuddy.ui.common.noRippleClickable
 import ru.slartus.boostbuddy.ui.theme.LightColorScheme
 import kotlin.time.Duration.Companion.seconds
@@ -70,7 +77,7 @@ private val HIDE_CONTROLLER_DELAY = 5.seconds
 @Composable
 actual fun VideoPlayer(
     vid: String,
-    url: String,
+    playerUrl: PlayerUrl,
     title: String,
     position: Long,
     onVideoStateChange: (VideoState) -> Unit,
@@ -99,16 +106,7 @@ actual fun VideoPlayer(
 
     DisposableEffect(exoPlayer) {
         exoPlayer.apply {
-            setMediaItems(
-                listOf(
-                    MediaItem.Builder()
-                        .setUri(url)
-                        .setMediaId(vid)
-                        .setTag(url)
-                        .setMediaMetadata(MediaMetadata.Builder().setDisplayTitle(title).build())
-                        .build()
-                )
-            )
+            setMediaSource(mediaId = vid, title = title, playerUrl = playerUrl)
             seekTo(position)
             playWhenReady = true
             prepare()
@@ -233,7 +231,9 @@ actual fun VideoPlayer(
                 )
 
                 PlayerControllerView(
-                    modifier = Modifier.align(Alignment.BottomCenter).padding(16.dp),
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(16.dp),
                     title = title,
                     playingPosition = playingPosition,
                     playingDuration = exoPlayer.contentDuration,
@@ -252,6 +252,35 @@ actual fun VideoPlayer(
     }
     LaunchedEffect(Unit) {
         focusRequester.requestFocus()
+    }
+}
+
+@OptIn(UnstableApi::class)
+private fun ExoPlayer.setMediaSource(mediaId: String, title: String, playerUrl: PlayerUrl) {
+    when (playerUrl.quality) {
+        VideoQuality.HLS -> {
+            val dataSourceFactory: DataSource.Factory = DefaultHttpDataSource.Factory()
+            val hlsMediaSource = HlsMediaSource.Factory(dataSourceFactory)
+                .createMediaSource(MediaItem.fromUri(playerUrl.url))
+            setMediaSource(hlsMediaSource)
+        }
+
+        VideoQuality.DASH -> {
+            val dataSourceFactory: DataSource.Factory = DefaultHttpDataSource.Factory()
+            val dashMediaSource = DashMediaSource.Factory(dataSourceFactory).createMediaSource(MediaItem.fromUri(playerUrl.url))
+            setMediaSource(dashMediaSource)
+        }
+
+        else -> setMediaItem(
+            MediaItem.Builder()
+                .setUri(playerUrl.url)
+                .setMediaId(mediaId)
+                .setTag(playerUrl.url)
+                .setMediaMetadata(
+                    MediaMetadata.Builder().setDisplayTitle(title).build()
+                )
+                .build()
+        )
     }
 }
 
@@ -433,6 +462,7 @@ private fun rememberPlayer(
                             ExoPlayer.STATE_ENDED -> onVideoStateChange(VideoState.Ended)
                         }
                     }
+
                 })
             }
     }

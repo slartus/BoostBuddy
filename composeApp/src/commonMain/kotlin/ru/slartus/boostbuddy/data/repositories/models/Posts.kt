@@ -78,7 +78,82 @@ data class PostDataTextContent(
 }
 
 @Serializable
+@Immutable
 data class PlayerUrl(
-    val type: String,
+    val quality: VideoQuality,
     val url: String
 )
+
+enum class VideoQuality(val used: Boolean) {
+    Q144P(true),
+    Q240P(true),
+    Q360P(true),
+    Q480P(true),
+    Q720P(true),
+    Q1080P(true),
+    Q1440P(true),
+    Q2160P(true),
+    Q4320P(true),
+
+    DASH(true),
+    HLS(true),
+    MP4(false),
+    WEBM(false),
+    AV1(false),
+    WEBRTC(false),
+    RTMP(false),
+    LIVE_CMAF(false),
+    UNKNOWN(false);
+
+    companion object {
+        fun of(string: String?): VideoQuality = when (string?.lowercase()) {
+            "tiny",
+            "mobile" -> Q144P
+
+            "lowest" -> Q240P
+            "low" -> Q360P
+            "sd",
+            "medium" -> Q480P
+
+            "hd",
+            "high" -> Q720P
+
+            "full",
+            "full_hd",
+            "fullhd" -> Q1080P
+
+            "quad",
+            "quad_hd",
+            "quadhd" -> Q1440P
+
+            "ultra",
+            "ultra_hd",
+            "ultrahd" -> Q2160P
+
+            "mp4" -> MP4
+
+            "live_dash",
+            "live_playback_dash",
+            "dash_uni",
+            "dash_sep",
+            "ondemand_dash",
+            "ondemand_dash_live",
+            "dash" -> DASH
+
+            "live_hls",
+            "live_playback_hls",
+            "live_ondemand_hls",
+            "ondemand_hls_live",
+            "ondemand_hls",
+            "hls" -> HLS
+
+            "webm" -> WEBM
+            "av1" -> AV1
+            "webrtc" -> WEBRTC
+            "rtmp" -> RTMP
+            "live_cmaf" -> LIVE_CMAF
+
+            else -> UNKNOWN
+        }
+    }
+}

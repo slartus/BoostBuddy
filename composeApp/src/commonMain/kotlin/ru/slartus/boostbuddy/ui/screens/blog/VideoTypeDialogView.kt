@@ -5,6 +5,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
@@ -12,6 +14,7 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import ru.slartus.boostbuddy.components.blog.text
 import ru.slartus.boostbuddy.data.repositories.models.Content
 import ru.slartus.boostbuddy.data.repositories.models.PlayerUrl
 
@@ -31,13 +34,13 @@ internal fun VideoTypeDialogView(
         onDismissRequest = { onDismissClicked() },
         sheetState = sheetState
     ) {
-        Column {
+        Column(Modifier.verticalScroll(rememberScrollState())) {
             postData.playerUrls.filter { it.url.isNotEmpty() }.forEach {
                 Text(
                     modifier = Modifier.fillMaxWidth()
                         .clickable { onItemClicked(it) }
                         .padding(16.dp),
-                    text = it.type
+                    text = it.quality.text
                 )
             }
         }
