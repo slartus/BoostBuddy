@@ -1,7 +1,7 @@
 [versions]
 
 kotlin = "1.9.22"
-compose = "1.6.0"
+compose = "1.6.0" # https://github.com/JetBrains/compose-multiplatform
 agp = "8.2.2"
 androidx-appcompat = "1.6.1"
 androidx-activityCompose = "1.8.2"
@@ -9,19 +9,16 @@ compose-uitooling = "1.6.3"
 decompose = "2.2.2-compose-experimental" # https://github.com/arkivanov/Decompose
 essently = "1.3.0" # https://github.com/arkivanov/Essenty
 composeImageLoader = "1.7.1" # https://github.com/qdsfdhvh/compose-imageloader
-napier = "2.7.1"
+napier = "2.7.1" # https://github.com/AAkira/Napier
 buildConfig = "4.1.1"
 kotlinx-coroutines = "1.8.0"
 ktor = "2.3.9"
 kotlinx-serialization = "1.6.2"
 kotlinx-datetime = "0.6.0-RC.2" # https://github.com/Kotlin/kotlinx-datetime
-multiplatformSettings = "1.1.1"
-sqlDelight = "2.0.1"
+multiplatformSettings = "1.1.1" # https://github.com/russhwolf/multiplatform-settings
 kodein = "7.20.2" # https://github.com/kosi-libs/Kodein
 exoplayer = "1.3.0" # https://github.com/androidx/media
 collections-immutable = "0.3.7" # https://github.com/Kotlin/kotlinx.collections.immutable/releases
-firebase-bom = "32.7.4" # https://firebase.google.com/support/release-notes/android
-google-services = "4.4.1"
 android-splashscreen = "1.0.1"
 kotlinx-io = "0.3.1" # https://github.com/Kotlin/kotlinx-io
 
@@ -37,15 +34,10 @@ essently-lifecycle = { module = "com.arkivanov.essenty:lifecycle", version.ref =
 composeImageLoader = { module = "io.github.qdsfdhvh:image-loader", version.ref = "composeImageLoader" }
 android-splashscreen = { module = "androidx.core:core-splashscreen", version.ref = "android-splashscreen" }
 
-firebase-bom = { module = "com.google.firebase:firebase-bom", version.ref = "firebase-bom" }
-firebase-crashlytics = { module = "com.google.firebase:firebase-crashlytics-ktx" }
-firebase-analytics = { module = "com.google.firebase:firebase-analytics" }
-
 collections-immutable = { module = "org.jetbrains.kotlinx:kotlinx-collections-immutable", version.ref = "collections-immutable" }
 
 kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlinx-coroutines" }
 kotlinx-coroutines-android = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-android", version.ref = "kotlinx-coroutines" }
-kotlinx-coroutines-swing = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-swing", version.ref = "kotlinx-coroutines" }
 kotlinx-io-core = { module = "org.jetbrains.kotlinx:kotlinx-io-core", version.ref = "kotlinx-io" }
 ktor-core = { module = "io.ktor:ktor-client-core", version.ref = "ktor" }
 ktor-client-darwin = { module = "io.ktor:ktor-client-darwin", version.ref = "ktor" }
@@ -57,10 +49,6 @@ ktor-logging = { module = "io.ktor:ktor-client-logging", version.ref = "ktor" }
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinx-serialization" }
 kotlinx-datetime = { module = "org.jetbrains.kotlinx:kotlinx-datetime", version.ref = "kotlinx-datetime" }
 multiplatformSettings = { module = "com.russhwolf:multiplatform-settings", version.ref = "multiplatformSettings" }
-sqlDelight-driver-sqlite = { module = "app.cash.sqldelight:sqlite-driver", version.ref = "sqlDelight" }
-sqlDelight-driver-android = { module = "app.cash.sqldelight:android-driver", version.ref = "sqlDelight" }
-sqlDelight-driver-native = { module = "app.cash.sqldelight:native-driver", version.ref = "sqlDelight" }
-sqlDelight-driver-js = { module = "app.cash.sqldelight:web-worker-driver", version.ref = "sqlDelight" }
 
 exoplayer-core = { module = "androidx.media3:media3-exoplayer", version.ref = "exoplayer" }
 exoplayer-dash = { module = "androidx.media3:media3-exoplayer-dash", version.ref = "exoplayer" }
@@ -81,5 +69,3 @@ compose = { id = "org.jetbrains.compose", version.ref = "compose" }
 android-application = { id = "com.android.application", version.ref = "agp" }
 buildConfig = { id = "com.github.gmazzo.buildconfig", version.ref = "buildConfig" }
 kotlinx-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
-sqlDelight = { id = "app.cash.sqldelight", version.ref = "sqlDelight" }
-google-services = { id = "com.google.gms.google-services", version.ref = "google-services" }
