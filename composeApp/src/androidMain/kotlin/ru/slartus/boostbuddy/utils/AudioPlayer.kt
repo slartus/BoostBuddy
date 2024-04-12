@@ -4,6 +4,7 @@ import android.media.AudioAttributes
 import android.media.AudioManager
 import android.media.MediaPlayer
 import android.net.Uri
+import android.os.PowerManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
@@ -26,6 +27,7 @@ actual class AudioPlayer actual constructor(
                 .setLegacyStreamType(AudioManager.STREAM_MUSIC)
                 .build()
         )
+        setWakeMode(platformConfiguration.androidContext, PowerManager.PARTIAL_WAKE_LOCK)
         setOnCompletionListener {
             listener.onStateChanged(AudioPlayerState.Completed)
         }
