@@ -42,19 +42,17 @@ internal fun ContentView(
     postData: Content,
     onVideoClick: (okVideoData: Content.OkVideo) -> Unit
 ) {
-    FocusableBox {
-        when (postData) {
-            is Content.Link,
-            is Content.Text,
-            is Content.Smile,
-            Content.Unknown -> PostDataUnknownView()
+    when (postData) {
+        is Content.Link,
+        is Content.Text,
+        is Content.Smile,
+        Content.Unknown -> FocusableBox { PostDataUnknownView() }
 
-            is Content.OkVideo -> PostDataOkVideoView(postData, onVideoClick)
-            is Content.Image -> PostDataImageView(postData)
-            is Content.Video -> PostDataVideoView(postData)
-            is Content.AudioFile -> PostDataAudioFileView(signedQuery, postData)
-            is Content.AnnotatedText -> AnnotatedTextView(postData)
-        }
+        is Content.OkVideo -> FocusableBox { PostDataOkVideoView(postData, onVideoClick) }
+        is Content.Image -> FocusableBox { PostDataImageView(postData) }
+        is Content.Video -> FocusableBox { PostDataVideoView(postData) }
+        is Content.AudioFile -> PostDataAudioFileView(signedQuery, postData)
+        is Content.AnnotatedText -> FocusableBox { AnnotatedTextView(postData) }
     }
 }
 

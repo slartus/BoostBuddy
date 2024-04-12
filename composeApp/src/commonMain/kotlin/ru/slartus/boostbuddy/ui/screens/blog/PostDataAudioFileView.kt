@@ -75,7 +75,7 @@ internal fun PostDataAudioFileView(
             )
             .padding(12.dp)
     ) {
-        Row(verticalAlignment = CenterVertically) {
+        FocusableRow(verticalAlignment = CenterVertically) {
             Icon(
                 modifier = Modifier.size(28.dp),
                 tint = linkColor,
