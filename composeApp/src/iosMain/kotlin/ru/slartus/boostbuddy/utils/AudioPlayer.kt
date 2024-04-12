@@ -1,6 +1,12 @@
 package ru.slartus.boostbuddy.utils
 
-actual class AudioPlayer actual constructor(platformConfiguration: PlatformConfiguration){
+import kotlinx.coroutines.CoroutineScope
+
+actual class AudioPlayer actual constructor(
+    platformConfiguration: PlatformConfiguration,
+    coroutineScope: CoroutineScope,
+    listener: AudioPlayerStateListener
+){
     actual fun play(url: String) {
 
     }
@@ -15,5 +21,8 @@ actual class AudioPlayer actual constructor(platformConfiguration: PlatformConfi
 
     actual fun release() {
 
+    }
+
+    actual fun seekTo(position: Int) {
     }
 }

@@ -94,6 +94,7 @@ internal fun ContentResponse.mapToContentOrNull(): Content? {
         "audio_file" -> Content.AudioFile(
             title = title.orEmpty(),
             url = url ?: return null,
+            duration = duration ?: return null,
         )
 
         "smile" -> Content.Smile(

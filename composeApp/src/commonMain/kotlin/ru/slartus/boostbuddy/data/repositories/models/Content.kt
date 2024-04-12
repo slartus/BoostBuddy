@@ -55,7 +55,8 @@ sealed class Content {
 
     data class AudioFile(
         val title: String,
-        val url: String
+        val url: String,
+        val duration: Long
     ) : Content()
 
     data class Smile(
