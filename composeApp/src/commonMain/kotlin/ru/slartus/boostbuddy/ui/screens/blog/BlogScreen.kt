@@ -184,7 +184,7 @@ private fun PostView(
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             post.data.forEach { postData ->
-                ContentView(postData, onVideoClick)
+                ContentView(post.signedQuery, postData, onVideoClick)
             }
         }
         VerticalSpacer(8.dp)

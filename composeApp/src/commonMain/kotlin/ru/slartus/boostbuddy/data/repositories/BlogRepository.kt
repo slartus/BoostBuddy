@@ -43,6 +43,7 @@ private fun PostResponse.Post.mapToPostOrNull(): Post? {
     val post = Post(
         id = id ?: return null,
         createdAt = createdAt ?: return null,
+        signedQuery = signedQuery.orEmpty(),
         intId = intId ?: return null,
         title = title ?: return null,
         data = data?.mapNotNull { it.mapToContentOrNull() }.orEmpty().mergeText(),

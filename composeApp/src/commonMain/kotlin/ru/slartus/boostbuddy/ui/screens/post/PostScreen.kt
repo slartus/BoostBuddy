@@ -170,7 +170,7 @@ private fun CommentView(
             )
             VerticalSpacer(4.dp)
             comment.content.forEach { postData ->
-                ContentView(postData, {})
+                ContentView("", postData, {})
             }
 
             Text(

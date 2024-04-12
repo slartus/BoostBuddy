@@ -6,6 +6,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -16,6 +17,7 @@ import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.InlineTextContent
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Audiotrack
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -24,6 +26,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.Alignment.Companion.CenterVertically
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.Placeholder
@@ -32,12 +35,20 @@ import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.seiko.imageloader.rememberImagePainter
+import io.github.aakira.napier.Napier
 import ru.slartus.boostbuddy.data.repositories.models.Content
+import ru.slartus.boostbuddy.data.repositories.models.linkColor
+import ru.slartus.boostbuddy.ui.common.HorizontalSpacer
 import ru.slartus.boostbuddy.ui.common.LocalPlatformConfiguration
 import ru.slartus.boostbuddy.ui.theme.LightColorScheme
+import ru.slartus.boostbuddy.utils.rememberAudioPlayer
 
 @Composable
-fun ContentView(postData: Content, onVideoClick: (okVideoData: Content.OkVideo) -> Unit) {
+internal fun ContentView(
+    signedQuery: String,
+    postData: Content,
+    onVideoClick: (okVideoData: Content.OkVideo) -> Unit
+) {
     FocusableBox {
         when (postData) {
             is Content.Link,
@@ -48,7 +59,7 @@ fun ContentView(postData: Content, onVideoClick: (okVideoData: Content.OkVideo) 
             is Content.OkVideo -> PostDataOkVideoView(postData, onVideoClick)
             is Content.Image -> PostDataImageView(postData)
             is Content.Video -> PostDataVideoView(postData)
-            is Content.AudioFile -> PostDataAudioFileView(postData)
+            is Content.AudioFile -> PostDataAudioFileView(signedQuery, postData)
             is Content.AnnotatedText -> AnnotatedTextView(postData)
         }
     }
@@ -109,17 +120,34 @@ private fun AnnotatedTextView(postData: Content.AnnotatedText) {
 
 @Composable
 private fun PostDataAudioFileView(
+    signedQuery: String,
     postData: Content.AudioFile
 ) {
-    val platformConfiguration = LocalPlatformConfiguration.current
-    Text(
+    val audioPlayer = rememberAudioPlayer()
+    Row(
         modifier = Modifier.fillMaxWidth().clickable {
-            platformConfiguration.openBrowser(postData.url)
+            runCatching {
+                audioPlayer.play(postData.url + signedQuery)
+            }.onFailure {
+                Napier.e("audioPlayer.play", it)
+            }
         },
-        text = postData.title,
-        color = MaterialTheme.colorScheme.primary,
-        style = MaterialTheme.typography.labelMedium
-    )
+        verticalAlignment = CenterVertically
+    ) {
+        Icon(
+            modifier = Modifier.size(32.dp),
+            tint = linkColor,
+            imageVector = Icons.Filled.Audiotrack,
+            contentDescription = "Play video icon"
+        )
+        HorizontalSpacer(4.dp)
+        Text(
+            modifier = Modifier.fillMaxWidth(),
+            text = postData.title,
+            color = MaterialTheme.colorScheme.primary,
+            style = MaterialTheme.typography.labelMedium
+        )
+    }
 }
 
 @Composable

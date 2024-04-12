@@ -22,6 +22,7 @@ data class Posts(
 data class Post(
     val id: String,
     val createdAt: Long,
+    val signedQuery: String,
     val intId: Long,
     val title: String,
     val data: List<Content>,

@@ -16,6 +16,7 @@ internal data class ContentResponse(
     val vid: String? = null,
     val title: String? = null,
     val type: String? = null,//image, text, link, ok_video
+    val fileType: String? = null,// MP3
     val url: String? = null,
     val preview: String? = null,
     val defaultPreview: String? = null,
@@ -25,7 +26,9 @@ internal data class ContentResponse(
     val name: String? = null,
     val largeUrl: String? = null,
     val mediumUrl: String? = null,
-    val smallUrl: String? = null
+    val smallUrl: String? = null,
+    val duration: Long? = null,
+    val size: Long? = null
 ) {
     @Serializable
     data class PlayerUrl(
