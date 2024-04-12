@@ -16,10 +16,14 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.DarkMode
+import androidx.compose.material.icons.filled.Feedback
 import androidx.compose.material.icons.filled.LightMode
-import androidx.compose.material.icons.filled.Logout
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -31,6 +35,9 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment.Companion.Center
 import androidx.compose.ui.Alignment.Companion.CenterVertically
 import androidx.compose.ui.Modifier
@@ -42,12 +49,12 @@ import ru.slartus.boostbuddy.components.subscribes.SubscribesComponent
 import ru.slartus.boostbuddy.components.subscribes.SubscribesViewState
 import ru.slartus.boostbuddy.data.repositories.Blog
 import ru.slartus.boostbuddy.data.repositories.SubscribeItem
+import ru.slartus.boostbuddy.ui.common.QrDialog
 import ru.slartus.boostbuddy.ui.theme.LocalThemeIsDark
 import ru.slartus.boostbuddy.ui.widgets.EmptyView
 import ru.slartus.boostbuddy.ui.widgets.ErrorView
 import ru.slartus.boostbuddy.ui.widgets.LoaderView
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SubscribesScreen(component: SubscribesComponent) {
     val state by component.viewStates.subscribeAsState()
@@ -55,35 +62,10 @@ fun SubscribesScreen(component: SubscribesComponent) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Подписки") },
-                actions = {
-                    IconButton(onClick = { component.onRefreshClicked() }) {
-                        Icon(
-                            imageVector = Icons.Filled.Refresh,
-                            contentDescription = "Обновить"
-                        )
-                    }
-                    IconButton(onClick = { component.onSetDarkModeClicked(!isDarkState) }) {
-                        if (!isDarkState) {
-                            Icon(
-                                imageVector = Icons.Filled.DarkMode,
-                                contentDescription = "Тёмная тема"
-                            )
-                        } else {
-                            Icon(
-                                imageVector = Icons.Filled.LightMode,
-                                contentDescription = "Светлая тема"
-                            )
-                        }
-                    }
-
-                    IconButton(onClick = { component.onLogoutClicked() }) {
-                        Icon(
-                            imageVector = Icons.Filled.Logout,
-                            contentDescription = "Logout"
-                        )
-                    }
-                },
+                onRefreshClick = { component.onRefreshClicked() },
+                onChangeDarkModeClick = { component.onSetDarkModeClicked(!isDarkState) },
+                onLogoutClick = { component.onLogoutClicked() },
+                onFeedbackClick = { component.onFeedbackClicked() },
             )
         },
     ) { innerPadding ->
@@ -108,14 +90,94 @@ fun SubscribesScreen(component: SubscribesComponent) {
         }
     }
     val dialogSlot by component.dialogSlot.subscribeAsState()
-    dialogSlot.child?.instance?.also { logoutComponent ->
-        LogoutDialogView(
-            modifier = Modifier,
-            onDismissClicked = { logoutComponent.onDismissed() },
-            onAcceptClicked = { logoutComponent.onAcceptClicked() },
-            onCancelClicked = { logoutComponent.onCancelClicked() },
-        )
+    dialogSlot.child?.instance?.also { child ->
+        when (child) {
+            is SubscribesComponent.DialogChild.Logout ->
+                LogoutDialogView(
+                    modifier = Modifier,
+                    onDismissClicked = { child.component.onDismissed() },
+                    onAcceptClicked = { child.component.onAcceptClicked() },
+                    onCancelClicked = { child.component.onCancelClicked() },
+                )
+
+            is SubscribesComponent.DialogChild.Qr -> QrDialog(
+                title = "Обсудить на форуме",
+                url = child.url,
+                onDismiss = { component.onDialogDismissed() }
+            )
+        }
     }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun TopAppBar(
+    onRefreshClick: () -> Unit,
+    onChangeDarkModeClick: () -> Unit,
+    onLogoutClick: () -> Unit,
+    onFeedbackClick: () -> Unit
+) {
+    val isDarkState by LocalThemeIsDark.current
+    var showDropDownMenu by remember { mutableStateOf(false) }
+    TopAppBar(
+        title = { Text("Подписки") },
+        actions = {
+            IconButton(onClick = { onRefreshClick() }) {
+                Icon(
+                    imageVector = Icons.Filled.Refresh,
+                    contentDescription = "Обновить"
+                )
+            }
+            IconButton(onClick = { onChangeDarkModeClick() }) {
+                if (!isDarkState) {
+                    Icon(
+                        imageVector = Icons.Filled.DarkMode,
+                        contentDescription = "Тёмная тема"
+                    )
+                } else {
+                    Icon(
+                        imageVector = Icons.Filled.LightMode,
+                        contentDescription = "Светлая тема"
+                    )
+                }
+            }
+            IconButton(
+                onClick = { showDropDownMenu = true }) {
+                Icon(Icons.Filled.MoreVert, null)
+            }
+
+            DropdownMenu(
+                showDropDownMenu, { showDropDownMenu = false }
+            ) {
+                DropdownMenuItem(
+                    text = { Text(text = "Обсудить на форуме") },
+                    leadingIcon = {
+                        Icon(
+                            imageVector = Icons.Filled.Feedback,
+                            contentDescription = "Feedback"
+                        )
+                    },
+                    onClick = {
+                        showDropDownMenu = false
+                        onFeedbackClick()
+                    }
+                )
+                DropdownMenuItem(
+                    text = { Text(text = "Выйти из аккаунта") },
+                    leadingIcon = {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.Logout,
+                            contentDescription = "Logout"
+                        )
+                    },
+                    onClick = {
+                        showDropDownMenu = false
+                        onLogoutClick()
+                    }
+                )
+            }
+        },
+    )
 }
 
 @Composable

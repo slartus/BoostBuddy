@@ -21,8 +21,10 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
@@ -34,7 +36,9 @@ import androidx.compose.ui.unit.sp
 import com.seiko.imageloader.rememberImagePainter
 import ru.slartus.boostbuddy.data.repositories.models.Content
 import ru.slartus.boostbuddy.ui.common.LocalPlatformConfiguration
+import ru.slartus.boostbuddy.ui.common.QrDialog
 import ru.slartus.boostbuddy.ui.theme.LightColorScheme
+import ru.slartus.boostbuddy.utils.Platform
 
 @Composable
 internal fun ContentView(
@@ -42,6 +46,18 @@ internal fun ContentView(
     postData: Content,
     onVideoClick: (okVideoData: Content.OkVideo) -> Unit
 ) {
+    val platformConfiguration = LocalPlatformConfiguration.current
+    var qrDialogData by remember { mutableStateOf<Pair<String, String>?>(null) }
+    val openUrl: (title: String, url: String) -> Unit = { title, url ->
+        when (platformConfiguration.platform) {
+            Platform.Android,
+            Platform.iOS -> platformConfiguration.openBrowser(url) {
+                qrDialogData = title to url
+            }
+
+            Platform.AndroidTV -> qrDialogData = title to url
+        }
+    }
     when (postData) {
         is Content.Link,
         is Content.Text,
@@ -50,9 +66,15 @@ internal fun ContentView(
 
         is Content.OkVideo -> FocusableBox { PostDataOkVideoView(postData, onVideoClick) }
         is Content.Image -> FocusableBox { PostDataImageView(postData) }
-        is Content.Video -> FocusableBox { PostDataVideoView(postData) }
+        is Content.Video -> FocusableBox { PostDataVideoView(postData, openUrl) }
         is Content.AudioFile -> PostDataAudioFileView(signedQuery, postData)
-        is Content.AnnotatedText -> FocusableBox { AnnotatedTextView(postData) }
+        is Content.AnnotatedText -> FocusableBox { AnnotatedTextView(postData, openUrl) }
+    }
+
+    qrDialogData?.let { data ->
+        QrDialog(data.first, data.second, onDismiss = {
+            qrDialogData = null
+        })
     }
 }
 
@@ -67,14 +89,17 @@ private fun PostDataUnknownView() {
 }
 
 @Composable
-private fun AnnotatedTextView(postData: Content.AnnotatedText) {
-    val platformConfiguration = LocalPlatformConfiguration.current
-
+private fun AnnotatedTextView(
+    postData: Content.AnnotatedText,
+    onUrlClick: (title: String, url: String) -> Unit
+) {
     val layoutResult = remember { mutableStateOf<TextLayoutResult?>(null) }
     val onClick: (Int) -> Unit = { offset ->
-        postData.content.getStringAnnotations(start = offset, end = offset).firstOrNull()?.let {
-            platformConfiguration.openBrowser(it.item)
-        }
+        postData.content.getStringAnnotations(start = offset, end = offset)
+            .firstOrNull()
+            ?.let {
+                onUrlClick(postData.content.substring(42..53), it.item)
+            }
     }
     val pressIndicator = Modifier.pointerInput(onClick) {
         detectTapGestures { pos ->
@@ -111,20 +136,20 @@ private fun AnnotatedTextView(postData: Content.AnnotatedText) {
 
 @Composable
 private fun PostDataVideoView(
-    postData: Content.Video
+    postData: Content.Video,
+    onUrlClick: (title: String, url: String) -> Unit
 ) {
-    val platformConfiguration = LocalPlatformConfiguration.current
     if (postData.previewUrl != null) {
         VideoPreview(
             url = postData.previewUrl,
             onClick = {
-                platformConfiguration.openBrowser(postData.url)
+                onUrlClick("Видео", postData.url)
             }
         )
     } else {
         Text(
             modifier = Modifier.fillMaxWidth().clickable {
-                platformConfiguration.openBrowser(postData.url)
+                onUrlClick("Видео", postData.url)
             },
             text = postData.url,
             color = MaterialTheme.colorScheme.primary,

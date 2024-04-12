@@ -15,7 +15,7 @@ actual open class PlatformConfiguration private constructor() {
         infoValue(CONFIGURATION_KEY)?.startsWith("debug", ignoreCase = true) ?: false
     }
 
-    actual fun openBrowser(url: String) {
+    actual fun openBrowser(url: String, onError: (() -> Unit)?) {
         NSURL.URLWithString(url)?.let {
             UIApplication.sharedApplication().openURL(it)
         }

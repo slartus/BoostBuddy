@@ -60,6 +60,7 @@ kotlin {
             implementation(libs.kodein.conf)
             implementation(libs.collections.immutable)
             implementation(libs.napier)
+            implementation(libs.qrose)
         }
 
         commonTest.dependencies {

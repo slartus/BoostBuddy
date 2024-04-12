@@ -15,15 +15,15 @@ actual class PlatformConfiguration(var androidContext: Context, actual val platf
     actual val appVersion: String = BuildConfig.VERSION_NAME
     actual val isDebug: Boolean = BuildConfig.DEBUG
 
-    actual fun openBrowser(url: String) {
+    actual fun openBrowser(url: String, onError: (() -> Unit)?) {
         val browserIntent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
         browserIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        androidContext.tryStartActivity(browserIntent)
+        androidContext.tryStartActivity(browserIntent, onError)
     }
 
     actual fun installApp(path: Path) {
         val intent = Intent(Intent.ACTION_VIEW).apply {
-            setData(uriFromFile(androidContext, File(path.toString())))
+            data = uriFromFile(androidContext, File(path.toString()))
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }
@@ -38,18 +38,22 @@ actual class PlatformConfiguration(var androidContext: Context, actual val platf
             )
         }
 
-        private fun Context.tryStartActivity(intent: Intent) {
+        private fun Context.tryStartActivity(intent: Intent, onError: (() -> Unit)?) {
             runCatching {
                 startActivity(intent)
             }.onFailure { error ->
-                when (error) {
-                    is ActivityNotFoundException -> Toast.makeText(
-                        this,
-                        "Не найдено приложения для запуска",
-                        Toast.LENGTH_LONG
-                    ).show()
+                if (onError != null) {
+                    onError.invoke()
+                } else {
+                    when (error) {
+                        is ActivityNotFoundException -> Toast.makeText(
+                            this,
+                            "Не найдено приложения для запуска",
+                            Toast.LENGTH_LONG
+                        ).show()
 
-                    else -> throw error
+                        else -> throw error
+                    }
                 }
             }
         }
