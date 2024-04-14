@@ -6,6 +6,7 @@ import io.ktor.client.request.get
 import io.ktor.client.request.header
 import io.ktor.client.request.parameter
 import io.ktor.http.HttpHeaders
+import kotlinx.datetime.Clock
 import ru.slartus.boostbuddy.data.repositories.models.Offset
 import ru.slartus.boostbuddy.data.repositories.models.Post
 import ru.slartus.boostbuddy.data.repositories.models.PostCount
@@ -19,17 +20,36 @@ import ru.slartus.boostbuddy.utils.fetchOrError
 internal class BlogRepository(
     private val httpClient: HttpClient,
 ) {
-    suspend fun getData(accessToken: String, url: String, offset: Offset?): Result<Posts> =
+    suspend fun getData(
+        accessToken: String,
+        url: String,
+        limit: Int = 20,
+        offset: Offset? = null,
+        commentsLimit: Int = 0,
+        replyLimit: Int = 0,
+        isOnlyAllowed: Boolean = false,
+        fromDate: Clock? = null,
+        toDate: Clock? = null,
+        tagsIds: List<Int>? = null
+    ): Result<Posts> =
         fetchOrError {
             val response: PostResponse =
                 httpClient.get("https://api.boosty.to/v1/blog/$url/post/") {
                     header(HttpHeaders.Authorization, "Bearer $accessToken")
-                    parameter("limit", "20")
-                    offset?.let {
+                    parameter("limit", limit)
+                    parameter("comments_limit", commentsLimit)
+                    parameter("reply_limit", replyLimit)
+                    if (offset != null)
                         parameter("offset", "${offset.createdAt}:${offset.postId}")
+                    if (isOnlyAllowed)
+                        parameter("is_only_allowed", isOnlyAllowed)
+                    if (fromDate != null)
+                        parameter("from_ts", fromDate.now().epochSeconds)
+                    if (toDate != null)
+                        parameter("to_ts", toDate.now().epochSeconds)
+                    if (!tagsIds.isNullOrEmpty()) {
+                        parameter("tags_ids", tagsIds.joinToString(","))
                     }
-                    parameter("comments_limit", "0")
-                    parameter("reply_limit", "0")
                 }.body()
 
             Posts(
