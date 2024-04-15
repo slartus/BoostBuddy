@@ -213,7 +213,7 @@ fun AuthScreen(component: AuthComponent) {
 private fun InfoDialogView() {
     var isDialogOpen by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) {
-        delay(1000)
+        delay(2000)
         isDialogOpen = true
     }
     if (isDialogOpen) {

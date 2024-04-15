@@ -53,7 +53,7 @@ internal fun PostScreen(component: PostComponent) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { },
+                title = { Text("Комментарии") },
                 navigationIcon = {
                     IconButton(onClick = {
                         component.onBackClicked()
@@ -83,18 +83,34 @@ internal fun PostScreen(component: PostComponent) {
                 PostViewState.ProgressState.Loading -> LoaderView()
 
                 is PostViewState.ProgressState.Loaded ->
-                    CommentsView(
-                        comments = state.comments,
-                        hasMore = state.hasMoreComments,
-                        onMoreClick = {
-                            component.onMoreCommentsClicked()
-                        },
-                        onMoreRepliesClick = {
-                            component.onMoreRepliesClicked(it)
-                        }
-                    )
+                    if (state.comments.isEmpty())
+                        EmptyCommentsView()
+                    else
+                        CommentsView(
+                            comments = state.comments,
+                            hasMore = state.hasMoreComments,
+                            onMoreClick = {
+                                component.onMoreCommentsClicked()
+                            },
+                            onMoreRepliesClick = {
+                                component.onMoreRepliesClicked(it)
+                            }
+                        )
             }
         }
+    }
+}
+
+@Composable
+private fun EmptyCommentsView() {
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = "Список комментариев пуст",
+            style = MaterialTheme.typography.bodyMedium
+        )
     }
 }
 
@@ -170,7 +186,7 @@ private fun CommentView(
             )
             VerticalSpacer(4.dp)
             comment.content.forEach { postData ->
-                ContentView(postData, {})
+                ContentView("", postData, {})
             }
 
             Text(

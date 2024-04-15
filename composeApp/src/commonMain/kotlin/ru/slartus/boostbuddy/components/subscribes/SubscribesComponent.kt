@@ -7,6 +7,7 @@ import com.arkivanov.decompose.router.slot.activate
 import com.arkivanov.decompose.router.slot.childSlot
 import com.arkivanov.decompose.router.slot.dismiss
 import com.arkivanov.decompose.value.Value
+import io.github.aakira.napier.Napier
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.launch
@@ -16,6 +17,8 @@ import ru.slartus.boostbuddy.data.Inject
 import ru.slartus.boostbuddy.data.repositories.SettingsRepository
 import ru.slartus.boostbuddy.data.repositories.SubscribeItem
 import ru.slartus.boostbuddy.data.repositories.SubscribesRepository
+import ru.slartus.boostbuddy.utils.Platform
+import ru.slartus.boostbuddy.utils.PlatformConfiguration
 import ru.slartus.boostbuddy.utils.WebManager
 import ru.slartus.boostbuddy.utils.messageOrThrow
 import ru.slartus.boostbuddy.utils.unauthorizedError
@@ -23,13 +26,20 @@ import ru.slartus.boostbuddy.utils.unauthorizedError
 
 interface SubscribesComponent {
     val viewStates: Value<SubscribesViewState>
-    val dialogSlot: Value<ChildSlot<*, LogoutDialogComponent>>
+    val dialogSlot: Value<ChildSlot<*, DialogChild>>
     fun onItemClicked(item: SubscribeItem)
     fun onBackClicked()
     fun onLogoutClicked()
     fun onRepeatClicked()
     fun onSetDarkModeClicked(value: Boolean)
     fun onRefreshClicked()
+    fun onFeedbackClicked()
+    fun onDialogDismissed()
+
+    sealed class DialogChild {
+        data class Logout(val component: LogoutDialogComponent) : DialogChild()
+        data class Qr(val url: String) : DialogChild()
+    }
 }
 
 data class SubscribesViewState(
@@ -53,28 +63,39 @@ class SubscribesComponentImpl(
 ), SubscribesComponent {
     private val settingsRepository by Inject.lazy<SettingsRepository>()
     private val subscribesRepository by Inject.lazy<SubscribesRepository>()
+    private val platformConfiguration by Inject.lazy<PlatformConfiguration>()
     private val dialogNavigation = SlotNavigation<DialogConfig>()
 
-    private val _dialogSlot =
-        childSlot<DialogConfig, LogoutDialogComponent>(
-            source = dialogNavigation,
-            serializer = null,
-            handleBackButton = true,
-            childFactory = { _, _ ->
-                LogoutDialogComponentImpl(
-                    onDismissed = dialogNavigation::dismiss,
-                    onAcceptClicked = ::logout,
-                    onCancelClicked = dialogNavigation::dismiss
-                )
-            }
-        )
+    private val _dialogSlot = childSlot(
+        key = "dialogSlot",
+        source = dialogNavigation,
+        serializer = DialogConfig.serializer(),
+        handleBackButton = true,
+        childFactory = ::dialogChild
+    )
 
-    override val dialogSlot: Value<ChildSlot<*, LogoutDialogComponent>> = _dialogSlot
+    override val dialogSlot: Value<ChildSlot<*, SubscribesComponent.DialogChild>> = _dialogSlot
 
     init {
         checkToken()
         subscribeToken()
     }
+
+    private fun dialogChild(
+        config: DialogConfig,
+        componentContext: ComponentContext
+    ): SubscribesComponent.DialogChild =
+        when (config) {
+            DialogConfig.Logout -> SubscribesComponent.DialogChild.Logout(
+                LogoutDialogComponentImpl(
+                    onDismissed = dialogNavigation::dismiss,
+                    onAcceptClicked = ::logout,
+                    onCancelClicked = dialogNavigation::dismiss
+                )
+            )
+
+            DialogConfig.Qr -> SubscribesComponent.DialogChild.Qr(FORUM_URL)
+        }
 
     private fun checkToken() {
         scope.launch {
@@ -99,20 +120,18 @@ class SubscribesComponentImpl(
         scope.launch {
             val response = subscribesRepository.getSubscribes(token)
 
-            if (response.isFailure) {
-                viewState =
-                    viewState.copy(
-                        progressProgressState = SubscribesViewState.ProgressState.Error(
-                            response.exceptionOrNull()?.messageOrThrow() ?: "Ошибка загрузки"
-                        )
+            viewState = if (response.isFailure) {
+                viewState.copy(
+                    progressProgressState = SubscribesViewState.ProgressState.Error(
+                        response.exceptionOrNull()?.messageOrThrow() ?: "Ошибка загрузки"
                     )
+                )
             } else {
-                viewState =
-                    viewState.copy(
-                        progressProgressState = SubscribesViewState.ProgressState.Loaded(
-                            response.getOrDefault(emptyList()).toImmutableList()
-                        )
+                viewState.copy(
+                    progressProgressState = SubscribesViewState.ProgressState.Loaded(
+                        response.getOrDefault(emptyList()).toImmutableList()
                     )
+                )
             }
 
         }
@@ -134,7 +153,7 @@ class SubscribesComponentImpl(
     }
 
     override fun onLogoutClicked() {
-        dialogNavigation.activate(DialogConfig)
+        dialogNavigation.activate(DialogConfig.Logout)
     }
 
     override fun onRepeatClicked() {
@@ -151,6 +170,26 @@ class SubscribesComponentImpl(
         refresh()
     }
 
+    override fun onFeedbackClicked() {
+        runCatching {
+            when (platformConfiguration.platform) {
+                Platform.Android,
+                Platform.iOS -> platformConfiguration.openBrowser(FORUM_URL) {
+                    dialogNavigation.activate(DialogConfig.Qr)
+                }
+
+                Platform.AndroidTV -> dialogNavigation.activate(DialogConfig.Qr)
+            }
+        }.onFailure { error ->
+            Napier.e("onFeedbackClicked", error)
+            dialogNavigation.activate(DialogConfig.Qr)
+        }
+    }
+
+    override fun onDialogDismissed() {
+        dialogNavigation.dismiss()
+    }
+
     private fun logout() {
         scope.launch {
             settingsRepository.putAccessToken(null)
@@ -160,5 +199,15 @@ class SubscribesComponentImpl(
     }
 
     @Serializable
-    private object DialogConfig
+    private sealed class DialogConfig {
+        @Serializable
+        data object Logout : DialogConfig()
+
+        @Serializable
+        data object Qr : DialogConfig()
+    }
+
+    private companion object {
+        const val FORUM_URL = "https://4pda.to/forum/index.php?showtopic=1085976"
+    }
 }

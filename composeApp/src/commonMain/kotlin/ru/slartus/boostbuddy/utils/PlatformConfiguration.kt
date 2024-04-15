@@ -6,7 +6,7 @@ expect class PlatformConfiguration {
     val platform: Platform
     val appVersion: String
     val isDebug: Boolean
-    fun openBrowser(url: String)
+    fun openBrowser(url: String, onError: (() -> Unit)? = null)
     fun installApp(path: Path)
 }
 

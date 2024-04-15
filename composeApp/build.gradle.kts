@@ -60,6 +60,7 @@ kotlin {
             implementation(libs.kodein.conf)
             implementation(libs.collections.immutable)
             implementation(libs.napier)
+            implementation(libs.qrose)
         }
 
         commonTest.dependencies {
@@ -98,8 +99,8 @@ android {
         targetSdk = 34
 
         applicationId = "ru.slartus.boostbuddy"
-        versionCode = 59
-        versionName = "1.0.8"
+        versionCode = 60
+        versionName = "1.0.9"
     }
     sourceSets["main"].apply {
         manifest.srcFile("src/androidMain/AndroidManifest.xml")

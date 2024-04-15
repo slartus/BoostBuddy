@@ -14,6 +14,7 @@ internal data class PostResponse(
         val id: String? = null,
         val title: String? = null,
         val createdAt: Long? = null,
+        val signedQuery: String? = null,
         @SerialName("int_id") val intId: Long? = null,
         val data: List<ContentResponse>? = null,
         val user: UserResponse? = null,

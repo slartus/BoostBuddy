@@ -126,4 +126,16 @@ internal fun AppTheme(
 }
 
 @Composable
+internal fun LightTheme(content: @Composable () -> Unit){
+    MaterialTheme(
+        colorScheme = LightColorScheme,
+        typography = AppTypography,
+        shapes = AppShapes,
+        content = {
+            Surface(content = content)
+        }
+    )
+}
+
+@Composable
 internal expect fun SystemAppearance(isDark: Boolean)
