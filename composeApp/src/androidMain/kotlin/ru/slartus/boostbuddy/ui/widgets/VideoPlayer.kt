@@ -178,13 +178,11 @@ actual fun VideoPlayer(
                     },
                     onLeftClick = {
                         exoPlayer.seekBack()
-                        if (hideJobActive)
-                            hideControllersDelayed()
+                        showControllerTimed()
                     },
                     onRightClick = {
                         exoPlayer.seekForward()
-                        if (hideJobActive)
-                            hideControllersDelayed()
+                        showControllerTimed()
                     },
                     onStopClick = onStopClick
                 )
