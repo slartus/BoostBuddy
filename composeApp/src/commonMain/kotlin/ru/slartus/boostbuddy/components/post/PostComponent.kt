@@ -1,5 +1,6 @@
 package ru.slartus.boostbuddy.components.post
 
+import androidx.compose.runtime.Stable
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.value.Value
 import kotlinx.collections.immutable.toImmutableList
@@ -13,6 +14,7 @@ import ru.slartus.boostbuddy.data.repositories.models.Post
 import ru.slartus.boostbuddy.utils.messageOrThrow
 import ru.slartus.boostbuddy.utils.unauthorizedError
 
+@Stable
 interface PostComponent {
     fun onRepeatClicked()
     fun onMoreCommentsClicked()

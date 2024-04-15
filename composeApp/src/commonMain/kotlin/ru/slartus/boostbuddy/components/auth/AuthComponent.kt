@@ -1,5 +1,6 @@
 package ru.slartus.boostbuddy.components.auth
 
+import androidx.compose.runtime.Stable
 import com.arkivanov.decompose.ComponentContext
 import io.ktor.http.decodeURLQueryComponent
 import kotlinx.coroutines.launch
@@ -9,6 +10,7 @@ import ru.slartus.boostbuddy.data.Inject
 import ru.slartus.boostbuddy.data.repositories.AuthResponse
 import ru.slartus.boostbuddy.data.repositories.SettingsRepository
 
+@Stable
 interface AuthComponent {
     fun onCookiesChanged(cookies: String)
 }

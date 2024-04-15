@@ -1,5 +1,6 @@
 package ru.slartus.boostbuddy.components.blog
 
+import androidx.compose.runtime.Stable
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.router.slot.ChildSlot
 import com.arkivanov.decompose.router.slot.SlotNavigation
@@ -23,6 +24,7 @@ import ru.slartus.boostbuddy.data.repositories.models.Post
 import ru.slartus.boostbuddy.utils.messageOrThrow
 import ru.slartus.boostbuddy.utils.unauthorizedError
 
+@Stable
 interface BlogComponent {
     val viewStates: Value<BlogViewState>
     val dialogSlot: Value<ChildSlot<*, VideoTypeComponent>>

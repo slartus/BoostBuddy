@@ -1,5 +1,6 @@
 package ru.slartus.boostbuddy.components.subscribes
 
+import androidx.compose.runtime.Stable
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.router.slot.ChildSlot
 import com.arkivanov.decompose.router.slot.SlotNavigation
@@ -23,7 +24,7 @@ import ru.slartus.boostbuddy.utils.WebManager
 import ru.slartus.boostbuddy.utils.messageOrThrow
 import ru.slartus.boostbuddy.utils.unauthorizedError
 
-
+@Stable
 interface SubscribesComponent {
     val viewStates: Value<SubscribesViewState>
     val dialogSlot: Value<ChildSlot<*, DialogChild>>

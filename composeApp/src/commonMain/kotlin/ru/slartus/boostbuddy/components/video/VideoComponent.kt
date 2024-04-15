@@ -1,5 +1,6 @@
 package ru.slartus.boostbuddy.components.video
 
+import androidx.compose.runtime.Stable
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.value.Value
 import kotlinx.coroutines.launch
@@ -13,6 +14,7 @@ import ru.slartus.boostbuddy.data.repositories.SettingsRepository
 import ru.slartus.boostbuddy.data.repositories.models.Content
 import ru.slartus.boostbuddy.data.repositories.models.PlayerUrl
 
+@Stable
 interface VideoComponent {
     val viewStates: Value<VideoViewState>
     fun onVideoStateChanged(videoState: VideoState)

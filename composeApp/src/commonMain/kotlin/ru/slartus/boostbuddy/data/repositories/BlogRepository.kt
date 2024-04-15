@@ -27,10 +27,11 @@ internal class BlogRepository(
         offset: Offset? = null,
         commentsLimit: Int = 0,
         replyLimit: Int = 0,
-        isOnlyAllowed: Boolean = false,
+        isOnlyAllowed: Boolean? = false,
         fromDate: Clock? = null,
         toDate: Clock? = null,
-        tagsIds: List<Int>? = null
+        tagsIds: List<Int>? = null,
+        onlyBought: Boolean? = null
     ): Result<Posts> =
         fetchOrError {
             val response: PostResponse =
@@ -41,8 +42,10 @@ internal class BlogRepository(
                     parameter("reply_limit", replyLimit)
                     if (offset != null)
                         parameter("offset", "${offset.createdAt}:${offset.postId}")
-                    if (isOnlyAllowed)
+                    if (isOnlyAllowed != null)
                         parameter("is_only_allowed", isOnlyAllowed)
+                    if (onlyBought != null)
+                        parameter("only_bought", onlyBought)
                     if (fromDate != null)
                         parameter("from_ts", fromDate.now().epochSeconds)
                     if (toDate != null)
