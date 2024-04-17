@@ -42,17 +42,16 @@ class PostComponentImpl(
         scope.launch {
             settingsRepository.tokenFlow.collect { token ->
                 if (token != null)
-                    fetchPost(token)
+                    fetchPost()
             }
         }
     }
 
-    private fun fetchPost(token: String, offsetId: Int? = null) {
+    private fun fetchPost(offsetId: Int? = null) {
         viewState =
             viewState.copy(progressProgressState = PostViewState.ProgressState.Loading)
         scope.launch {
             val response = commentsRepository.getComments(
-                accessToken = token,
                 url = blogUrl,
                 postId = post.id,
                 offsetId = offsetId
@@ -85,23 +84,22 @@ class PostComponentImpl(
 
     override fun onRepeatClicked() {
         scope.launch {
-            val token = settingsRepository.getAccessToken() ?: unauthorizedError()
-            fetchPost(token)
+            settingsRepository.getAccessToken() ?: unauthorizedError()
+            fetchPost()
         }
     }
 
     override fun onMoreCommentsClicked() {
         scope.launch {
-            val token = settingsRepository.getAccessToken() ?: unauthorizedError()
-            fetchPost(token, offsetId = viewState.comments.firstOrNull()?.comment?.intId)
+            settingsRepository.getAccessToken() ?: unauthorizedError()
+            fetchPost(offsetId = viewState.comments.firstOrNull()?.comment?.intId)
         }
     }
 
     override fun onMoreRepliesClicked(commentItem: CommentItem) {
         scope.launch {
-            val token = settingsRepository.getAccessToken() ?: unauthorizedError()
+            settingsRepository.getAccessToken() ?: unauthorizedError()
             val response = commentsRepository.getComments(
-                accessToken = token,
                 url = blogUrl,
                 postId = post.id,
                 offsetId = commentItem.comment.replies.comments.firstOrNull()?.intId,

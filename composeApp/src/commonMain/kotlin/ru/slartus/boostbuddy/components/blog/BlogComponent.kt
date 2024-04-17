@@ -72,17 +72,16 @@ class BlogComponentImpl(
         scope.launch {
             settingsRepository.tokenFlow.collect { token ->
                 if (token != null)
-                    fetchBlog(token)
+                    fetchBlog()
             }
         }
     }
 
-    private fun fetchBlog(token: String) {
+    private fun fetchBlog() {
         viewState =
             viewState.copy(progressProgressState = BlogViewState.ProgressState.Loading)
         scope.launch {
             val response = blogRepository.getData(
-                accessToken = token,
                 url = blog.blogUrl,
                 offset = null
             )
@@ -108,11 +107,10 @@ class BlogComponentImpl(
         }
     }
 
-    private fun fetchBlog(token: String, offset: Offset? = null) {
+    private fun fetchBlog(offset: Offset? = null) {
         viewState = viewState.copy(items = viewState.items.plusItem(BlogItem.LoadingItem))
         scope.launch {
             val response = blogRepository.getData(
-                accessToken = token,
                 url = blog.blogUrl,
                 offset = offset
             )
@@ -145,7 +143,7 @@ class BlogComponentImpl(
             val token = settingsRepository.getAccessToken() ?: unauthorizedError()
             val lastItem = viewState.items.filterIsInstance<BlogItem.PostItem>().last()
             val offset = Offset(lastItem.post.intId, lastItem.post.createdAt)
-            fetchBlog(token, offset)
+            fetchBlog(offset)
         }
     }
 
@@ -164,7 +162,7 @@ class BlogComponentImpl(
     override fun onRepeatClicked() {
         scope.launch {
             val token = settingsRepository.getAccessToken() ?: unauthorizedError()
-            fetchBlog(token)
+            fetchBlog()
         }
     }
 

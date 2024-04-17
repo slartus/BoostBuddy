@@ -6,8 +6,8 @@ import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
 import ru.slartus.boostbuddy.components.BaseComponent
 import ru.slartus.boostbuddy.data.Inject
-import ru.slartus.boostbuddy.data.repositories.AuthResponse
 import ru.slartus.boostbuddy.data.repositories.SettingsRepository
+import ru.slartus.boostbuddy.data.repositories.models.AuthResponse
 
 interface AuthComponent {
     fun onCookiesChanged(cookies: String)
