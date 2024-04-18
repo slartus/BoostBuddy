@@ -98,7 +98,7 @@ private fun AnnotatedTextView(
         postData.content.getStringAnnotations(start = offset, end = offset)
             .firstOrNull()
             ?.let {
-                onUrlClick(postData.content.substring(42..53), it.item)
+                onUrlClick(postData.content.substring(it.start..<it.end), it.item)
             }
     }
     val pressIndicator = Modifier.pointerInput(onClick) {
