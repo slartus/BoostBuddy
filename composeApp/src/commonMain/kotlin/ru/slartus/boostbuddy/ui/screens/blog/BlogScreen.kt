@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -33,7 +34,6 @@ import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.Alignment.Companion.CenterHorizontally
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
@@ -44,6 +44,7 @@ import ru.slartus.boostbuddy.components.blog.BlogItem
 import ru.slartus.boostbuddy.components.blog.BlogViewState
 import ru.slartus.boostbuddy.data.repositories.models.Content
 import ru.slartus.boostbuddy.data.repositories.models.Post
+import ru.slartus.boostbuddy.ui.common.AppColumn
 import ru.slartus.boostbuddy.ui.common.HorizontalSpacer
 import ru.slartus.boostbuddy.ui.common.VerticalSpacer
 import ru.slartus.boostbuddy.ui.common.isEndOfListReached
@@ -166,26 +167,30 @@ private fun PostView(
     onCommentsClick: () -> Unit
 ) {
     Column(
-        modifier = Modifier
+        Modifier
             .background(MaterialTheme.colorScheme.onPrimary)
-            .padding(16.dp),
-        horizontalAlignment = CenterHorizontally
+            .padding(16.dp)
     ) {
-        FocusableBox {
-            Text(
-                modifier = Modifier.fillMaxWidth().focusable(),
-                text = post.title,
-                color = MaterialTheme.colorScheme.primary,
-                style = MaterialTheme.typography.titleMedium
-            )
-        }
-        VerticalSpacer(16.dp)
-        Column(
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+        AppColumn(
+            Modifier.heightIn(max = 400.dp)
         ) {
-            post.data.forEach { postData ->
-                ContentView(post.signedQuery, postData, onVideoClick)
+            FocusableBox {
+                Text(
+                    modifier = Modifier.fillMaxWidth().focusable(),
+                    text = post.title,
+                    color = MaterialTheme.colorScheme.primary,
+                    style = MaterialTheme.typography.titleMedium
+                )
             }
+            VerticalSpacer(16.dp)
+            Column(
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                post.data.forEach { postData ->
+                    ContentView(post.signedQuery, postData, onVideoClick)
+                }
+            }
+            VerticalSpacer(8.dp)
         }
         VerticalSpacer(8.dp)
         FocusableBox(Modifier.fillMaxWidth()) {
