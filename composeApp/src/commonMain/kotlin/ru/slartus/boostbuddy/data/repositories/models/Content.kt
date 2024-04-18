@@ -66,5 +66,11 @@ sealed class Content {
         val mediumUrl: String?
     ) : Content()
 
+    data class File(
+        val title: String,
+        val url: String,
+        val size: Long?
+    ) : Content()
+
     data object Unknown : Content()
 }
