@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -125,7 +126,8 @@ private fun FullPostView(
     onMoreRepliesClick: (PostViewItem.CommentItem) -> Unit,
     onVideoClick: (okVideoData: Content.OkVideo) -> Unit,
 ) {
-    LazyColumn(Modifier.fillMaxSize()) {
+    val state = rememberLazyListState(initialFirstVisibleItemIndex = 1)
+    LazyColumn(modifier = Modifier.fillMaxSize(), state = state) {
         item(contentType = "post", key = "post_${post.id}") {
             PostView(
                 post = post,
@@ -155,7 +157,8 @@ private fun LazyListScope.commentsView(
     onMoreClick: () -> Unit,
     onMoreRepliesClick: (PostViewItem.CommentItem) -> Unit
 ) {
-    items(items,
+    items(
+        items = items,
         key = { it.id },
         contentType = {
             when (it) {
