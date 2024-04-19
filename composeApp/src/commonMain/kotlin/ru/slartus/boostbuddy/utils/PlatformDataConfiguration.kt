@@ -6,6 +6,7 @@ import ru.slartus.boostbuddy.data.Inject
 import ru.slartus.boostbuddy.data.ktor.buildHttpClient
 import ru.slartus.boostbuddy.data.repositories.BlogRepository
 import ru.slartus.boostbuddy.data.repositories.GithubRepository
+import ru.slartus.boostbuddy.data.repositories.PostRepository
 import ru.slartus.boostbuddy.data.repositories.SettingsRepository
 import ru.slartus.boostbuddy.data.repositories.SubscribesRepository
 import ru.slartus.boostbuddy.data.repositories.comments.CommentsRepository
@@ -37,6 +38,7 @@ object PlatformDataConfiguration {
             bindSingleton { BlogRepository(httpClient = instance(TAG_HTTP_CLIENT_BOOSTY)) }
             bindSingleton { GithubRepository(httpClient = instance(TAG_HTTP_CLIENT_GITHUB)) }
             bindSingleton { CommentsRepository(httpClient = instance(TAG_HTTP_CLIENT_BOOSTY)) }
+            bindSingleton { PostRepository(httpClient = instance(TAG_HTTP_CLIENT_BOOSTY)) }
         }
     }
 }
