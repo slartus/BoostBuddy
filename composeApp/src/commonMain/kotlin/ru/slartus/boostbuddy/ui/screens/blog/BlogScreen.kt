@@ -160,7 +160,7 @@ private fun PostsView(
 }
 
 @Composable
-private fun PostView(
+internal fun PostView(
     post: Post,
     onVideoClick: (okVideoData: Content.OkVideo) -> Unit,
     onCommentsClick: () -> Unit

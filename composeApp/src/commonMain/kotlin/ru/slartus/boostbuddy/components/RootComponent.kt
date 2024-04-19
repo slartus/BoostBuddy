@@ -256,7 +256,10 @@ class RootComponentImpl(
             componentContext = componentContext,
             blogUrl = config.blogUrl,
             post = config.post,
-            onBackClicked = { navigation.popWhile { it == config } }
+            onBackClicked = { navigation.popWhile { it == config } },
+            onItemSelected = { postData, playerUrl ->
+                navigation.push(Config.VideoConfig(postData = postData, playerUrl = playerUrl))
+            },
         )
 
     private fun videoComponent(
