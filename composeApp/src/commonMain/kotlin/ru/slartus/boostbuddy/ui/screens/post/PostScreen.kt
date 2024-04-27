@@ -3,7 +3,6 @@ package ru.slartus.boostbuddy.ui.screens.post
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -12,7 +11,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -34,14 +35,18 @@ import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
 import com.seiko.imageloader.rememberImagePainter
 import kotlinx.collections.immutable.ImmutableList
-import ru.slartus.boostbuddy.components.post.CommentItem
 import ru.slartus.boostbuddy.components.post.PostComponent
+import ru.slartus.boostbuddy.components.post.PostViewItem
 import ru.slartus.boostbuddy.components.post.PostViewState
 import ru.slartus.boostbuddy.data.repositories.comments.models.Comment
+import ru.slartus.boostbuddy.data.repositories.models.Content
+import ru.slartus.boostbuddy.data.repositories.models.Post
 import ru.slartus.boostbuddy.ui.common.HorizontalSpacer
 import ru.slartus.boostbuddy.ui.common.VerticalSpacer
 import ru.slartus.boostbuddy.ui.screens.blog.ContentView
 import ru.slartus.boostbuddy.ui.screens.blog.FocusableBox
+import ru.slartus.boostbuddy.ui.screens.blog.PostView
+import ru.slartus.boostbuddy.ui.screens.blog.VideoTypeDialogView
 import ru.slartus.boostbuddy.ui.widgets.ErrorView
 import ru.slartus.boostbuddy.ui.widgets.LoaderView
 
@@ -53,7 +58,7 @@ internal fun PostScreen(component: PostComponent) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Комментарии") },
+                title = { Text(state.post.title) },
                 navigationIcon = {
                     IconButton(onClick = {
                         component.onBackClicked()
@@ -83,21 +88,54 @@ internal fun PostScreen(component: PostComponent) {
                 PostViewState.ProgressState.Loading -> LoaderView()
 
                 is PostViewState.ProgressState.Loaded ->
-                    if (state.comments.isEmpty())
+                    if (state.items.isEmpty())
                         EmptyCommentsView()
                     else
-                        CommentsView(
-                            comments = state.comments,
-                            hasMore = state.hasMoreComments,
+                        FullPostView(
+                            post = state.post,
+                            items = state.items,
                             onMoreClick = {
                                 component.onMoreCommentsClicked()
                             },
                             onMoreRepliesClick = {
                                 component.onMoreRepliesClicked(it)
-                            }
+                            },
+                            onVideoClick = {
+                                component.onVideoItemClicked(it)
+                            },
                         )
             }
         }
+    }
+    val dialogSlot by component.dialogSlot.subscribeAsState()
+    dialogSlot.child?.instance?.also { videoTypeComponent ->
+        VideoTypeDialogView(
+            modifier = Modifier,
+            postData = videoTypeComponent.postData,
+            onDismissClicked = { videoTypeComponent.onDismissClicked() },
+            onItemClicked = { videoTypeComponent.onItemClicked(it) }
+        )
+    }
+}
+
+@Composable
+private fun FullPostView(
+    post: Post,
+    items: ImmutableList<PostViewItem>,
+    onMoreClick: () -> Unit,
+    onMoreRepliesClick: (PostViewItem.CommentItem) -> Unit,
+    onVideoClick: (okVideoData: Content.OkVideo) -> Unit,
+) {
+    val state = rememberLazyListState(initialFirstVisibleItemIndex = 1)
+    LazyColumn(modifier = Modifier.fillMaxSize(), state = state) {
+        item(contentType = "post", key = "post_${post.id}") {
+            PostView(
+                post = post,
+                onVideoClick = onVideoClick,
+                onCommentsClick = {}
+            )
+        }
+        commentsView(items, onMoreClick, onMoreRepliesClick)
     }
 }
 
@@ -114,16 +152,42 @@ private fun EmptyCommentsView() {
     }
 }
 
-@Composable
-private fun CommentsView(
-    comments: ImmutableList<CommentItem>,
-    hasMore: Boolean,
+private fun LazyListScope.commentsView(
+    items: ImmutableList<PostViewItem>,
     onMoreClick: () -> Unit,
-    onMoreRepliesClick: (CommentItem) -> Unit
+    onMoreRepliesClick: (PostViewItem.CommentItem) -> Unit
 ) {
-    Column(Modifier.fillMaxSize()) {
-        if (hasMore) {
-            FocusableBox(Modifier.fillMaxWidth()) {
+    items(
+        items = items,
+        key = { it.id },
+        contentType = {
+            when (it) {
+                is PostViewItem.CommentItem -> "CommentItem"
+                PostViewItem.ErrorMore -> "ErrorMore"
+                PostViewItem.LoadMore -> "LoadMore"
+                PostViewItem.LoadingMore -> "LoadingMore"
+            }
+        }
+    ) { commentItem ->
+        when (commentItem) {
+            is PostViewItem.CommentItem -> {
+                CommentView(
+                    commentItem.comment,
+                    onMoreRepliesClick = { onMoreRepliesClick(commentItem) })
+                VerticalSpacer(8.dp)
+            }
+
+            PostViewItem.ErrorMore -> FocusableBox(Modifier.fillMaxWidth()) {
+                Box(Modifier.clickable { onMoreClick() }.padding(8.dp)) {
+                    Text(
+                        text = "Ошибка загрузки. Нажми для повтора",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.error
+                    )
+                }
+            }
+
+            PostViewItem.LoadMore -> FocusableBox(Modifier.fillMaxWidth()) {
                 Box(Modifier.clickable { onMoreClick() }.padding(8.dp)) {
                     Text(
                         text = "Показать ещё комментарии",
@@ -132,15 +196,15 @@ private fun CommentsView(
                     )
                 }
             }
-        }
-        LazyColumn(
-            modifier = Modifier.fillMaxSize(),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            items(comments, key = { it.comment.id }) { commentItem ->
-                CommentView(
-                    commentItem.comment,
-                    onMoreRepliesClick = { onMoreRepliesClick(commentItem) })
+
+            PostViewItem.LoadingMore -> FocusableBox(Modifier.fillMaxWidth()) {
+                Box(Modifier.padding(8.dp)) {
+                    Text(
+                        text = "Загрузка",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.tertiary
+                    )
+                }
             }
         }
     }

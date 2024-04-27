@@ -104,6 +104,12 @@ internal fun ContentResponse.mapToContentOrNull(): Content? {
             smallUrl = smallUrl
         )
 
+        "file" -> Content.File(
+            title = title.orEmpty(),
+            url = url ?: return null,
+            size = size
+        )
+
         else -> Content.Unknown
     }
 }

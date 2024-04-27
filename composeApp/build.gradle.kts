@@ -47,6 +47,7 @@ kotlin {
             api(libs.decompose.compose)
             implementation(libs.composeImageLoader)
             implementation(libs.kotlinx.coroutines.core)
+            implementation(libs.ktor.auth)
             implementation(libs.ktor.core)
             implementation(libs.ktor.json)
             implementation(libs.ktor.serialization.json)
@@ -72,7 +73,7 @@ kotlin {
             implementation(libs.androidx.activityCompose)
             implementation(libs.compose.uitooling)
             implementation(libs.kotlinx.coroutines.android)
-            implementation(libs.ktor.client.okhttp)
+            implementation(libs.ktor.okhttp)
 
             implementation(libs.exoplayer.core)
             implementation(libs.exoplayer.dash)
@@ -84,7 +85,7 @@ kotlin {
         }
 
         iosMain.dependencies {
-            implementation(libs.ktor.client.darwin)
+            implementation(libs.ktor.darwin)
         }
 
     }
@@ -99,8 +100,8 @@ android {
         targetSdk = 34
 
         applicationId = "ru.slartus.boostbuddy"
-        versionCode = 61
-        versionName = "1.0.10"
+        versionCode = 62
+        versionName = "1.1.0"
     }
     sourceSets["main"].apply {
         manifest.srcFile("src/androidMain/AndroidManifest.xml")

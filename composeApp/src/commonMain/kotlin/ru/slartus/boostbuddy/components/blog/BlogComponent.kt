@@ -1,5 +1,6 @@
 package ru.slartus.boostbuddy.components.blog
 
+import androidx.compose.runtime.Stable
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.router.slot.ChildSlot
 import com.arkivanov.decompose.router.slot.SlotNavigation
@@ -23,6 +24,7 @@ import ru.slartus.boostbuddy.data.repositories.models.Post
 import ru.slartus.boostbuddy.utils.messageOrThrow
 import ru.slartus.boostbuddy.utils.unauthorizedError
 
+@Stable
 interface BlogComponent {
     val viewStates: Value<BlogViewState>
     val dialogSlot: Value<ChildSlot<*, VideoTypeComponent>>
@@ -48,10 +50,6 @@ class BlogComponentImpl(
     private val blogRepository by Inject.lazy<BlogRepository>()
     private val dialogNavigation = SlotNavigation<DialogConfig>()
 
-    init {
-        subscribeToken()
-    }
-
     override val dialogSlot: Value<ChildSlot<*, VideoTypeComponent>> =
         childSlot(
             source = dialogNavigation,
@@ -68,21 +66,24 @@ class BlogComponentImpl(
             )
         }
 
+    init {
+        subscribeToken()
+    }
+
     private fun subscribeToken() {
         scope.launch {
             settingsRepository.tokenFlow.collect { token ->
                 if (token != null)
-                    fetchBlog(token)
+                    fetchBlog()
             }
         }
     }
 
-    private fun fetchBlog(token: String) {
+    private fun fetchBlog() {
         viewState =
             viewState.copy(progressProgressState = BlogViewState.ProgressState.Loading)
         scope.launch {
             val response = blogRepository.getData(
-                accessToken = token,
                 url = blog.blogUrl,
                 offset = null
             )
@@ -108,11 +109,10 @@ class BlogComponentImpl(
         }
     }
 
-    private fun fetchBlog(token: String, offset: Offset? = null) {
+    private fun fetchBlog(offset: Offset? = null) {
         viewState = viewState.copy(items = viewState.items.plusItem(BlogItem.LoadingItem))
         scope.launch {
             val response = blogRepository.getData(
-                accessToken = token,
                 url = blog.blogUrl,
                 offset = offset
             )
@@ -145,7 +145,7 @@ class BlogComponentImpl(
             val token = settingsRepository.getAccessToken() ?: unauthorizedError()
             val lastItem = viewState.items.filterIsInstance<BlogItem.PostItem>().last()
             val offset = Offset(lastItem.post.intId, lastItem.post.createdAt)
-            fetchBlog(token, offset)
+            fetchBlog(offset)
         }
     }
 
@@ -164,7 +164,7 @@ class BlogComponentImpl(
     override fun onRepeatClicked() {
         scope.launch {
             val token = settingsRepository.getAccessToken() ?: unauthorizedError()
-            fetchBlog(token)
+            fetchBlog()
         }
     }
 

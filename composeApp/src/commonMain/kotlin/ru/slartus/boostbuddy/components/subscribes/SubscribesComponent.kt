@@ -108,17 +108,17 @@ class SubscribesComponentImpl(
         scope.launch {
             settingsRepository.tokenFlow.collect { token ->
                 if (token != null)
-                    fetchSubscribes(token)
+                    fetchSubscribes()
             }
         }
     }
 
-    private fun fetchSubscribes(token: String) {
+    private fun fetchSubscribes() {
         viewState =
             viewState.copy(progressProgressState = SubscribesViewState.ProgressState.Loading)
 
         scope.launch {
-            val response = subscribesRepository.getSubscribes(token)
+            val response = subscribesRepository.getSubscribes()
 
             viewState = if (response.isFailure) {
                 viewState.copy(
@@ -140,7 +140,7 @@ class SubscribesComponentImpl(
     private fun refresh() {
         scope.launch {
             val token = settingsRepository.getAccessToken() ?: unauthorizedError()
-            fetchSubscribes(token)
+            fetchSubscribes()
         }
     }
 
