@@ -97,7 +97,12 @@ fun BlogScreen(component: BlogComponent) {
                     PostsView(
                         items = state.items,
                         canLoadMore = state.hasMore,
-                        onVideoItemClick = { component.onVideoItemClicked(it) },
+                        onVideoItemClick = { post, data ->
+                            component.onVideoItemClicked(
+                                post.post.id,
+                                data
+                            )
+                        },
                         onScrolledToEnd = { component.onScrolledToEnd() },
                         onErrorItemClick = { component.onErrorItemClicked() },
                         onCommentsClick = { component.onCommentsClicked(it) },
@@ -120,7 +125,7 @@ fun BlogScreen(component: BlogComponent) {
 private fun PostsView(
     items: ImmutableList<BlogItem>,
     canLoadMore: Boolean,
-    onVideoItemClick: (Content.OkVideo) -> Unit,
+    onVideoItemClick: (BlogItem.PostItem, Content.OkVideo) -> Unit,
     onScrolledToEnd: () -> Unit,
     onErrorItemClick: () -> Unit,
     onCommentsClick: (post: Post) -> Unit
@@ -146,7 +151,7 @@ private fun PostsView(
                 BlogItem.LoadingItem -> LoadingView()
                 is BlogItem.PostItem -> PostView(
                     item.post,
-                    onVideoClick = { onVideoItemClick(it) },
+                    onVideoClick = { onVideoItemClick(item, it) },
                     onCommentsClick = { onCommentsClick(item.post) }
                 )
             }

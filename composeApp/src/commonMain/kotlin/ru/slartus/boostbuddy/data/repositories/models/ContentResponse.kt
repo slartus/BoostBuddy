@@ -28,7 +28,8 @@ internal data class ContentResponse(
     val mediumUrl: String? = null,
     val smallUrl: String? = null,
     val duration: Long? = null,
-    val size: Long? = null
+    val size: Long? = null,
+    val timeCode: Long? = null
 ) {
     @Serializable
     data class PlayerUrl(
@@ -61,6 +62,7 @@ private val playerUrlsComparator = object : Comparator<PlayerUrl> {
 internal fun ContentResponse.mapToContentOrNull(): Content? {
     return when (type) {
         "ok_video" -> Content.OkVideo(
+            id = id ?: return null,
             vid = vid ?: return null,
             title = title.orEmpty(),
             playerUrls = playerUrls?.mapNotNull { it.mapToPlayerUrlOrNull() }.orEmpty()
@@ -68,6 +70,7 @@ internal fun ContentResponse.mapToContentOrNull(): Content? {
                 .sortedWith(playerUrlsComparator)
                 .ifEmpty { return null },
             previewUrl = preview ?: defaultPreview ?: return null,
+            timeCode = timeCode ?: 0
         )
 
         "video" -> Content.Video(

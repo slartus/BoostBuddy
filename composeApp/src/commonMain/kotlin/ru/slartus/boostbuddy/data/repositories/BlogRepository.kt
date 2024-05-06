@@ -31,8 +31,8 @@ internal class BlogRepository(
         }
 }
 
-private fun PostResponse.Post.mapToPostOrNull(): Post? {
-    val post = Post(
+internal fun PostResponse.Post.mapToPostOrNull(): Post? {
+    return Post(
         id = id ?: return null,
         createdAt = createdAt ?: return null,
         signedQuery = signedQuery.orEmpty(),
@@ -42,6 +42,4 @@ private fun PostResponse.Post.mapToPostOrNull(): Post? {
         user = user?.mapToUserOrNull() ?: return null,
         count = PostCount(likes = count?.likes ?: 0, comments = count?.comments ?: 0)
     )
-
-    return post
 }

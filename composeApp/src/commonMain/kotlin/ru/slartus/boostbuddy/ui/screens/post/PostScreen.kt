@@ -101,7 +101,7 @@ internal fun PostScreen(component: PostComponent) {
                                 component.onMoreRepliesClicked(it)
                             },
                             onVideoClick = {
-                                component.onVideoItemClicked(it)
+                                component.onVideoItemClicked(state.post.id, it)
                             },
                         )
             }

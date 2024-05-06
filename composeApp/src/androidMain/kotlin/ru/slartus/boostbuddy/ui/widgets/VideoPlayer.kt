@@ -111,8 +111,6 @@ actual fun VideoPlayer(
             playWhenReady = true
             prepare()
         }
-        exoPlayer.seekTo(position)
-        exoPlayer.playWhenReady = true
         onDispose {
             exoPlayer.release()
         }
