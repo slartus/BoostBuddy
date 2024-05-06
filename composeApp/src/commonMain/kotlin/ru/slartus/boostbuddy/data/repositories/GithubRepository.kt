@@ -22,7 +22,7 @@ internal class GithubRepository(
         fetchOrError {
             val response: ReleaseInfoResponse =
                 httpClient
-                    .get("https://api.github.com/repos/slartus/BoostBuddy/releases/latest")
+                    .get("repos/slartus/BoostBuddy/releases/latest")
                     .body()
             ReleaseInfo(
                 version = response.name ?: return@fetchOrError null,
