@@ -14,6 +14,8 @@ import io.ktor.client.plugins.defaultRequest
 import io.ktor.client.plugins.logging.LogLevel
 import io.ktor.client.plugins.logging.Logger
 import io.ktor.client.plugins.logging.Logging
+import io.ktor.http.URLProtocol
+import io.ktor.http.path
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
 import ru.slartus.boostbuddy.data.repositories.SettingsRepository
@@ -31,14 +33,21 @@ internal fun buildBoostyHttpClient(isDebug: Boolean, settingsRepository: Setting
             }
         }
         defaultRequest {
-            url("https://api.boosty.to/v1/")
+            url {
+                protocol = URLProtocol.HTTPS
+                host = "api.boosty.to"
+                path("v1/")
+            }
         }
     }
 
 internal fun buildGithubHttpClient(isDebug: Boolean) =
     buildHttpClient(isDebug) {
         defaultRequest {
-            url("https://api.github.com/")
+            url {
+                protocol = URLProtocol.HTTPS
+                host = "api.github.com"
+            }
         }
     }
 
