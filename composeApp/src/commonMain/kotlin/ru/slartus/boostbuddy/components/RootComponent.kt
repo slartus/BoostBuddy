@@ -111,7 +111,7 @@ class RootComponentImpl(
             key = "DefaultChildStack",
             source = navigation,
             serializer = Config.serializer(),
-            initialConfiguration = Config.Auth,
+            initialConfiguration = Config.Subscribes,
             handleBackButton = true,
             childFactory = ::child,
         )
