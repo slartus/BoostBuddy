@@ -6,6 +6,7 @@ import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
 import ru.slartus.boostbuddy.components.BaseComponent
 import ru.slartus.boostbuddy.data.Inject
+import ru.slartus.boostbuddy.data.repositories.ProfileRepository
 import ru.slartus.boostbuddy.data.repositories.SettingsRepository
 import ru.slartus.boostbuddy.data.repositories.models.AuthResponse
 
@@ -18,6 +19,7 @@ class AuthComponentImpl(
     private val onLogined: () -> Unit,
 ) : BaseComponent<Unit, Any>(componentContext, Unit), AuthComponent {
     private val settingsRepository by Inject.lazy<SettingsRepository>()
+    private val profileRepository by Inject.lazy<ProfileRepository>()
 
     init {
         clearToken()
@@ -38,7 +40,9 @@ class AuthComponentImpl(
                 val auth = Json.decodeFromString<AuthResponse>(json)
                 if (auth.accessToken != null && auth.accessToken != settingsRepository.getAccessToken()) {
                     settingsRepository.putAccessToken(auth.accessToken)
-                    onLogined()
+                    if (profileRepository.getProfile().isSuccess) {
+                        onLogined()
+                    }
                 }
             }.onFailure { it.printStackTrace() }
         }

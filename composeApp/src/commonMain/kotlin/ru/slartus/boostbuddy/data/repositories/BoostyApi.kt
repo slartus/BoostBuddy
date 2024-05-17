@@ -33,6 +33,8 @@ internal class BoostyApi(
                 parameter("with_follow", withFollow)
             }
 
+    suspend fun current(): HttpResponse = httpClient.get("v1/user/current")
+
     suspend fun blogPosts(
         blog: String,
         limit: Int,

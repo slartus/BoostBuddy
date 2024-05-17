@@ -10,6 +10,7 @@ import ru.slartus.boostbuddy.data.repositories.BlogRepository
 import ru.slartus.boostbuddy.data.repositories.BoostyApi
 import ru.slartus.boostbuddy.data.repositories.GithubRepository
 import ru.slartus.boostbuddy.data.repositories.PostRepository
+import ru.slartus.boostbuddy.data.repositories.ProfileRepository
 import ru.slartus.boostbuddy.data.repositories.SettingsRepository
 import ru.slartus.boostbuddy.data.repositories.SubscribesRepository
 import ru.slartus.boostbuddy.data.repositories.VideoRepository
@@ -49,5 +50,6 @@ object PlatformDataConfiguration {
         bindSingleton { CommentsRepository(boostyApi = instance()) }
         bindSingleton { PostRepository(boostyApi = instance()) }
         bindSingleton { VideoRepository(boostyApi = instance()) }
+        bindSingleton { ProfileRepository(boostyApi = instance()) }
     }
 }
