@@ -20,6 +20,7 @@ class AuthComponentImpl(
 ) : BaseComponent<Unit, Any>(componentContext, Unit), AuthComponent {
     private val settingsRepository by Inject.lazy<SettingsRepository>()
     private val profileRepository by Inject.lazy<ProfileRepository>()
+    private val badTokens = mutableSetOf<String>()
 
     init {
         clearToken()
@@ -37,11 +38,14 @@ class AuthComponentImpl(
                 val authCookie =
                     parseCookies(cookies).entries.firstOrNull { it.key == "auth" } ?: return@launch
                 val json = authCookie.value.decodeURLQueryComponent()
-                val auth = Json.decodeFromString<AuthResponse>(json)
-                if (auth.accessToken != null && auth.accessToken != settingsRepository.getAccessToken()) {
-                    settingsRepository.putAccessToken(auth.accessToken)
-                    if (profileRepository.getProfile().isSuccess) {
-                        onLogined()
+                Json.decodeFromString<AuthResponse>(json).accessToken?.let { accessToken ->
+                    if (accessToken != settingsRepository.getAccessToken() && accessToken !in badTokens) {
+                        if (profileRepository.getProfile().isSuccess) {
+                            settingsRepository.putAccessToken(accessToken)
+                            onLogined()
+                        } else {
+                            badTokens.add(accessToken)
+                        }
                     }
                 }
             }.onFailure { it.printStackTrace() }
