@@ -3,6 +3,8 @@ package ru.slartus.boostbuddy.components.auth
 import com.arkivanov.decompose.ComponentContext
 import io.github.aakira.napier.Napier
 import io.ktor.http.decodeURLQueryComponent
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
 import ru.slartus.boostbuddy.components.BaseComponent
@@ -22,6 +24,7 @@ class AuthComponentImpl(
     private val settingsRepository by Inject.lazy<SettingsRepository>()
     private val profileRepository by Inject.lazy<ProfileRepository>()
     private val badTokens = mutableSetOf<String>()
+    private var checkTokenJob: Job = Job()
 
     init {
         clearToken()
@@ -41,16 +44,20 @@ class AuthComponentImpl(
                 val json = authCookie.value.decodeURLQueryComponent()
                 Json.decodeFromString<AuthResponse>(json).accessToken?.let { accessToken ->
                     if (accessToken != settingsRepository.getAccessToken() && accessToken !in badTokens) {
-                        if (profileRepository.getProfile().isSuccess) {
-                            settingsRepository.putAccessToken(accessToken)
-                            onLogined()
-                        } else {
-                            badTokens.add(accessToken)
+                        checkTokenJob.cancel()
+                        checkTokenJob = launch(SupervisorJob()) {
+                            checkToken(accessToken)
                         }
                     }
                 }
             }.onFailure { Napier.e("onCookiesChanged", it) }
         }
+    }
+
+    private suspend fun checkToken(token: String) {
+        settingsRepository.putAccessToken(token)
+        if (profileRepository.getProfile().isSuccess) onLogined()
+        else badTokens.add(token)
     }
 
     private fun parseCookies(cookies: String?): Map<String, String> {
