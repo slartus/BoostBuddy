@@ -1,6 +1,7 @@
 package ru.slartus.boostbuddy.components.auth
 
 import com.arkivanov.decompose.ComponentContext
+import io.github.aakira.napier.Napier
 import io.ktor.http.decodeURLQueryComponent
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
@@ -48,7 +49,7 @@ class AuthComponentImpl(
                         }
                     }
                 }
-            }.onFailure { it.printStackTrace() }
+            }.onFailure { Napier.e("onCookiesChanged", it) }
         }
     }
 
