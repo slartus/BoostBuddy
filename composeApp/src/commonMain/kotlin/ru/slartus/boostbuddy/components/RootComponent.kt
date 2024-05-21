@@ -1,5 +1,6 @@
 package ru.slartus.boostbuddy.components
 
+import androidx.compose.runtime.Stable
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.router.slot.ChildSlot
 import com.arkivanov.decompose.router.slot.SlotNavigation
@@ -41,6 +42,7 @@ import ru.slartus.boostbuddy.utils.Platform
 import ru.slartus.boostbuddy.utils.PlatformConfiguration
 import ru.slartus.boostbuddy.utils.VersionsComparer.greaterThan
 
+@Stable
 interface RootComponent : AppComponent<RootViewAction> {
     val stack: Value<ChildStack<*, Child>>
     val dialogSlot: Value<ChildSlot<*, DialogChild>>
@@ -109,7 +111,7 @@ class RootComponentImpl(
             key = "DefaultChildStack",
             source = navigation,
             serializer = Config.serializer(),
-            initialConfiguration = Config.Auth,
+            initialConfiguration = Config.Subscribes,
             handleBackButton = true,
             childFactory = ::child,
         )
@@ -237,8 +239,15 @@ class RootComponentImpl(
         BlogComponentImpl(
             componentContext = componentContext,
             blog = config.blog,
-            onItemSelected = { postData, playerUrl ->
-                navigation.push(Config.VideoConfig(postData = postData, playerUrl = playerUrl))
+            onItemSelected = { postId, postData, playerUrl ->
+                navigation.push(
+                    Config.VideoConfig(
+                        blogUrl = config.blog.blogUrl,
+                        postId = postId,
+                        postData = postData,
+                        playerUrl = playerUrl
+                    )
+                )
             },
             onBackClicked = {
                 navigation.popWhile { it == config }
@@ -257,8 +266,15 @@ class RootComponentImpl(
             blogUrl = config.blogUrl,
             post = config.post,
             onBackClicked = { navigation.popWhile { it == config } },
-            onItemSelected = { postData, playerUrl ->
-                navigation.push(Config.VideoConfig(postData = postData, playerUrl = playerUrl))
+            onItemSelected = { postId, postData, playerUrl ->
+                navigation.push(
+                    Config.VideoConfig(
+                        blogUrl = config.blogUrl,
+                        postId = postId,
+                        postData = postData,
+                        playerUrl = playerUrl
+                    )
+                )
             },
         )
 
@@ -268,6 +284,8 @@ class RootComponentImpl(
     ): VideoComponent =
         VideoComponentImpl(
             componentContext = componentContext,
+            blogUrl = config.blogUrl,
+            postId = config.postId,
             postData = config.postData,
             playerUrl = config.playerUrl,
             onStopClicked = { navigation.popWhile { it == config } }
@@ -325,7 +343,12 @@ class RootComponentImpl(
         data class BlogConfig(val blog: Blog) : Config
 
         @Serializable
-        data class VideoConfig(val postData: Content.OkVideo, val playerUrl: PlayerUrl) : Config
+        data class VideoConfig(
+            val blogUrl: String,
+            val postId: String,
+            val postData: Content.OkVideo,
+            val playerUrl: PlayerUrl
+        ) : Config
 
         @Serializable
         data class PostConfig(val blogUrl: String, val post: Post) : Config

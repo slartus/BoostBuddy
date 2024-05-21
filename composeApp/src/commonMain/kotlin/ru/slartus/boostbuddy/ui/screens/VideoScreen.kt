@@ -13,6 +13,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
 import ru.slartus.boostbuddy.components.video.VideoComponent
+import ru.slartus.boostbuddy.components.video.timeCodeMs
 import ru.slartus.boostbuddy.ui.common.HideSystemBarsEffect
 import ru.slartus.boostbuddy.ui.common.KeepScreenOnEffect
 import ru.slartus.boostbuddy.ui.widgets.VideoPlayer
@@ -25,12 +26,12 @@ fun VideoScreen(component: VideoComponent) {
     HideSystemBarsEffect()
 
     Box(modifier = Modifier.fillMaxSize().background(Color.Black)) {
-        state.position?.let { position ->
+        state.postData?.let { postData ->
             VideoPlayer(
-                vid = state.postData.vid,
+                vid = postData.vid,
                 playerUrl = state.playerUrl,
-                title = state.postData.title,
-                position = position,
+                title = postData.title,
+                position = postData.timeCodeMs,
                 onVideoStateChange = { state -> component.onVideoStateChanged(state) },
                 onContentPositionChange = { component.onContentPositionChange(it) },
                 onStopClick = { component.onStopClicked() }

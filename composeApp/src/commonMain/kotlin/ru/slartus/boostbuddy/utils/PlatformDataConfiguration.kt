@@ -1,14 +1,19 @@
 package ru.slartus.boostbuddy.utils
 
+import org.kodein.di.DI
 import org.kodein.di.bindSingleton
 import org.kodein.di.instance
 import ru.slartus.boostbuddy.data.Inject
-import ru.slartus.boostbuddy.data.ktor.buildHttpClient
+import ru.slartus.boostbuddy.data.ktor.buildBoostyHttpClient
+import ru.slartus.boostbuddy.data.ktor.buildGithubHttpClient
 import ru.slartus.boostbuddy.data.repositories.BlogRepository
+import ru.slartus.boostbuddy.data.repositories.BoostyApi
 import ru.slartus.boostbuddy.data.repositories.GithubRepository
 import ru.slartus.boostbuddy.data.repositories.PostRepository
+import ru.slartus.boostbuddy.data.repositories.ProfileRepository
 import ru.slartus.boostbuddy.data.repositories.SettingsRepository
 import ru.slartus.boostbuddy.data.repositories.SubscribesRepository
+import ru.slartus.boostbuddy.data.repositories.VideoRepository
 import ru.slartus.boostbuddy.data.repositories.comments.CommentsRepository
 import ru.slartus.boostbuddy.data.settings.SettingsFactory
 
@@ -21,24 +26,30 @@ object PlatformDataConfiguration {
             bindSingleton { platformConfiguration }
             bindSingleton { Permissions(platformConfiguration = instance()) }
             bindSingleton { SettingsRepository(settings = instance()) }
-            bindSingleton(TAG_HTTP_CLIENT_BOOSTY) {
-                buildHttpClient(
-                    platformConfiguration.isDebug,
-                    settingsRepository = instance()
-                )
-            }
-            bindSingleton(TAG_HTTP_CLIENT_GITHUB) {
-                buildHttpClient(
-                    platformConfiguration.isDebug,
-                    settingsRepository = null
-                )
-            }
             bindSingleton { SettingsFactory(platformConfiguration = instance()).createDefault() }
-            bindSingleton { SubscribesRepository(httpClient = instance(TAG_HTTP_CLIENT_BOOSTY)) }
-            bindSingleton { BlogRepository(httpClient = instance(TAG_HTTP_CLIENT_BOOSTY)) }
-            bindSingleton { GithubRepository(httpClient = instance(TAG_HTTP_CLIENT_GITHUB)) }
-            bindSingleton { CommentsRepository(httpClient = instance(TAG_HTTP_CLIENT_BOOSTY)) }
-            bindSingleton { PostRepository(httpClient = instance(TAG_HTTP_CLIENT_BOOSTY)) }
+            githubDependencies(platformConfiguration.isDebug)
+            boostyDependencies(platformConfiguration.isDebug)
         }
+    }
+
+    private fun DI.MainBuilder.githubDependencies(isDebug: Boolean) {
+        bindSingleton(TAG_HTTP_CLIENT_GITHUB) { buildGithubHttpClient(isDebug) }
+        bindSingleton { GithubRepository(httpClient = instance(TAG_HTTP_CLIENT_GITHUB)) }
+    }
+
+    private fun DI.MainBuilder.boostyDependencies(isDebug: Boolean) {
+        bindSingleton(TAG_HTTP_CLIENT_BOOSTY) {
+            buildBoostyHttpClient(
+                isDebug = isDebug,
+                settingsRepository = instance()
+            )
+        }
+        bindSingleton { BoostyApi(httpClient = instance(TAG_HTTP_CLIENT_BOOSTY)) }
+        bindSingleton { SubscribesRepository(boostyApi = instance()) }
+        bindSingleton { BlogRepository(boostyApi = instance()) }
+        bindSingleton { CommentsRepository(boostyApi = instance()) }
+        bindSingleton { PostRepository(boostyApi = instance()) }
+        bindSingleton { VideoRepository(boostyApi = instance()) }
+        bindSingleton { ProfileRepository(boostyApi = instance()) }
     }
 }

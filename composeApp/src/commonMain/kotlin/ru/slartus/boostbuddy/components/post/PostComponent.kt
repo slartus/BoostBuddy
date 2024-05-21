@@ -29,7 +29,7 @@ interface PostComponent {
     fun onRepeatClicked()
     fun onMoreCommentsClicked()
     fun onMoreRepliesClicked(commentItem: PostViewItem.CommentItem)
-    fun onVideoItemClicked(postData: Content.OkVideo)
+    fun onVideoItemClicked(postId: String, postData: Content.OkVideo)
 
     val viewStates: Value<PostViewState>
     val dialogSlot: Value<ChildSlot<*, VideoTypeComponent>>
@@ -41,7 +41,7 @@ class PostComponentImpl(
     private val blogUrl: String,
     private val post: Post,
     override val onBackClicked: () -> Unit,
-    private val onItemSelected: (postData: Content.OkVideo, playerUrl: PlayerUrl) -> Unit,
+    private val onItemSelected: (postId: String, postData: Content.OkVideo, playerUrl: PlayerUrl) -> Unit,
 ) : BaseComponent<PostViewState, Any>(
     componentContext,
     PostViewState(post)
@@ -61,7 +61,7 @@ class PostComponentImpl(
                 onDismissed = dialogNavigation::dismiss,
                 onItemClicked = { playerUrl ->
                     dialogNavigation.dismiss()
-                    onItemSelected(config.postData, playerUrl)
+                    onItemSelected(config.postId, config.postData, playerUrl)
                 }
             )
         }
@@ -169,13 +169,14 @@ class PostComponentImpl(
         }
     }
 
-    override fun onVideoItemClicked(postData: Content.OkVideo) {
-        dialogNavigation.activate(DialogConfig(postData = postData))
+    override fun onVideoItemClicked(postId: String, postData: Content.OkVideo) {
+        dialogNavigation.activate(DialogConfig(postId = postId, postData = postData))
     }
 
 
     @Serializable
     private data class DialogConfig(
+        val postId: String,
         val postData: Content.OkVideo,
     )
 }

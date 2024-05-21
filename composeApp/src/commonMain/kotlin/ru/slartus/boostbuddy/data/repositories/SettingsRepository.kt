@@ -8,7 +8,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.withContext
 
-class SettingsRepository(
+internal class SettingsRepository(
     private val settings: Settings
 ) {
     private val tokenBus: MutableStateFlow<String?> = MutableStateFlow(

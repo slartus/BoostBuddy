@@ -28,7 +28,7 @@ import ru.slartus.boostbuddy.utils.unauthorizedError
 interface BlogComponent {
     val viewStates: Value<BlogViewState>
     val dialogSlot: Value<ChildSlot<*, VideoTypeComponent>>
-    fun onVideoItemClicked(postData: Content.OkVideo)
+    fun onVideoItemClicked(postId: String, postData: Content.OkVideo)
     fun onBackClicked()
     fun onScrolledToEnd()
     fun onRepeatClicked()
@@ -39,7 +39,7 @@ interface BlogComponent {
 class BlogComponentImpl(
     componentContext: ComponentContext,
     private val blog: Blog,
-    private val onItemSelected: (postData: Content.OkVideo, playerUrl: PlayerUrl) -> Unit,
+    private val onItemSelected: (postId: String, postData: Content.OkVideo, playerUrl: PlayerUrl) -> Unit,
     private val onBackClicked: () -> Unit,
     private val onPostSelected: (blog: Blog, item: Post) -> Unit,
 ) : BaseComponent<BlogViewState, Any>(
@@ -61,7 +61,7 @@ class BlogComponentImpl(
                 onDismissed = dialogNavigation::dismiss,
                 onItemClicked = { playerUrl ->
                     dialogNavigation.dismiss()
-                    onItemSelected(config.postData, playerUrl)
+                    onItemSelected(config.postId, config.postData, playerUrl)
                 }
             )
         }
@@ -149,8 +149,8 @@ class BlogComponentImpl(
         }
     }
 
-    override fun onVideoItemClicked(postData: Content.OkVideo) {
-        dialogNavigation.activate(DialogConfig(postData = postData))
+    override fun onVideoItemClicked(postId: String, postData: Content.OkVideo) {
+        dialogNavigation.activate(DialogConfig(postId, postData = postData))
     }
 
     override fun onBackClicked() {
@@ -192,6 +192,7 @@ class BlogComponentImpl(
 
     @Serializable
     private data class DialogConfig(
+        val postId: String,
         val postData: Content.OkVideo,
     )
 }

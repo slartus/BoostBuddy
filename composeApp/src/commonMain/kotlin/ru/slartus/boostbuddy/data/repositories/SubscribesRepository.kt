@@ -1,18 +1,18 @@
 package ru.slartus.boostbuddy.data.repositories
 
-import io.ktor.client.HttpClient
 import io.ktor.client.call.body
-import io.ktor.client.request.get
 import kotlinx.serialization.Serializable
 import ru.slartus.boostbuddy.utils.fetchOrError
 
-class SubscribesRepository(
-    private val httpClient: HttpClient
+internal class SubscribesRepository(
+    private val boostyApi: BoostyApi
 ) {
     suspend fun getSubscribes(): Result<List<SubscribeItem>> =
         fetchOrError {
-            val response: SubscribesResponse =
-                httpClient.get("https://api.boosty.to/v1/user/subscriptions?limit=30&with_follow=true").body()
+            val response: SubscribesResponse = boostyApi.subscribes(
+                limit = 30,
+                withFollow = true
+            ).body()
 
             response.data?.mapNotNull { it.toSubscribeItemOrNull() } ?: emptyList()
         }

@@ -1,5 +1,6 @@
 [versions]
 
+desugar_jdk_libs = "2.0.4"
 kotlin = "1.9.22"
 compose = "1.6.0" # https://github.com/JetBrains/compose-multiplatform
 agp = "8.2.2"
@@ -31,6 +32,7 @@ compose-uitooling = { module = "androidx.compose.ui:ui-tooling", version.ref = "
 decompose = { module = "com.arkivanov.decompose:decompose", version.ref = "decompose" }
 decompose-compose = { module = "com.arkivanov.decompose:extensions-compose-jetbrains", version.ref = "decompose" }
 decompose-extensions-experimental = { module = "com.arkivanov.decompose:extensions-compose-jetbrains", version.ref = "decompose" }
+desugar_jdk_libs = { module = "com.android.tools:desugar_jdk_libs", version.ref = "desugar_jdk_libs" }
 essently-lifecycle = { module = "com.arkivanov.essenty:lifecycle", version.ref = "essently" }
 composeImageLoader = { module = "io.github.qdsfdhvh:image-loader", version.ref = "composeImageLoader" }
 android-splashscreen = { module = "androidx.core:core-splashscreen", version.ref = "android-splashscreen" }
