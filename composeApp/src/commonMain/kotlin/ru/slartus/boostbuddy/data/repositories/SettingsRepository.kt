@@ -6,11 +6,14 @@ import kotlinx.coroutines.IO
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 
 internal class SettingsRepository(
     private val settings: Settings
 ) {
+    private val locker = Mutex()
     private val tokenBus: MutableStateFlow<String?> = MutableStateFlow(
         null
     )
@@ -31,31 +34,53 @@ internal class SettingsRepository(
     }
 
     suspend fun getString(key: String): String? = withContext(Dispatchers.IO) {
-        settings.getStringOrNull(key)
+        locker.withLock {
+            settings.getStringOrNull(key)
+        }
     }
 
     suspend fun putString(key: String, value: String) = withContext(Dispatchers.IO) {
-        settings.putString(key, value)
+        locker.withLock {
+            settings.putString(key, value)
+        }
+    }
+
+    suspend fun putBoolean(key: String, value: Boolean) = withContext(Dispatchers.IO) {
+        locker.withLock {
+            settings.putBoolean(key, value)
+        }
     }
 
     suspend fun putLong(key: String, value: Long) = withContext(Dispatchers.IO) {
-        settings.putLong(key, value)
+        locker.withLock {
+            settings.putLong(key, value)
+        }
     }
 
     suspend fun getLong(key: String) = withContext(Dispatchers.IO) {
-        settings.getLongOrNull(key)
+        locker.withLock {
+            settings.getLongOrNull(key)
+        }
     }
 
     suspend fun setDarkMode(value: Boolean) = withContext(Dispatchers.IO) {
-        settings.putBoolean(DARK_MODE_KEY, value)
-        darkModeBus.value = value
+        locker.withLock {
+            putBoolean(DARK_MODE_KEY, value)
+            darkModeBus.value = value
+        }
+    }
+
+    suspend fun remove(key: String) = withContext(Dispatchers.IO) {
+        locker.withLock {
+            settings.remove(key)
+        }
     }
 
     suspend fun putAccessToken(value: String?) = withContext(Dispatchers.IO) {
         if (value == null)
-            settings.remove(ACCESS_TOKEN_KEY)
+            remove(ACCESS_TOKEN_KEY)
         else
-            settings.putString(ACCESS_TOKEN_KEY, value)
+            putString(ACCESS_TOKEN_KEY, value)
         tokenBus.value = value
     }
 
