@@ -29,6 +29,9 @@ internal fun buildBoostyHttpClient(isDebug: Boolean, settingsRepository: Setting
                 loadTokens {
                     BearerTokens(settingsRepository.getAccessToken().orEmpty(), "")
                 }
+                refreshTokens {
+                    BearerTokens(settingsRepository.getAccessToken().orEmpty(), "")
+                }
             }
         }
         defaultRequest {

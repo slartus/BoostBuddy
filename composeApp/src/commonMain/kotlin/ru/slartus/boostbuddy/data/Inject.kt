@@ -22,7 +22,7 @@ object Inject {
         return di.instance()
     }
 
-    inline fun <reified T> lazy(): LazyDelegate<T> {
-        return diLazy.instance()
+    inline fun <reified T> lazy(tag: Any? = null): LazyDelegate<T> {
+        return diLazy.instance(tag)
     }
 }
