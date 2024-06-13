@@ -194,6 +194,7 @@ class SubscribesComponentImpl(
         scope.launch {
             settingsRepository.putAccessToken(null)
             WebManager.clearWebViewCookies()
+            WebManager.clearWebViewStorage()
             unauthorizedError()
         }
     }
