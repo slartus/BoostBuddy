@@ -22,6 +22,7 @@ import androidx.compose.material.icons.filled.Feedback
 import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -56,7 +57,7 @@ import ru.slartus.boostbuddy.ui.widgets.ErrorView
 import ru.slartus.boostbuddy.ui.widgets.LoaderView
 
 @Composable
-fun SubscribesScreen(component: SubscribesComponent) {
+internal fun SubscribesScreen(component: SubscribesComponent) {
     val state by component.viewStates.subscribeAsState()
     val isDarkState by LocalThemeIsDark.current
     Scaffold(
@@ -66,6 +67,7 @@ fun SubscribesScreen(component: SubscribesComponent) {
                 onChangeDarkModeClick = { component.onSetDarkModeClicked(!isDarkState) },
                 onLogoutClick = { component.onLogoutClicked() },
                 onFeedbackClick = { component.onFeedbackClicked() },
+                onSettingsClick = { component.onSettingsClicked() }
             )
         },
     ) { innerPadding ->
@@ -115,7 +117,8 @@ private fun TopAppBar(
     onRefreshClick: () -> Unit,
     onChangeDarkModeClick: () -> Unit,
     onLogoutClick: () -> Unit,
-    onFeedbackClick: () -> Unit
+    onFeedbackClick: () -> Unit,
+    onSettingsClick: () -> Unit
 ) {
     val isDarkState by LocalThemeIsDark.current
     var showDropDownMenu by remember { mutableStateOf(false) }
@@ -149,6 +152,19 @@ private fun TopAppBar(
             DropdownMenu(
                 showDropDownMenu, { showDropDownMenu = false }
             ) {
+                DropdownMenuItem(
+                    text = { Text(text = "Настройки") },
+                    leadingIcon = {
+                        Icon(
+                            imageVector = Icons.Filled.Settings,
+                            contentDescription = "Settings"
+                        )
+                    },
+                    onClick = {
+                        showDropDownMenu = false
+                        onSettingsClick()
+                    }
+                )
                 DropdownMenuItem(
                     text = { Text(text = "Обсудить на форуме") },
                     leadingIcon = {

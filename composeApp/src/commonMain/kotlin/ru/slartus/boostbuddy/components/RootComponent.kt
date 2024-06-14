@@ -24,6 +24,8 @@ import ru.slartus.boostbuddy.components.blog.BlogComponent
 import ru.slartus.boostbuddy.components.blog.BlogComponentImpl
 import ru.slartus.boostbuddy.components.post.PostComponent
 import ru.slartus.boostbuddy.components.post.PostComponentImpl
+import ru.slartus.boostbuddy.components.settings.SettingsComponent
+import ru.slartus.boostbuddy.components.settings.SettingsComponentImpl
 import ru.slartus.boostbuddy.components.subscribes.SubscribesComponent
 import ru.slartus.boostbuddy.components.subscribes.SubscribesComponentImpl
 import ru.slartus.boostbuddy.components.video.VideoComponent
@@ -59,6 +61,7 @@ interface RootComponent : AppComponent<RootViewAction> {
     fun onDialogVersionCancelClicked()
     fun onDialogErrorDismissed()
     fun onErrorReceived(ex: Throwable)
+    fun onDialogSettingsDismissed()
 
     // Defines all possible child components
     sealed class Child {
@@ -74,6 +77,8 @@ interface RootComponent : AppComponent<RootViewAction> {
             DialogChild()
 
         data class Error(val message: String) : DialogChild()
+
+        data class AppSettings(val component: SettingsComponent) : DialogChild()
     }
 }
 
@@ -213,7 +218,15 @@ class RootComponentImpl(
             )
 
             is DialogConfig.Error -> RootComponent.DialogChild.Error(config.message)
+            DialogConfig.AppSettings -> RootComponent.DialogChild.AppSettings(
+                settingsComponent(
+                    componentContext
+                )
+            )
         }
+
+    private fun settingsComponent(componentContext: ComponentContext): SettingsComponent =
+        SettingsComponentImpl(componentContext = componentContext)
 
     private fun authComponent(componentContext: ComponentContext): AuthComponent =
         AuthComponentImpl(
@@ -231,6 +244,11 @@ class RootComponentImpl(
             },
             onBackClicked = {
                 navigation.pop()
+            },
+            onAppSettingsClicked = {
+                dialogNavigation.activate(
+                    DialogConfig.AppSettings
+                )
             }
         )
 
@@ -242,23 +260,12 @@ class RootComponentImpl(
             componentContext = componentContext,
             blog = config.blog,
             onItemSelected = { postId, postData, playerUrl ->
-
-                val player = VideoPlayer()
-                player.playUrl(
-                    platformConfiguration = platformConfiguration,
-                    title = postData.title,
-                    url = playerUrl.url,
-                    mimeType = "video/*",
-                    posterUrl = ""
+                playVideo(
+                    blogUrl = config.blog.blogUrl,
+                    postId = postId,
+                    postData = postData,
+                    playerUrl = playerUrl
                 )
-//                navigation.push(
-//                    Config.VideoConfig(
-//                        blogUrl = config.blog.blogUrl,
-//                        postId = postId,
-//                        postData = postData,
-//                        playerUrl = playerUrl
-//                    )
-//                )
             },
             onBackClicked = {
                 navigation.popWhile { it == config }
@@ -278,18 +285,44 @@ class RootComponentImpl(
             post = config.post,
             onBackClicked = { navigation.popWhile { it == config } },
             onItemSelected = { postId, postData, playerUrl ->
-                val player = VideoPlayer()
-                player.playUrl(platformConfiguration, playerUrl.url, postData.title, "","" )
-//                navigation.push(
-//                    Config.VideoConfig(
-//                        blogUrl = config.blogUrl,
-//                        postId = postId,
-//                        postData = postData,
-//                        playerUrl = playerUrl
-//                    )
-//                )
+                playVideo(
+                    blogUrl = config.blogUrl,
+                    postId = postId,
+                    postData = postData,
+                    playerUrl = playerUrl
+                )
             },
         )
+
+    private fun playVideo(
+        blogUrl: String,
+        postId: String,
+        postData: Content.OkVideo,
+        playerUrl: PlayerUrl
+    ) {
+        scope.launch {
+            val settings = settingsRepository.getSettings()
+            if (settings.useSystemVideoPlayer) {
+                val player = VideoPlayer()
+                player.playUrl(
+                    platformConfiguration = platformConfiguration,
+                    title = postData.title,
+                    url = playerUrl.url,
+                    mimeType = "video/*",
+                    posterUrl = postData.previewUrl
+                )
+            } else {
+                navigation.push(
+                    Config.VideoConfig(
+                        blogUrl = blogUrl,
+                        postId = postId,
+                        postData = postData,
+                        playerUrl = playerUrl
+                    )
+                )
+            }
+        }
+    }
 
     private fun videoComponent(
         componentContext: ComponentContext,
@@ -344,6 +377,10 @@ class RootComponentImpl(
         viewAction = RootViewAction.ShowSnackBar(ex.message ?: ex.toString())
     }
 
+    override fun onDialogSettingsDismissed() {
+        dialogNavigation.dismiss()
+    }
+
     @Serializable
     private sealed interface Config {
         @Serializable
@@ -377,5 +414,8 @@ class RootComponentImpl(
 
         @Serializable
         data class Error(val message: String) : DialogConfig
+
+        @Serializable
+        data object AppSettings : DialogConfig
     }
 }

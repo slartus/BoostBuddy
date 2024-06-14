@@ -36,6 +36,7 @@ import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
 import ru.slartus.boostbuddy.components.RootComponent
 import ru.slartus.boostbuddy.components.RootViewAction
 import ru.slartus.boostbuddy.components.observeAction
+import ru.slartus.boostbuddy.components.settings.SettingsComponent
 import ru.slartus.boostbuddy.ui.screens.blog.BlogScreen
 import ru.slartus.boostbuddy.ui.screens.post.PostScreen
 import ru.slartus.boostbuddy.ui.theme.AppTheme
@@ -89,10 +90,20 @@ fun RootScreen(component: RootComponent, modifier: Modifier = Modifier) {
                             component.onDialogErrorDismissed()
                         },
                     )
+
+                    is RootComponent.DialogChild.AppSettings -> SettingsDialogView(
+                        component = dialogComponent.component,
+                        onDismissClicked = {
+                            component.onDialogSettingsDismissed()
+                        },
+                    )
                 }
             }
 
-            SnackbarHost(hostState = snackState, Modifier.fillMaxWidth().align(Alignment.BottomCenter))
+            SnackbarHost(
+                hostState = snackState,
+                Modifier.fillMaxWidth().align(Alignment.BottomCenter)
+            )
 
             component.observeAction { action ->
                 when (action) {
@@ -107,13 +118,34 @@ fun RootScreen(component: RootComponent, modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun WindowInsetsBox(modifier: Modifier = Modifier, content: @Composable BoxScope.() -> Unit) {
+private fun WindowInsetsBox(
+    modifier: Modifier = Modifier,
+    content: @Composable BoxScope.() -> Unit
+) {
     Column(modifier) {
         Box(Modifier.weight(1f)) {
             content()
         }
 
         Spacer(Modifier.windowInsetsBottomHeight(WindowInsets.ime))
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun SettingsDialogView(
+    component: SettingsComponent,
+    onDismissClicked: () -> Unit,
+) {
+    val sheetState = rememberModalBottomSheetState(
+        skipPartiallyExpanded = true
+    )
+    ModalBottomSheet(
+        modifier = Modifier,
+        onDismissRequest = { onDismissClicked() },
+        sheetState = sheetState
+    ) {
+        SettingsScreen(component)
     }
 }
 

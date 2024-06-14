@@ -52,7 +52,7 @@ import ru.slartus.boostbuddy.ui.widgets.LoaderView
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun BlogScreen(component: BlogComponent) {
+internal fun BlogScreen(component: BlogComponent) {
     val state by component.viewStates.subscribeAsState()
 
     Scaffold(

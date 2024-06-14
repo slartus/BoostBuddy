@@ -40,6 +40,8 @@ internal class SettingsRepository(
         )
     }
 
+    suspend fun getSettings(): AppSettings = appSettingsBus.value
+
     suspend fun setDarkMode(value: Boolean) = withContext(Dispatchers.IO) {
         putBoolean(DARK_MODE_KEY, value)
         loadAppSettings()
