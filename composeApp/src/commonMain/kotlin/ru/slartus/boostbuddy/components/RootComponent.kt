@@ -29,6 +29,7 @@ import ru.slartus.boostbuddy.components.subscribes.SubscribesComponentImpl
 import ru.slartus.boostbuddy.components.video.VideoComponent
 import ru.slartus.boostbuddy.components.video.VideoComponentImpl
 import ru.slartus.boostbuddy.data.Inject
+import ru.slartus.boostbuddy.data.repositories.AppSettings
 import ru.slartus.boostbuddy.data.repositories.Blog
 import ru.slartus.boostbuddy.data.repositories.GithubRepository
 import ru.slartus.boostbuddy.data.repositories.ReleaseInfo
@@ -41,6 +42,7 @@ import ru.slartus.boostbuddy.utils.Permissions
 import ru.slartus.boostbuddy.utils.Platform
 import ru.slartus.boostbuddy.utils.PlatformConfiguration
 import ru.slartus.boostbuddy.utils.VersionsComparer.greaterThan
+import ru.slartus.boostbuddy.utils.VideoPlayer
 
 @Stable
 interface RootComponent : AppComponent<RootViewAction> {
@@ -76,7 +78,7 @@ interface RootComponent : AppComponent<RootViewAction> {
 }
 
 data class RootViewState(
-    val darkMode: Boolean?
+    val appSettings: AppSettings
 )
 
 sealed class RootViewAction {
@@ -87,7 +89,7 @@ class RootComponentImpl(
     componentContext: ComponentContext,
 ) : BaseComponent<RootViewState, RootViewAction>(
     componentContext,
-    RootViewState(darkMode = null)
+    RootViewState(appSettings = AppSettings.Default)
 ),
     RootComponent {
     private val navigation = StackNavigation<Config>()
@@ -123,8 +125,8 @@ class RootComponentImpl(
 
     private fun subscribeSettings() {
         scope.launch {
-            settingsRepository.darkModeFlow.collect {
-                viewState = viewState.copy(darkMode = it)
+            settingsRepository.settingsFlow.collect {
+                viewState = viewState.copy(appSettings = it)
             }
         }
     }
@@ -240,14 +242,23 @@ class RootComponentImpl(
             componentContext = componentContext,
             blog = config.blog,
             onItemSelected = { postId, postData, playerUrl ->
-                navigation.push(
-                    Config.VideoConfig(
-                        blogUrl = config.blog.blogUrl,
-                        postId = postId,
-                        postData = postData,
-                        playerUrl = playerUrl
-                    )
+
+                val player = VideoPlayer()
+                player.playUrl(
+                    platformConfiguration = platformConfiguration,
+                    title = postData.title,
+                    url = playerUrl.url,
+                    mimeType = "video/*",
+                    posterUrl = ""
                 )
+//                navigation.push(
+//                    Config.VideoConfig(
+//                        blogUrl = config.blog.blogUrl,
+//                        postId = postId,
+//                        postData = postData,
+//                        playerUrl = playerUrl
+//                    )
+//                )
             },
             onBackClicked = {
                 navigation.popWhile { it == config }
@@ -267,14 +278,16 @@ class RootComponentImpl(
             post = config.post,
             onBackClicked = { navigation.popWhile { it == config } },
             onItemSelected = { postId, postData, playerUrl ->
-                navigation.push(
-                    Config.VideoConfig(
-                        blogUrl = config.blogUrl,
-                        postId = postId,
-                        postData = postData,
-                        playerUrl = playerUrl
-                    )
-                )
+                val player = VideoPlayer()
+                player.playUrl(platformConfiguration, playerUrl.url, postData.title, "","" )
+//                navigation.push(
+//                    Config.VideoConfig(
+//                        blogUrl = config.blogUrl,
+//                        postId = postId,
+//                        postData = postData,
+//                        playerUrl = playerUrl
+//                    )
+//                )
             },
         )
 

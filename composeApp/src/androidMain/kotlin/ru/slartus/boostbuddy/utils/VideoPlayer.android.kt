@@ -14,10 +14,25 @@ actual class VideoPlayer {
     }
 
     private fun getPlayerIntent(title: String, url: String, mimeType: String?, posterUrl: String?): Intent {
-        val intent = Intent(Intent.ACTION_VIEW)
-        intent.setDataAndType(Uri.parse(url), mimeType)
-        intent.putExtra("title", title)
-        intent.putExtra("poster", posterUrl)
+        val intent = Intent(Intent.ACTION_VIEW).apply {
+            setDataAndType(Uri.parse(url), mimeType)
+            putExtra("title", title)
+            putExtra("poster", posterUrl)
+            putMxPlayerExtra(title)
+            putVimuPlayerExtra(title)
+        }
+
         return Intent.createChooser(intent, "")
+    }
+
+    private fun Intent.putMxPlayerExtra(title: String) {
+        putExtra("title",title)
+        putExtra("sticky", false)
+    }
+
+    private fun Intent.putVimuPlayerExtra(title: String) {
+        putExtra("forcename", title)
+        putExtra("forcedirect", true)
+        putExtra("forceresume", true)
     }
 }
