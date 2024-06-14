@@ -48,10 +48,10 @@ fun RootScreen(component: RootComponent, modifier: Modifier = Modifier) {
     val dialogSlot by component.dialogSlot.subscribeAsState()
     val snackState = remember { SnackbarHostState() }
 
-    AppTheme(state.darkMode) {
+    AppTheme(state.appSettings.isDarkMode) {
         WindowInsetsBox {
             var isDarkState by LocalThemeIsDark.current
-            isDarkState = state.darkMode ?: isDarkState
+            isDarkState = state.appSettings.isDarkMode ?: isDarkState
             Children(
                 stack = component.stack,
                 modifier = modifier,

@@ -125,7 +125,7 @@ class RootComponentImpl(
 
     private fun subscribeSettings() {
         scope.launch {
-            settingsRepository.settingsFlow.collect {
+            settingsRepository.appSettingsFlow.collect {
                 viewState = viewState.copy(appSettings = it)
             }
         }
