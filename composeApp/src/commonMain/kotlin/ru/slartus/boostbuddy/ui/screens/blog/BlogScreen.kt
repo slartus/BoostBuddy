@@ -114,9 +114,7 @@ internal fun BlogScreen(component: BlogComponent) {
     dialogSlot.child?.instance?.also { videoTypeComponent ->
         VideoTypeDialogView(
             modifier = Modifier,
-            postData = videoTypeComponent.postData,
-            onDismissClicked = { videoTypeComponent.onDismissClicked() },
-            onItemClicked = { videoTypeComponent.onItemClicked(it) }
+            component = videoTypeComponent
         )
     }
 }

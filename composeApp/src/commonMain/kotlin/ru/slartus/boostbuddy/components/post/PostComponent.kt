@@ -57,6 +57,7 @@ class PostComponentImpl(
             handleBackButton = true, // Close the dialog on back button press
         ) { config, _ ->
             VideoTypeComponentImpl(
+                componentContext = this,
                 postData = config.postData,
                 onDismissed = dialogNavigation::dismiss,
                 onItemClicked = { playerUrl ->
