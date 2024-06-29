@@ -19,7 +19,7 @@ import ru.slartus.boostbuddy.ui.common.KeepScreenOnEffect
 import ru.slartus.boostbuddy.ui.widgets.VideoPlayer
 
 @Composable
-fun VideoScreen(component: VideoComponent) {
+internal fun VideoScreen(component: VideoComponent) {
     val state by component.viewStates.subscribeAsState()
 
     KeepScreenOnEffect()

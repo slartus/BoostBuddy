@@ -59,7 +59,7 @@ import ru.slartus.boostbuddy.utils.Platform
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AuthScreen(component: AuthComponent) {
+internal fun AuthScreen(component: AuthComponent) {
     val density = LocalDensity.current
 
     val platformConfiguration = LocalPlatformConfiguration.current

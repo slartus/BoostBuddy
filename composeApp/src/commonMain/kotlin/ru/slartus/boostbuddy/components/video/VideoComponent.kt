@@ -36,7 +36,7 @@ enum class VideoState {
     Idle, Buffering, Ready, Ended
 }
 
-class VideoComponentImpl(
+internal class VideoComponentImpl(
     componentContext: ComponentContext,
     blogUrl: String,
     postId: String,

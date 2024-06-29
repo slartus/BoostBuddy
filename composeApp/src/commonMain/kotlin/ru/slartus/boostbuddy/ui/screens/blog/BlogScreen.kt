@@ -52,7 +52,7 @@ import ru.slartus.boostbuddy.ui.widgets.LoaderView
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun BlogScreen(component: BlogComponent) {
+internal fun BlogScreen(component: BlogComponent) {
     val state by component.viewStates.subscribeAsState()
 
     Scaffold(
@@ -114,9 +114,7 @@ fun BlogScreen(component: BlogComponent) {
     dialogSlot.child?.instance?.also { videoTypeComponent ->
         VideoTypeDialogView(
             modifier = Modifier,
-            postData = videoTypeComponent.postData,
-            onDismissClicked = { videoTypeComponent.onDismissClicked() },
-            onItemClicked = { videoTypeComponent.onItemClicked(it) }
+            component = videoTypeComponent
         )
     }
 }

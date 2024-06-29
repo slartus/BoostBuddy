@@ -35,6 +35,7 @@ interface SubscribesComponent {
     fun onRefreshClicked()
     fun onFeedbackClicked()
     fun onDialogDismissed()
+    fun onSettingsClicked()
 
     sealed class DialogChild {
         data class Logout(val component: LogoutDialogComponent) : DialogChild()
@@ -57,6 +58,7 @@ class SubscribesComponentImpl(
     componentContext: ComponentContext,
     private val onItemSelected: (item: SubscribeItem) -> Unit,
     private val onBackClicked: () -> Unit,
+    private val onAppSettingsClicked: () -> Unit
 ) : BaseComponent<SubscribesViewState, Any>(
     componentContext,
     SubscribesViewState(SubscribesViewState.ProgressState.Init)
@@ -190,10 +192,15 @@ class SubscribesComponentImpl(
         dialogNavigation.dismiss()
     }
 
+    override fun onSettingsClicked() {
+        onAppSettingsClicked()
+    }
+
     private fun logout() {
         scope.launch {
             settingsRepository.putAccessToken(null)
             WebManager.clearWebViewCookies()
+            WebManager.clearWebViewStorage()
             unauthorizedError()
         }
     }
