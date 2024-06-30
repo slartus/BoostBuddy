@@ -19,12 +19,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.unit.dp
 
+
+@Composable
+private fun focusedModifier() = Modifier.border(1.dp, MaterialTheme.colorScheme.error)
+
 @Composable
 internal fun FocusableBox(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
     var focused by remember { mutableStateOf(false) }
     Box(modifier
         .then(
-            if (focused) Modifier.border(0.5.dp, MaterialTheme.colorScheme.primary)
+            if (focused) focusedModifier()
             else Modifier
         )
         .onFocusChanged { focused = it.isFocused }
@@ -43,7 +47,7 @@ internal fun FocusableRow(
     var focused by remember { mutableStateOf(false) }
     Row(modifier = modifier
         .then(
-            if (focused) Modifier.border(0.5.dp, MaterialTheme.colorScheme.primary)
+            if (focused) focusedModifier()
             else Modifier
         )
         .onFocusChanged { focused = it.isFocused }
@@ -63,7 +67,7 @@ internal fun FocusableColumn(
     var focused by remember { mutableStateOf(false) }
     Column(modifier
         .then(
-            if (focused) Modifier.border(0.5.dp, MaterialTheme.colorScheme.primary)
+            if (focused) focusedModifier()
             else Modifier
         )
         .onFocusChanged { focused = it.isFocused }
