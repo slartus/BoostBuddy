@@ -24,6 +24,7 @@ interface SettingsComponent {
     fun onUseSystemPlayerClicked(value: Boolean)
     fun onDonateClicked()
     fun onDialogDismissed()
+    fun onVersionClicked()
 
     sealed class DialogChild {
         data class Qr(val title: String, val url: String) : DialogChild()
@@ -36,6 +37,7 @@ data class SettingsViewState(
 
 internal class SettingsComponentImpl(
     componentContext: ComponentContext,
+    val onVersionClickedHandler: () -> Unit
 ) : BaseComponent<SettingsViewState, Any>(componentContext, SettingsViewState(AppSettings.Default)),
     SettingsComponent {
     private val settingsRepository by Inject.lazy<SettingsRepository>()
@@ -87,6 +89,10 @@ internal class SettingsComponentImpl(
 
     override fun onDialogDismissed() {
         dialogNavigation.dismiss()
+    }
+
+    override fun onVersionClicked() {
+        onVersionClickedHandler()
     }
 
     private fun activateDonateQr() {

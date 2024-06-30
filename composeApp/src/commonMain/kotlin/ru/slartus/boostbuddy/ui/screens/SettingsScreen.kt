@@ -16,12 +16,13 @@ import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
 import ru.slartus.boostbuddy.components.settings.SettingsComponent
 import ru.slartus.boostbuddy.ui.common.BottomView
+import ru.slartus.boostbuddy.ui.common.LocalPlatformConfiguration
 import ru.slartus.boostbuddy.ui.common.QrDialog
 
 @Composable
 internal fun SettingsScreen(component: SettingsComponent) {
     val state by component.viewStates.subscribeAsState()
-
+    val platformConfiguration = LocalPlatformConfiguration.current
     BottomView("Настройки") {
         Column {
             CheckBoxItem(
@@ -35,6 +36,12 @@ internal fun SettingsScreen(component: SettingsComponent) {
                 text = "Поддержать проект",
                 onClick = {
                     component.onDonateClicked()
+                }
+            )
+            TextItem(
+                text = "Версия программы: ${platformConfiguration.appVersion}",
+                onClick = {
+                    component.onVersionClicked()
                 }
             )
         }
@@ -55,7 +62,7 @@ internal fun SettingsScreen(component: SettingsComponent) {
 @Composable
 private fun TextItem(
     text: String,
-    onClick: () -> Unit
+    onClick: () -> Unit = {}
 ) {
     Text(
         modifier = Modifier.fillMaxWidth().clickable { onClick() }.padding(16.dp),
