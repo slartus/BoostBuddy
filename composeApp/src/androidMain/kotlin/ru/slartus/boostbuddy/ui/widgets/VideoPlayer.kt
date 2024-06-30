@@ -1,6 +1,7 @@
 package ru.slartus.boostbuddy.ui.widgets
 
 import android.graphics.Color
+import android.os.SystemClock
 import android.view.KeyEvent
 import android.view.ViewGroup
 import android.widget.FrameLayout
@@ -69,9 +70,13 @@ import ru.slartus.boostbuddy.data.repositories.models.PlayerUrl
 import ru.slartus.boostbuddy.data.repositories.models.VideoQuality
 import ru.slartus.boostbuddy.ui.common.noRippleClickable
 import ru.slartus.boostbuddy.ui.theme.LightColorScheme
+import java.util.Locale
+import kotlin.math.max
 import kotlin.time.Duration.Companion.seconds
+import kotlin.time.DurationUnit
 
 private val HIDE_CONTROLLER_DELAY = 5.seconds
+private val SEEK_INCREMENT = 5.seconds
 
 @UnstableApi
 @Composable
@@ -125,8 +130,10 @@ actual fun VideoPlayer(
         {
             hideControllerJob.cancel()
             hideControllerJob = coroutineScope.launch(SupervisorJob()) {
-                delay(HIDE_CONTROLLER_DELAY)
-                shouldShowController = false
+                runCatching {
+                    delay(HIDE_CONTROLLER_DELAY)
+                    shouldShowController = false
+                }
             }
         }
     }
@@ -142,12 +149,8 @@ actual fun VideoPlayer(
             shouldShowController = true
         }
     }
-    val hideController: () -> Unit = remember {
-        {
-            hideControllerJob.cancel()
-            shouldShowController = false
-        }
-    }
+
+    val seekState by remember { mutableStateOf(SeekState()) }
     Box {
         AndroidView(
             modifier = Modifier
@@ -174,15 +177,25 @@ actual fun VideoPlayer(
                             exoPlayer.startPlayer()
                         }
                     },
-                    onLeftClick = {
-                        exoPlayer.seekBack()
+                    onLeftClick = { longPress ->
+                        val seekMultiplier = seekState.calcSeekMultiplier(longPress)
+                        exoPlayer.seekTo(
+                            exoPlayer.currentPosition - (SEEK_INCREMENT.toLong(
+                                DurationUnit.MILLISECONDS
+                            ) * seekMultiplier).toLong()
+                        )
                         showControllerTimed()
                     },
-                    onRightClick = {
-                        exoPlayer.seekForward()
+                    onRightClick = { longPress ->
+                        val seekMultiplier = seekState.calcSeekMultiplier(longPress)
+                        exoPlayer.seekTo(
+                            exoPlayer.currentPosition + (SEEK_INCREMENT.toLong(
+                                DurationUnit.MILLISECONDS
+                            ) * seekMultiplier).toLong()
+                        )
                         showControllerTimed()
                     },
-                    onStopClick = onStopClick
+                    onStopClick = { onStopClick() }
                 )
                 .noRippleClickable {
                     when {
@@ -236,10 +249,12 @@ actual fun VideoPlayer(
                     onChangePosition = {
                         changePositionJob.cancel()
                         changePositionJob = coroutineScope.launch(SupervisorJob()) {
-                            if (hideJobActive)
-                                hideControllersDelayed()
-                            delay(500)
-                            exoPlayer.seekTo(it)
+                            runCatching {
+                                if (hideJobActive)
+                                    hideControllersDelayed()
+                                delay(500)
+                                exoPlayer.seekTo(it)
+                            }
                         }
                     }
                 )
@@ -248,6 +263,20 @@ actual fun VideoPlayer(
     }
     LaunchedEffect(Unit) {
         focusRequester.requestFocus()
+    }
+}
+
+private class SeekState {
+    private var seekStartMs: Long = 0
+    fun calcSeekMultiplier(longPress: Boolean): Float {
+        if (!longPress) {
+            seekStartMs = 0
+            return 1f
+        } else {
+            if (seekStartMs == 0L)
+                seekStartMs = SystemClock.uptimeMillis()
+            return max((SystemClock.uptimeMillis() - seekStartMs) / 1000f, 1f)
+        }
     }
 }
 
@@ -263,7 +292,8 @@ private fun ExoPlayer.setMediaSource(mediaId: String, title: String, playerUrl: 
 
         VideoQuality.DASH -> {
             val dataSourceFactory: DataSource.Factory = DefaultHttpDataSource.Factory()
-            val dashMediaSource = DashMediaSource.Factory(dataSourceFactory).createMediaSource(MediaItem.fromUri(playerUrl.url))
+            val dashMediaSource = DashMediaSource.Factory(dataSourceFactory)
+                .createMediaSource(MediaItem.fromUri(playerUrl.url))
             setMediaSource(dashMediaSource)
         }
 
@@ -350,71 +380,76 @@ private fun formatDuration(duration: Long): String {
     val minutes = (duration % 3600000) / 60000
     val seconds = (duration % 60000) / 1000
 
-    return String.format("%02d:%02d:%02d", hours, minutes, seconds)
+    return String.format(Locale.getDefault(), "%02d:%02d:%02d", hours, minutes, seconds)
 }
 
+private var longPress = false
 private fun Modifier.onPlayerKeyEvent(
-    onUpClick: () -> Unit,
-    onPauseClick: () -> Unit,
-    onPlayClick: () -> Unit,
-    onPlayPauseClick: () -> Unit,
-    onLeftClick: () -> Unit,
-    onRightClick: () -> Unit,
-    onStopClick: () -> Unit
+    onUpClick: (longPress: Boolean) -> Unit,
+    onPauseClick: (longPress: Boolean) -> Unit,
+    onPlayClick: (longPress: Boolean) -> Unit,
+    onPlayPauseClick: (longPress: Boolean) -> Unit,
+    onLeftClick: (longPress: Boolean) -> Unit,
+    onRightClick: (longPress: Boolean) -> Unit,
+    onStopClick: (longPress: Boolean) -> Unit
 ): Modifier {
     return onKeyEvent { keyEvent ->
         if (!isOwnKeyCode(keyEvent)) return@onKeyEvent false
         if (keyEvent.nativeKeyEvent.action == KeyEvent.ACTION_DOWN) {
-            when (keyEvent.nativeKeyEvent.keyCode) {
-                KeyEvent.KEYCODE_DPAD_UP -> {
-                    onUpClick()
-                    true
-                }
+            try {
+                when (keyEvent.nativeKeyEvent.keyCode) {
+                    KeyEvent.KEYCODE_DPAD_UP -> {
+                        onUpClick(longPress)
+                        true
+                    }
 
-                KeyEvent.KEYCODE_DPAD_LEFT,
-                KeyEvent.KEYCODE_MEDIA_PREVIOUS,
-                KeyEvent.KEYCODE_MEDIA_STEP_BACKWARD -> {
-                    onLeftClick()
-                    true
-                }
+                    KeyEvent.KEYCODE_DPAD_LEFT,
+                    KeyEvent.KEYCODE_MEDIA_PREVIOUS,
+                    KeyEvent.KEYCODE_MEDIA_STEP_BACKWARD -> {
+                        onLeftClick(longPress)
+                        true
+                    }
 
-                KeyEvent.KEYCODE_DPAD_RIGHT,
-                KeyEvent.KEYCODE_MEDIA_FAST_FORWARD,
-                KeyEvent.KEYCODE_MEDIA_NEXT,
-                KeyEvent.KEYCODE_MEDIA_STEP_FORWARD -> {
-                    onRightClick()
-                    true
-                }
+                    KeyEvent.KEYCODE_DPAD_RIGHT,
+                    KeyEvent.KEYCODE_MEDIA_FAST_FORWARD,
+                    KeyEvent.KEYCODE_MEDIA_NEXT,
+                    KeyEvent.KEYCODE_MEDIA_STEP_FORWARD -> {
+                        onRightClick(longPress)
+                        true
+                    }
 
-                KeyEvent.KEYCODE_DPAD_CENTER,
-                KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE -> {
-                    onPlayPauseClick()
-                    true
-                }
+                    KeyEvent.KEYCODE_DPAD_CENTER,
+                    KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE -> {
+                        onPlayPauseClick(longPress)
+                        true
+                    }
 
-                KeyEvent.KEYCODE_MEDIA_PLAY -> {
-                    onPlayClick()
-                    true
-                }
+                    KeyEvent.KEYCODE_MEDIA_PLAY -> {
+                        onPlayClick(longPress)
+                        true
+                    }
 
-                KeyEvent.KEYCODE_MEDIA_PAUSE -> {
-                    onPauseClick()
-                    true
-                }
+                    KeyEvent.KEYCODE_MEDIA_PAUSE -> {
+                        onPauseClick(longPress)
+                        true
+                    }
 
-                KeyEvent.KEYCODE_MEDIA_STOP -> {
-                    onStopClick()
-                    true
-                }
+                    KeyEvent.KEYCODE_MEDIA_STOP -> {
+                        onStopClick(longPress)
+                        true
+                    }
 
-                else -> {
-                    false
+                    else -> {
+                        false
+                    }
                 }
+            } finally {
+                longPress = true
             }
         } else {
+            longPress = false
             true
         }
-
     }
 }
 

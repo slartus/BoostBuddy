@@ -16,6 +16,8 @@ import com.arkivanov.decompose.router.stack.popWhile
 import com.arkivanov.decompose.router.stack.push
 import com.arkivanov.decompose.router.stack.replaceAll
 import com.arkivanov.decompose.value.Value
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import ru.slartus.boostbuddy.components.auth.AuthComponent
@@ -103,6 +105,7 @@ class RootComponentImpl(
     private val githubRepository by Inject.lazy<GithubRepository>()
     private val platformConfiguration by Inject.lazy<PlatformConfiguration>()
     private val permissions by Inject.lazy<Permissions>()
+    private var fetchVersionJob: Job = Job()
 
     override val dialogSlot: Value<ChildSlot<*, RootComponent.DialogChild>> =
         childSlot(
@@ -137,7 +140,8 @@ class RootComponentImpl(
     }
 
     private fun fetchLastReleaseInfo() {
-        scope.launch {
+        fetchVersionJob.cancel()
+        fetchVersionJob = scope.launch {
             runCatching {
                 val lastReleaseInfo =
                     githubRepository.getLastReleaseInfo().getOrNull() ?: return@launch
@@ -145,6 +149,7 @@ class RootComponentImpl(
 
                 if (!lastReleaseVersion.greaterThan(platformConfiguration.appVersion)) return@launch
 
+                ensureActive()
                 dialogNavigation.activate(
                     DialogConfig.NewVersion(releaseInfo = lastReleaseInfo)
                 )
@@ -226,7 +231,9 @@ class RootComponentImpl(
         }
 
     private fun settingsComponent(componentContext: ComponentContext): SettingsComponent =
-        SettingsComponentImpl(componentContext = componentContext)
+        SettingsComponentImpl(componentContext = componentContext, onVersionClickedHandler = {
+            fetchLastReleaseInfo()
+        })
 
     private fun authComponent(componentContext: ComponentContext): AuthComponent =
         AuthComponentImpl(

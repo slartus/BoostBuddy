@@ -1,6 +1,7 @@
 package ru.slartus.boostbuddy.ui.common
 
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -22,6 +23,7 @@ import androidx.compose.ui.Alignment.Companion.CenterHorizontally
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import io.github.alexzhirkevich.qrose.rememberQrCodePainter
 import ru.slartus.boostbuddy.ui.theme.LightTheme
@@ -31,6 +33,7 @@ import ru.slartus.boostbuddy.ui.theme.LightTheme
 internal fun QrDialog(title: String, url: String, onDismiss: () -> Unit) {
     var isDialogOpen by remember { mutableStateOf(false) }
 
+    val platformConfiguration = LocalPlatformConfiguration.current
     if (isDialogOpen) {
         BasicAlertDialog(
             onDismissRequest = {
@@ -38,11 +41,12 @@ internal fun QrDialog(title: String, url: String, onDismiss: () -> Unit) {
                 onDismiss()
             }
         ) {
-            Box(Modifier
-                .widthIn(max = 200.dp)
-                .wrapContentHeight()
-                .padding(16.dp)
-                .clip(RoundedCornerShape(8.dp))
+            Box(
+                Modifier
+                    .widthIn(max = 200.dp)
+                    .wrapContentHeight()
+                    .padding(16.dp)
+                    .clip(RoundedCornerShape(8.dp))
             ) {
                 LightTheme {
                     Column(
@@ -58,8 +62,11 @@ internal fun QrDialog(title: String, url: String, onDismiss: () -> Unit) {
                         )
                         VerticalSpacer(16.dp)
                         Text(
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier = Modifier.fillMaxWidth().clickable {
+                                platformConfiguration.openBrowser(url)
+                            },
                             text = url,
+                            textDecoration = TextDecoration.Underline,
                             style = MaterialTheme.typography.bodySmall
                         )
                         VerticalSpacer(16.dp)
