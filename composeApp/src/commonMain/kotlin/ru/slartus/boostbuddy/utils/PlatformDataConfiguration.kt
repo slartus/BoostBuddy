@@ -1,11 +1,14 @@
 package ru.slartus.boostbuddy.utils
 
+import io.github.aakira.napier.Napier
+import kotlinx.coroutines.runBlocking
 import org.kodein.di.DI
 import org.kodein.di.bindSingleton
 import org.kodein.di.instance
 import ru.slartus.boostbuddy.data.Inject
 import ru.slartus.boostbuddy.data.ktor.buildBoostyHttpClient
 import ru.slartus.boostbuddy.data.ktor.buildGithubHttpClient
+import ru.slartus.boostbuddy.data.repositories.AppSettings
 import ru.slartus.boostbuddy.data.repositories.BlogRepository
 import ru.slartus.boostbuddy.data.repositories.BoostyApi
 import ru.slartus.boostbuddy.data.repositories.GithubRepository
@@ -25,22 +28,38 @@ object PlatformDataConfiguration {
             bindSingleton { GlobalExceptionHandlersChain() }
             bindSingleton { platformConfiguration }
             bindSingleton { Permissions(platformConfiguration = instance()) }
-            bindSingleton { SettingsRepository(settings = instance()) }
             bindSingleton { SettingsFactory(platformConfiguration = instance()).createDefault() }
-            githubDependencies(platformConfiguration.isDebug)
-            boostyDependencies(platformConfiguration.isDebug)
+            bindSingleton { SettingsRepository(settings = instance()) }
+        }
+        val appSettings = getAppSettings()
+        val bufferLoggingTracker = addBufferLoggingTracker(appSettings.debugLog)
+        Inject.addConfig {
+            bindSingleton { bufferLoggingTracker }
+            githubDependencies(appSettings.debugLog)
+            boostyDependencies(appSettings.debugLog)
         }
     }
 
-    private fun DI.MainBuilder.githubDependencies(isDebug: Boolean) {
-        bindSingleton(TAG_HTTP_CLIENT_GITHUB) { buildGithubHttpClient(isDebug) }
+    private fun getAppSettings(): AppSettings {
+        val settingsRepository = Inject.instance<SettingsRepository>()
+        return runBlocking { settingsRepository.getSettings() }
+    }
+
+    private fun addBufferLoggingTracker(debugLog: Boolean): BufferLoggingTracker{
+        val bufferLoggingTracker = BufferLoggingTracker(debugLog)
+        Napier.base(bufferLoggingTracker)
+        return bufferLoggingTracker
+    }
+
+    private fun DI.MainBuilder.githubDependencies(debugLog: Boolean) {
+        bindSingleton(TAG_HTTP_CLIENT_GITHUB) { buildGithubHttpClient(debugLog) }
         bindSingleton { GithubRepository(httpClient = instance(TAG_HTTP_CLIENT_GITHUB)) }
     }
 
-    private fun DI.MainBuilder.boostyDependencies(isDebug: Boolean) {
+    private fun DI.MainBuilder.boostyDependencies(debugLog: Boolean) {
         bindSingleton(TAG_HTTP_CLIENT_BOOSTY) {
             buildBoostyHttpClient(
-                isDebug = isDebug,
+                debugLog = debugLog,
                 settingsRepository = instance()
             )
         }

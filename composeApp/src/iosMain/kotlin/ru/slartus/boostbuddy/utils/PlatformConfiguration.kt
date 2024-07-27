@@ -22,7 +22,7 @@ actual open class PlatformConfiguration private constructor() {
     }
 
     actual fun installApp(path: Path) {
-// todo
+        TODO()
     }
 
     companion object : PlatformConfiguration() {
@@ -35,5 +35,13 @@ actual open class PlatformConfiguration private constructor() {
         private fun infoValue(key: String): String? {
             return NSBundle.mainBundle.infoDictionary?.get(key)?.toString()
         }
+    }
+
+    actual fun shareText(text: String, onError: (() -> Unit)?) {
+        TODO()
+    }
+
+    actual fun shareFile(path: Path) {
+        TODO()
     }
 }

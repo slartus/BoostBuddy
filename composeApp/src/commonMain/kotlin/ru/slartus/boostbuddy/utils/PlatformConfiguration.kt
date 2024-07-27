@@ -8,6 +8,8 @@ expect class PlatformConfiguration {
     val isDebug: Boolean
     fun openBrowser(url: String, onError: (() -> Unit)? = null)
     fun installApp(path: Path)
+    fun shareText(text: String, onError: (() -> Unit)?)
+    fun shareFile(path: Path)
 }
 
 sealed class Platform(val name: String) {

@@ -6,6 +6,7 @@ import android.content.Intent
 import android.net.Uri
 import android.widget.Toast
 import androidx.core.content.FileProvider
+import io.github.aakira.napier.Napier
 import kotlinx.io.files.Path
 import ru.slartus.boostbuddy.BuildConfig
 import java.io.File
@@ -30,6 +31,32 @@ actual class PlatformConfiguration(var androidContext: Context, actual val platf
         androidContext.startActivity(intent)
     }
 
+    actual fun shareText(text: String, onError: (() -> Unit)?) {
+        val sendIntent: Intent = Intent().apply {
+            action = Intent.ACTION_SEND
+            putExtra(Intent.EXTRA_TEXT, text)
+            type = "text/plain"
+        }
+
+        val shareIntent = Intent.createChooser(sendIntent, null).apply {
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+        androidContext.tryStartActivity(shareIntent, onError)
+    }
+
+    actual fun shareFile(path: Path) {
+        val file = File(path.toString())
+        val sendIntent: Intent = Intent().apply {
+            action = Intent.ACTION_SEND
+            putExtra(Intent.EXTRA_STREAM, uriFromFile(androidContext, file))
+            type = "text/plain"
+        }
+        val shareIntent = Intent.createChooser(sendIntent, null).apply {
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+        androidContext.tryStartActivity(shareIntent, null)
+    }
+
     companion object {
         fun uriFromFile(context: Context, file: File): Uri {
             return FileProvider.getUriForFile(
@@ -42,6 +69,7 @@ actual class PlatformConfiguration(var androidContext: Context, actual val platf
             runCatching {
                 startActivity(intent)
             }.onFailure { error ->
+                Napier.e("tryStartActivity", error)
                 if (onError != null) {
                     onError.invoke()
                 } else {
