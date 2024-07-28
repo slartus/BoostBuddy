@@ -190,6 +190,11 @@ internal fun PostView(
                 ContentView(post.signedQuery, postData, onVideoClick)
             }
         }
+        if (post.poll != null) {
+            VerticalSpacer(16.dp)
+            PollView(post.poll)
+        }
+
         VerticalSpacer(8.dp)
         FocusableBox(Modifier.fillMaxWidth()) {
             Row(

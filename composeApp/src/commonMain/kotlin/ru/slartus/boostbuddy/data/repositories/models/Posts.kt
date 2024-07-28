@@ -27,8 +27,33 @@ data class Post(
     val title: String,
     val data: List<Content>,
     val user: User,
-    val count: PostCount
+    val count: PostCount,
+    val poll: Poll?
 )
+
+@Immutable
+@Serializable
+data class Poll(
+    val id: Int,
+    val title: List<String>,
+    val isMultiple: Boolean,
+    val isFinished: Boolean,
+    val options: List<PollOption>,
+    val counter: Int
+){
+    val titleText: String = title.joinToString()
+}
+
+@Immutable
+@Serializable
+data class PollOption(
+    val id: Int,
+    val text: String,
+    val counter: Int,
+    val fraction: Int
+){
+    val fractionText: String = "$fraction%"
+}
 
 @Serializable
 data class PostCount(val likes: Int, val comments: Int)

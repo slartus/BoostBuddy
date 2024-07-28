@@ -19,7 +19,8 @@ internal data class PostResponse(
         val data: List<ContentResponse>? = null,
         val user: UserResponse? = null,
         val teaser: List<Teaser>? = null,
-        val count:PostCount? = null
+        val count: PostCount? = null,
+        val poll: Poll? = null
     )
 
     @Serializable
@@ -38,5 +39,23 @@ internal data class PostResponse(
     data class Extra(
         val offset: String? = null,
         val isLast: Boolean? = null
+    )
+
+    @Serializable
+    data class Poll(
+        val id: Int? = null,
+        val title: List<String>? = null,
+        val isMultiple: Boolean? = null,
+        val isFinished: Boolean? = null,
+        val options: List<PollOption>? = null,
+        val counter: Int? = null
+    )
+
+    @Serializable
+    data class PollOption(
+        val id: Int? = null,
+        val text: String? = null,
+        val counter: Int? = null,
+        val fraction: Int? = null
     )
 }

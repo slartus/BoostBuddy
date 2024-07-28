@@ -2,6 +2,8 @@ package ru.slartus.boostbuddy.data.repositories
 
 import io.ktor.client.call.body
 import ru.slartus.boostbuddy.data.repositories.models.Offset
+import ru.slartus.boostbuddy.data.repositories.models.Poll
+import ru.slartus.boostbuddy.data.repositories.models.PollOption
 import ru.slartus.boostbuddy.data.repositories.models.Post
 import ru.slartus.boostbuddy.data.repositories.models.PostCount
 import ru.slartus.boostbuddy.data.repositories.models.PostResponse
@@ -37,9 +39,31 @@ internal fun PostResponse.Post.mapToPostOrNull(): Post? {
         createdAt = createdAt ?: return null,
         signedQuery = signedQuery.orEmpty(),
         intId = intId ?: return null,
-        title = title ?: return null,
+        title = title.orEmpty(),
         data = data?.mapNotNull { it.mapToContentOrNull() }.orEmpty().mergeText(),
         user = user?.mapToUserOrNull() ?: return null,
-        count = PostCount(likes = count?.likes ?: 0, comments = count?.comments ?: 0)
+        count = PostCount(likes = count?.likes ?: 0, comments = count?.comments ?: 0),
+        poll = poll?.mapToPostPollOrNull()
+    )
+}
+
+private fun PostResponse.Poll.mapToPostPollOrNull(): Poll? {
+    return Poll(
+        id = id ?: return null,
+        title = title.orEmpty(),
+        isMultiple = isMultiple ?: return null,
+        isFinished = isFinished ?: return null,
+        options = options?.mapNotNull { it.mapToPostPollOptionOrNull() }?.ifEmpty { null }
+            ?: return null,
+        counter = counter ?: 0
+    )
+}
+
+private fun PostResponse.PollOption.mapToPostPollOptionOrNull(): PollOption? {
+    return PollOption(
+        id = id ?: return null,
+        text = text.orEmpty(),
+        counter = counter ?: return null,
+        fraction = fraction ?: return null
     )
 }
