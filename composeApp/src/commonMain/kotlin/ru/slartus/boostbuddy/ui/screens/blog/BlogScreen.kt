@@ -43,6 +43,8 @@ import ru.slartus.boostbuddy.components.blog.BlogComponent
 import ru.slartus.boostbuddy.components.blog.BlogItem
 import ru.slartus.boostbuddy.components.blog.BlogViewState
 import ru.slartus.boostbuddy.data.repositories.models.Content
+import ru.slartus.boostbuddy.data.repositories.models.Poll
+import ru.slartus.boostbuddy.data.repositories.models.PollOption
 import ru.slartus.boostbuddy.data.repositories.models.Post
 import ru.slartus.boostbuddy.ui.common.HorizontalSpacer
 import ru.slartus.boostbuddy.ui.common.VerticalSpacer
@@ -106,6 +108,12 @@ internal fun BlogScreen(component: BlogComponent) {
                         onScrolledToEnd = { component.onScrolledToEnd() },
                         onErrorItemClick = { component.onErrorItemClicked() },
                         onCommentsClick = { component.onCommentsClicked(it) },
+                        onPollOptionClick = { poll, option ->
+                            component.onPollOptionClicked(
+                                poll,
+                                option
+                            )
+                        }
                     )
             }
         }
@@ -126,7 +134,8 @@ private fun PostsView(
     onVideoItemClick: (BlogItem.PostItem, Content.OkVideo) -> Unit,
     onScrolledToEnd: () -> Unit,
     onErrorItemClick: () -> Unit,
-    onCommentsClick: (post: Post) -> Unit
+    onCommentsClick: (post: Post) -> Unit,
+    onPollOptionClick: (Poll, PollOption) -> Unit
 ) {
     val listScrollState = rememberLazyListState()
 
@@ -150,7 +159,8 @@ private fun PostsView(
                 is BlogItem.PostItem -> PostView(
                     item.post,
                     onVideoClick = { onVideoItemClick(item, it) },
-                    onCommentsClick = { onCommentsClick(item.post) }
+                    onCommentsClick = { onCommentsClick(item.post) },
+                    onPollOptionClick = onPollOptionClick
                 )
             }
         }
@@ -166,7 +176,8 @@ private fun PostsView(
 internal fun PostView(
     post: Post,
     onVideoClick: (okVideoData: Content.OkVideo) -> Unit,
-    onCommentsClick: () -> Unit
+    onCommentsClick: () -> Unit,
+    onPollOptionClick: (Poll, PollOption) -> Unit
 ) {
     Column(
         modifier = Modifier
@@ -192,7 +203,7 @@ internal fun PostView(
         }
         if (post.poll != null) {
             VerticalSpacer(16.dp)
-            PollView(post.poll)
+            PollView(post.poll, onPollOptionClick)
         }
 
         VerticalSpacer(8.dp)

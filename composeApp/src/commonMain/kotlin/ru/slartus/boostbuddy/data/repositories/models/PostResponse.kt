@@ -48,7 +48,8 @@ internal data class PostResponse(
         val isMultiple: Boolean? = null,
         val isFinished: Boolean? = null,
         val options: List<PollOption>? = null,
-        val counter: Int? = null
+        val counter: Int? = null,
+        val answer: List<Int>? = null
     )
 
     @Serializable

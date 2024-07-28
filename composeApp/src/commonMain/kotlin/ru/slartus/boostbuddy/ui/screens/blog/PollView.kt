@@ -2,6 +2,7 @@ package ru.slartus.boostbuddy.ui.screens.blog
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -11,7 +12,11 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -27,7 +32,7 @@ import ru.slartus.boostbuddy.ui.common.HorizontalSpacer
 import ru.slartus.boostbuddy.ui.common.VerticalSpacer
 
 @Composable
-internal fun PollView(poll: Poll) {
+internal fun PollView(poll: Poll, onOptionClick: (Poll, PollOption) -> Unit) {
     Column(
         Modifier
             .border(
@@ -39,7 +44,9 @@ internal fun PollView(poll: Poll) {
     ) {
         PollTitleView(poll.titleText)
         VerticalSpacer(12.dp)
-        PollOptionsView(poll)
+        PollOptionsView(poll, onOptionClick = { option ->
+            onOptionClick(poll, option)
+        })
         VerticalSpacer(12.dp)
         PollCounterView(poll.counter)
     }
@@ -70,22 +77,35 @@ private fun PollTitleView(text: String) {
 }
 
 @Composable
-private fun PollOptionsView(poll: Poll) {
+private fun PollOptionsView(poll: Poll, onOptionClick: (PollOption) -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        poll.options.forEach {
-            PollOptionView(it)
+        poll.options.forEach { option ->
+            PollOptionView(
+                option = option,
+                allowVote = !poll.isFinished,
+                voted = option.id in poll.answer,
+                onClick = {
+                    onOptionClick(option)
+                }
+            )
         }
     }
 }
 
 @Composable
-private fun PollOptionView(option: PollOption) {
+private fun PollOptionView(
+    option: PollOption,
+    allowVote: Boolean,
+    voted: Boolean,
+    onClick: () -> Unit
+) {
     FocusableBox {
         Box(
             Modifier
                 .heightIn(min = 32.dp)
                 .clip(RoundedCornerShape(4.dp))
                 .background(MaterialTheme.colorScheme.secondaryContainer)
+                .clickable(enabled = allowVote, onClick = onClick)
         ) {
             Row(
                 modifier = Modifier
@@ -100,6 +120,14 @@ private fun PollOptionView(option: PollOption) {
                     style = MaterialTheme.typography.labelMedium
                 )
                 HorizontalSpacer(4.dp)
+                if (voted) {
+                    Icon(
+                        modifier = Modifier.size(16.dp),
+                        imageVector = Icons.Default.Check,
+                        tint = linkColor,
+                        contentDescription = "empty avatar"
+                    )
+                }
                 Text(
                     text = option.fractionText,
                     color = MaterialTheme.colorScheme.primary,

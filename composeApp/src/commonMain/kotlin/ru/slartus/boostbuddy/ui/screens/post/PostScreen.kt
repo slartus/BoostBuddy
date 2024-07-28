@@ -40,6 +40,8 @@ import ru.slartus.boostbuddy.components.post.PostViewItem
 import ru.slartus.boostbuddy.components.post.PostViewState
 import ru.slartus.boostbuddy.data.repositories.comments.models.Comment
 import ru.slartus.boostbuddy.data.repositories.models.Content
+import ru.slartus.boostbuddy.data.repositories.models.Poll
+import ru.slartus.boostbuddy.data.repositories.models.PollOption
 import ru.slartus.boostbuddy.data.repositories.models.Post
 import ru.slartus.boostbuddy.ui.common.HorizontalSpacer
 import ru.slartus.boostbuddy.ui.common.VerticalSpacer
@@ -103,6 +105,9 @@ internal fun PostScreen(component: PostComponent) {
                             onVideoClick = {
                                 component.onVideoItemClicked(state.post.id, it)
                             },
+                            onPollOptionClick = { poll, option ->
+                                component.onPollOptionClicked(poll, option)
+                            }
                         )
             }
         }
@@ -123,6 +128,7 @@ private fun FullPostView(
     onMoreClick: () -> Unit,
     onMoreRepliesClick: (PostViewItem.CommentItem) -> Unit,
     onVideoClick: (okVideoData: Content.OkVideo) -> Unit,
+    onPollOptionClick: (Poll, PollOption) -> Unit
 ) {
     val state = rememberLazyListState(initialFirstVisibleItemIndex = 1)
     LazyColumn(modifier = Modifier.fillMaxSize(), state = state) {
@@ -130,7 +136,8 @@ private fun FullPostView(
             PostView(
                 post = post,
                 onVideoClick = onVideoClick,
-                onCommentsClick = {}
+                onCommentsClick = {},
+                onPollOptionClick = onPollOptionClick
             )
         }
         commentsView(items, onMoreClick, onMoreRepliesClick)

@@ -16,10 +16,13 @@ import ru.slartus.boostbuddy.components.BaseComponent
 import ru.slartus.boostbuddy.data.Inject
 import ru.slartus.boostbuddy.data.repositories.Blog
 import ru.slartus.boostbuddy.data.repositories.BlogRepository
+import ru.slartus.boostbuddy.data.repositories.PostRepository
 import ru.slartus.boostbuddy.data.repositories.SettingsRepository
 import ru.slartus.boostbuddy.data.repositories.models.Content
 import ru.slartus.boostbuddy.data.repositories.models.Offset
 import ru.slartus.boostbuddy.data.repositories.models.PlayerUrl
+import ru.slartus.boostbuddy.data.repositories.models.Poll
+import ru.slartus.boostbuddy.data.repositories.models.PollOption
 import ru.slartus.boostbuddy.data.repositories.models.Post
 import ru.slartus.boostbuddy.utils.messageOrThrow
 import ru.slartus.boostbuddy.utils.unauthorizedError
@@ -34,6 +37,7 @@ interface BlogComponent {
     fun onRepeatClicked()
     fun onErrorItemClicked()
     fun onCommentsClicked(post: Post)
+    fun onPollOptionClicked(poll: Poll, pollOption: PollOption)
 }
 
 class BlogComponentImpl(
@@ -48,6 +52,7 @@ class BlogComponentImpl(
 ), BlogComponent {
     private val settingsRepository by Inject.lazy<SettingsRepository>()
     private val blogRepository by Inject.lazy<BlogRepository>()
+    private val postRepository by Inject.lazy<PostRepository>()
     private val dialogNavigation = SlotNavigation<DialogConfig>()
 
     override val dialogSlot: Value<ChildSlot<*, VideoTypeComponent>> =
@@ -175,6 +180,31 @@ class BlogComponentImpl(
 
     override fun onCommentsClicked(post: Post) {
         onPostSelected(blog, post)
+    }
+
+    override fun onPollOptionClicked(poll: Poll, pollOption: PollOption) {
+        scope.launch {
+            if (poll.isMultiple) {
+
+            } else {
+                if (pollOption.id in poll.answer)
+                    postRepository.deletePollVote(poll.id)
+                else
+                    postRepository.pollVote(poll.id, listOf(pollOption.id))
+
+                val pollResponse = postRepository.getPoll(blog.blogUrl, poll.id)
+                if (pollResponse.isSuccess) {
+                    val updatedPoll = pollResponse.getOrThrow()
+                    viewState = viewState.copy(
+                        items = viewState.items.map { item ->
+                            if (item is BlogItem.PostItem && item.post.poll?.id == updatedPoll.id)
+                                item.copy(post = item.post.copy(poll = updatedPoll))
+                            else item
+                        }.toImmutableList()
+                    )
+                }
+            }
+        }
     }
 
     companion object {

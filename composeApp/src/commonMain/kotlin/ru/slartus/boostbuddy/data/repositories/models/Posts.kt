@@ -39,7 +39,8 @@ data class Poll(
     val isMultiple: Boolean,
     val isFinished: Boolean,
     val options: List<PollOption>,
-    val counter: Int
+    val counter: Int,
+    val answer: List<Int>
 ){
     val titleText: String = title.joinToString()
 }

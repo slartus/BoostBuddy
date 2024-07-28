@@ -47,7 +47,7 @@ internal fun PostResponse.Post.mapToPostOrNull(): Post? {
     )
 }
 
-private fun PostResponse.Poll.mapToPostPollOrNull(): Poll? {
+internal fun PostResponse.Poll.mapToPostPollOrNull(): Poll? {
     return Poll(
         id = id ?: return null,
         title = title.orEmpty(),
@@ -55,7 +55,8 @@ private fun PostResponse.Poll.mapToPostPollOrNull(): Poll? {
         isFinished = isFinished ?: return null,
         options = options?.mapNotNull { it.mapToPostPollOptionOrNull() }?.ifEmpty { null }
             ?: return null,
-        counter = counter ?: 0
+        counter = counter ?: 0,
+        answer = answer.orEmpty()
     )
 }
 
