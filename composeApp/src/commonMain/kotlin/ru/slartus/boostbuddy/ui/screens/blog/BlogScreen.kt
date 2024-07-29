@@ -193,15 +193,10 @@ internal fun PostView(
             .padding(16.dp),
         horizontalAlignment = CenterHorizontally
     ) {
-        FocusableBox {
-            Text(
-                modifier = Modifier.fillMaxWidth().focusable(),
-                text = post.title,
-                color = MaterialTheme.colorScheme.primary,
-                style = MaterialTheme.typography.titleMedium
-            )
+        if (post.title.isNotEmpty()) {
+            TitleView(post.title)
+            VerticalSpacer(16.dp)
         }
-        VerticalSpacer(16.dp)
         Column(
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
@@ -236,6 +231,18 @@ internal fun PostView(
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun TitleView(text: String) {
+    FocusableBox {
+        Text(
+            modifier = Modifier.fillMaxWidth().focusable(),
+            text = text,
+            color = MaterialTheme.colorScheme.primary,
+            style = MaterialTheme.typography.titleMedium
+        )
     }
 }
 
