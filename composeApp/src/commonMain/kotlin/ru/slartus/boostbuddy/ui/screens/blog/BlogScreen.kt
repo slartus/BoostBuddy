@@ -197,13 +197,26 @@ internal fun PostView(
             TitleView(post.title)
             VerticalSpacer(16.dp)
         }
-        Column(
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            post.data.forEach { postData ->
-                ContentView(post.signedQuery, postData, onVideoClick)
+        if (post.hasAccess || post.teaser.isEmpty()) {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                post.data.forEach { postData ->
+                    ContentView(post.signedQuery, postData, onVideoClick)
+                }
             }
         }
+
+        if (!post.hasAccess || post.data.isEmpty()) {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                post.teaser.forEach { postData ->
+                    ContentView(post.signedQuery, postData, onVideoClick)
+                }
+            }
+        }
+
         if (post.poll != null) {
             VerticalSpacer(16.dp)
             PollView(

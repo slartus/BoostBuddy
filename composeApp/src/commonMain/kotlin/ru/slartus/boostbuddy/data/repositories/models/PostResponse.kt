@@ -18,21 +18,16 @@ internal data class PostResponse(
         @SerialName("int_id") val intId: Long? = null,
         val data: List<ContentResponse>? = null,
         val user: UserResponse? = null,
-        val teaser: List<Teaser>? = null,
+        val teaser: List<ContentResponse>? = null,
         val count: PostCount? = null,
-        val poll: Poll? = null
+        val poll: Poll? = null,
+        val hasAccess: Boolean? = null
     )
 
     @Serializable
     data class PostCount(
         val likes: Int? = null,
         val comments: Int? = null
-    )
-
-    @Serializable
-    data class Teaser(
-        val url: String? = null,
-        val type: String? = null,//image
     )
 
     @Serializable

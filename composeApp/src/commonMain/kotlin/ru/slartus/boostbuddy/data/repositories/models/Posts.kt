@@ -26,9 +26,11 @@ data class Post(
     val intId: Long,
     val title: String,
     val data: List<Content>,
+    val teaser: List<Content>,
     val user: User,
     val count: PostCount,
-    val poll: Poll?
+    val poll: Poll?,
+    val hasAccess: Boolean
 )
 
 @Immutable

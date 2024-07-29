@@ -41,9 +41,11 @@ internal fun PostResponse.Post.mapToPostOrNull(): Post? {
         intId = intId ?: return null,
         title = title.orEmpty(),
         data = data?.mapNotNull { it.mapToContentOrNull() }.orEmpty().mergeText(),
+        teaser = teaser?.mapNotNull { it.mapToContentOrNull() }.orEmpty().mergeText(),
         user = user?.mapToUserOrNull() ?: return null,
         count = PostCount(likes = count?.likes ?: 0, comments = count?.comments ?: 0),
-        poll = poll?.mapToPostPollOrNull()
+        poll = poll?.mapToPostPollOrNull(),
+        hasAccess = hasAccess ?: true
     )
 }
 
