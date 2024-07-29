@@ -16,10 +16,13 @@ import ru.slartus.boostbuddy.components.BaseComponent
 import ru.slartus.boostbuddy.data.Inject
 import ru.slartus.boostbuddy.data.repositories.Blog
 import ru.slartus.boostbuddy.data.repositories.BlogRepository
+import ru.slartus.boostbuddy.data.repositories.PostRepository
 import ru.slartus.boostbuddy.data.repositories.SettingsRepository
 import ru.slartus.boostbuddy.data.repositories.models.Content
 import ru.slartus.boostbuddy.data.repositories.models.Offset
 import ru.slartus.boostbuddy.data.repositories.models.PlayerUrl
+import ru.slartus.boostbuddy.data.repositories.models.Poll
+import ru.slartus.boostbuddy.data.repositories.models.PollOption
 import ru.slartus.boostbuddy.data.repositories.models.Post
 import ru.slartus.boostbuddy.utils.messageOrThrow
 import ru.slartus.boostbuddy.utils.unauthorizedError
@@ -34,6 +37,9 @@ interface BlogComponent {
     fun onRepeatClicked()
     fun onErrorItemClicked()
     fun onCommentsClicked(post: Post)
+    fun onPollOptionClicked(poll: Poll, pollOption: PollOption)
+    fun onVoteClicked(poll: Poll)
+    fun onDeleteVoteClicked(poll: Poll)
 }
 
 class BlogComponentImpl(
@@ -48,6 +54,7 @@ class BlogComponentImpl(
 ), BlogComponent {
     private val settingsRepository by Inject.lazy<SettingsRepository>()
     private val blogRepository by Inject.lazy<BlogRepository>()
+    private val postRepository by Inject.lazy<PostRepository>()
     private val dialogNavigation = SlotNavigation<DialogConfig>()
 
     override val dialogSlot: Value<ChildSlot<*, VideoTypeComponent>> =
@@ -175,6 +182,59 @@ class BlogComponentImpl(
 
     override fun onCommentsClicked(post: Post) {
         onPostSelected(blog, post)
+    }
+
+    private suspend fun refreshPoll(pollId: Int) {
+        val pollResponse = postRepository.getPoll(blog.blogUrl, pollId)
+        if (pollResponse.isSuccess) {
+            val updatedPoll = pollResponse.getOrThrow()
+            replacePoll(updatedPoll)
+        }
+    }
+
+    override fun onPollOptionClicked(poll: Poll, pollOption: PollOption) {
+        scope.launch {
+            if (poll.isMultiple) {
+                val newPoll = if (pollOption.id in poll.checked)
+                    poll.copy(checked = poll.checked - pollOption.id)
+                else
+                    poll.copy(checked = poll.checked + pollOption.id)
+                replacePoll(newPoll)
+            } else {
+                if (pollOption.id in poll.answer)
+                    postRepository.deletePollVote(poll.id)
+                else
+                    postRepository.pollVote(poll.id, listOf(pollOption.id))
+
+                refreshPoll(poll.id)
+            }
+        }
+    }
+
+    override fun onVoteClicked(poll: Poll) {
+        scope.launch {
+            postRepository.pollVote(poll.id, poll.checked.toList())
+
+            refreshPoll(poll.id)
+        }
+    }
+
+    override fun onDeleteVoteClicked(poll: Poll) {
+        scope.launch {
+            postRepository.deletePollVote(poll.id)
+
+            refreshPoll(poll.id)
+        }
+    }
+
+    private fun replacePoll(newPoll: Poll) {
+        viewState = viewState.copy(
+            items = viewState.items.map { item ->
+                if (item is BlogItem.PostItem && item.post.poll?.id == newPoll.id)
+                    item.copy(post = item.post.copy(poll = newPoll))
+                else item
+            }.toImmutableList()
+        )
     }
 
     companion object {

@@ -40,6 +40,8 @@ import ru.slartus.boostbuddy.components.post.PostViewItem
 import ru.slartus.boostbuddy.components.post.PostViewState
 import ru.slartus.boostbuddy.data.repositories.comments.models.Comment
 import ru.slartus.boostbuddy.data.repositories.models.Content
+import ru.slartus.boostbuddy.data.repositories.models.Poll
+import ru.slartus.boostbuddy.data.repositories.models.PollOption
 import ru.slartus.boostbuddy.data.repositories.models.Post
 import ru.slartus.boostbuddy.ui.common.HorizontalSpacer
 import ru.slartus.boostbuddy.ui.common.VerticalSpacer
@@ -103,6 +105,11 @@ internal fun PostScreen(component: PostComponent) {
                             onVideoClick = {
                                 component.onVideoItemClicked(state.post.id, it)
                             },
+                            onPollOptionClick = { poll, option ->
+                                component.onPollOptionClicked(poll, option)
+                            },
+                            onVoteClick = { component.onVoteClicked(it) },
+                            onDeleteVoteClick = { component.onDeleteVoteClicked(it) }
                         )
             }
         }
@@ -123,6 +130,9 @@ private fun FullPostView(
     onMoreClick: () -> Unit,
     onMoreRepliesClick: (PostViewItem.CommentItem) -> Unit,
     onVideoClick: (okVideoData: Content.OkVideo) -> Unit,
+    onPollOptionClick: (Poll, PollOption) -> Unit,
+    onVoteClick: (poll: Poll) -> Unit,
+    onDeleteVoteClick: (poll: Poll) -> Unit
 ) {
     val state = rememberLazyListState(initialFirstVisibleItemIndex = 1)
     LazyColumn(modifier = Modifier.fillMaxSize(), state = state) {
@@ -130,7 +140,10 @@ private fun FullPostView(
             PostView(
                 post = post,
                 onVideoClick = onVideoClick,
-                onCommentsClick = {}
+                onCommentsClick = {},
+                onPollOptionClick = onPollOptionClick,
+                onVoteClick = onVoteClick,
+                onDeleteVoteClick = onDeleteVoteClick
             )
         }
         commentsView(items, onMoreClick, onMoreRepliesClick)

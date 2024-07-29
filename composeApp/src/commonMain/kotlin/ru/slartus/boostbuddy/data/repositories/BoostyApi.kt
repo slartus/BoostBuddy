@@ -2,6 +2,7 @@ package ru.slartus.boostbuddy.data.repositories
 
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
+import io.ktor.client.request.delete
 import io.ktor.client.request.forms.FormDataContent
 import io.ktor.client.request.get
 import io.ktor.client.request.parameter
@@ -83,4 +84,22 @@ internal class BoostyApi(
             append("time_code", timeCode.toString())
         }))
     }
+
+    suspend fun pollVote(
+        pollId: Int,
+        optionIds: List<Int>
+    ): HttpResponse = httpClient.post("v1/poll/$pollId/vote") {
+        setBody(FormDataContent(Parameters.build {
+            append("answer", optionIds.joinToString(separator = ","))
+        }))
+    }
+
+    suspend fun deletePollVote(
+        pollId: Int
+    ): HttpResponse = httpClient.delete("v1/poll/$pollId/vote")
+
+    suspend fun poll(
+        blog: String,
+        pollId: Int
+    ): HttpResponse = httpClient.get("v1/blog/$blog/poll/$pollId")
 }

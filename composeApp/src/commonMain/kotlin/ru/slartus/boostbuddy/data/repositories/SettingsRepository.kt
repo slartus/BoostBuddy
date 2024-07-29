@@ -30,26 +30,34 @@ internal class SettingsRepository(
 
     init {
         tokenBus.value = settings.getStringOrNull(ACCESS_TOKEN_KEY)
-        loadAppSettings()
+        refreshAppSettings()
     }
 
-    private fun loadAppSettings() {
-        appSettingsBus.value = AppSettings(
-            isDarkMode = settings.getBooleanOrNull(DARK_MODE_KEY),
-            useSystemVideoPlayer = settings.getBoolean(SYSTEM_PLAYER_KEY, false)
-        )
+    private fun refreshAppSettings() {
+        appSettingsBus.value =  loadAppSettings()
     }
+
+    private fun loadAppSettings(): AppSettings = AppSettings(
+        isDarkMode = settings.getBooleanOrNull(DARK_MODE_KEY),
+        useSystemVideoPlayer = settings.getBoolean(SYSTEM_PLAYER_KEY, false),
+        debugLog = settings.getBoolean(DEBUG_LOG, false)
+    )
 
     suspend fun getSettings(): AppSettings = appSettingsBus.value
 
     suspend fun setDarkMode(value: Boolean) = withContext(Dispatchers.IO) {
         putBoolean(DARK_MODE_KEY, value)
-        loadAppSettings()
+        refreshAppSettings()
     }
 
     suspend fun setUseSystemVideoPlayer(value: Boolean) = withContext(Dispatchers.IO) {
         putBoolean(SYSTEM_PLAYER_KEY, value)
-        loadAppSettings()
+        refreshAppSettings()
+    }
+
+    suspend fun setDebugLog(value: Boolean) = withContext(Dispatchers.IO) {
+        putBoolean(DEBUG_LOG, value)
+        refreshAppSettings()
     }
 
     suspend fun putAccessToken(value: String?) = withContext(Dispatchers.IO) {
@@ -115,12 +123,18 @@ internal class SettingsRepository(
         const val ACCESS_TOKEN_KEY = "access_token"
         const val DARK_MODE_KEY = "dark_mode"
         const val SYSTEM_PLAYER_KEY = "system_player"
+        const val DEBUG_LOG = "debug_log"
     }
 }
 
-data class AppSettings(val isDarkMode: Boolean?, val useSystemVideoPlayer: Boolean) {
+data class AppSettings(
+    val isDarkMode: Boolean?,
+    val useSystemVideoPlayer: Boolean,
+    val debugLog: Boolean
+) {
     companion object {
-        val Default: AppSettings = AppSettings(isDarkMode = null, useSystemVideoPlayer = false)
+        val Default: AppSettings =
+            AppSettings(isDarkMode = null, useSystemVideoPlayer = false, debugLog = false)
     }
 }
 

@@ -38,6 +38,24 @@ internal fun SettingsScreen(component: SettingsComponent) {
                     component.onDonateClicked()
                 }
             )
+
+            CheckBoxItem(
+                text = "Собирать логи",
+                checked = state.appSettings.debugLog,
+                onCheckedChange = { newCheckedState ->
+                    component.onDebugLogClicked(newCheckedState)
+                }
+            )
+
+            if (state.appSettings.debugLog) {
+                TextItem(
+                    text = "Отправить лог",
+                    onClick = {
+                        component.onSendLogClicked()
+                    }
+                )
+            }
+
             TextItem(
                 text = "Версия программы: ${platformConfiguration.appVersion}",
                 onClick = {

@@ -8,12 +8,14 @@ import com.arkivanov.decompose.router.slot.activate
 import com.arkivanov.decompose.router.slot.childSlot
 import com.arkivanov.decompose.router.slot.dismiss
 import com.arkivanov.decompose.value.Value
+import io.github.aakira.napier.Napier
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import ru.slartus.boostbuddy.components.BaseComponent
 import ru.slartus.boostbuddy.data.Inject
 import ru.slartus.boostbuddy.data.repositories.AppSettings
 import ru.slartus.boostbuddy.data.repositories.SettingsRepository
+import ru.slartus.boostbuddy.utils.BufferLoggingTracker
 import ru.slartus.boostbuddy.utils.Platform
 import ru.slartus.boostbuddy.utils.PlatformConfiguration
 
@@ -22,9 +24,11 @@ interface SettingsComponent {
     val viewStates: Value<SettingsViewState>
     val dialogSlot: Value<ChildSlot<*, DialogChild>>
     fun onUseSystemPlayerClicked(value: Boolean)
+    fun onDebugLogClicked(value: Boolean)
     fun onDonateClicked()
     fun onDialogDismissed()
     fun onVersionClicked()
+    fun onSendLogClicked()
 
     sealed class DialogChild {
         data class Qr(val title: String, val url: String) : DialogChild()
@@ -42,6 +46,7 @@ internal class SettingsComponentImpl(
     SettingsComponent {
     private val settingsRepository by Inject.lazy<SettingsRepository>()
     private val platformConfiguration by Inject.lazy<PlatformConfiguration>()
+    private val bufferLoggingTracker by Inject.lazy<BufferLoggingTracker>()
     private val dialogNavigation = SlotNavigation<DialogConfig>()
 
     override val dialogSlot: Value<ChildSlot<*, SettingsComponent.DialogChild>> =
@@ -71,6 +76,12 @@ internal class SettingsComponentImpl(
         }
     }
 
+    override fun onDebugLogClicked(value: Boolean) {
+        scope.launch {
+            settingsRepository.setDebugLog(value)
+        }
+    }
+
     override fun onDonateClicked() {
         when (platformConfiguration.platform) {
             Platform.Android,
@@ -93,6 +104,16 @@ internal class SettingsComponentImpl(
 
     override fun onVersionClicked() {
         onVersionClickedHandler()
+    }
+
+    override fun onSendLogClicked() {
+        scope.launch {
+            runCatching {
+                platformConfiguration.shareFile(bufferLoggingTracker.getLogPath())
+            }.onFailure {
+                Napier.e("onSendLogClicked", it)
+            }
+        }
     }
 
     private fun activateDonateQr() {

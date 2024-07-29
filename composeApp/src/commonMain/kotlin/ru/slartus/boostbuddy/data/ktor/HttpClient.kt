@@ -22,8 +22,8 @@ import ru.slartus.boostbuddy.data.repositories.SettingsRepository
 internal const val USER_AGENT =
     "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36"
 
-internal fun buildBoostyHttpClient(isDebug: Boolean, settingsRepository: SettingsRepository) =
-    buildHttpClient(isDebug) {
+internal fun buildBoostyHttpClient(debugLog: Boolean, settingsRepository: SettingsRepository) =
+    buildHttpClient(debugLog) {
         install(Auth) {
             bearer {
                 loadTokens {
@@ -42,8 +42,8 @@ internal fun buildBoostyHttpClient(isDebug: Boolean, settingsRepository: Setting
         }
     }
 
-internal fun buildGithubHttpClient(isDebug: Boolean) =
-    buildHttpClient(isDebug) {
+internal fun buildGithubHttpClient(debugLog: Boolean) =
+    buildHttpClient(debugLog) {
         defaultRequest {
             url {
                 protocol = URLProtocol.HTTPS
@@ -55,7 +55,7 @@ internal fun buildGithubHttpClient(isDebug: Boolean) =
 internal fun buildHttpClient(
     isDebug: Boolean,
     block: HttpClientConfig<HttpClientEngineConfig>.() -> Unit = {}
-) =
+): HttpClient =
     HttpClient(HttpEngineFactory().createEngine(isDebug)) {
 
         expectSuccess = true
@@ -80,7 +80,12 @@ internal fun buildHttpClient(
         install(Logging) {
             logger = object : Logger {
                 override fun log(message: String) {
-                    Napier.d(message)
+                    Napier.d(
+                        message.replace(
+                            Regex("Bearer\\s+[^\\s-]+", RegexOption.IGNORE_CASE),
+                            "Bearer secret"
+                        )
+                    )
                 }
             }
             level = if (isDebug) LogLevel.ALL else LogLevel.NONE

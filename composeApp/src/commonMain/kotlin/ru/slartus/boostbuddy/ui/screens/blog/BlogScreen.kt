@@ -43,6 +43,8 @@ import ru.slartus.boostbuddy.components.blog.BlogComponent
 import ru.slartus.boostbuddy.components.blog.BlogItem
 import ru.slartus.boostbuddy.components.blog.BlogViewState
 import ru.slartus.boostbuddy.data.repositories.models.Content
+import ru.slartus.boostbuddy.data.repositories.models.Poll
+import ru.slartus.boostbuddy.data.repositories.models.PollOption
 import ru.slartus.boostbuddy.data.repositories.models.Post
 import ru.slartus.boostbuddy.ui.common.HorizontalSpacer
 import ru.slartus.boostbuddy.ui.common.VerticalSpacer
@@ -106,6 +108,14 @@ internal fun BlogScreen(component: BlogComponent) {
                         onScrolledToEnd = { component.onScrolledToEnd() },
                         onErrorItemClick = { component.onErrorItemClicked() },
                         onCommentsClick = { component.onCommentsClicked(it) },
+                        onPollOptionClick = { poll, option ->
+                            component.onPollOptionClicked(
+                                poll,
+                                option
+                            )
+                        },
+                        onVoteClick = { component.onVoteClicked(it) },
+                        onDeleteVoteClick = { component.onDeleteVoteClicked(it) }
                     )
             }
         }
@@ -126,7 +136,10 @@ private fun PostsView(
     onVideoItemClick: (BlogItem.PostItem, Content.OkVideo) -> Unit,
     onScrolledToEnd: () -> Unit,
     onErrorItemClick: () -> Unit,
-    onCommentsClick: (post: Post) -> Unit
+    onCommentsClick: (post: Post) -> Unit,
+    onPollOptionClick: (Poll, PollOption) -> Unit,
+    onVoteClick: (poll: Poll) -> Unit,
+    onDeleteVoteClick: (poll: Poll) -> Unit
 ) {
     val listScrollState = rememberLazyListState()
 
@@ -150,7 +163,10 @@ private fun PostsView(
                 is BlogItem.PostItem -> PostView(
                     item.post,
                     onVideoClick = { onVideoItemClick(item, it) },
-                    onCommentsClick = { onCommentsClick(item.post) }
+                    onCommentsClick = { onCommentsClick(item.post) },
+                    onPollOptionClick = onPollOptionClick,
+                    onVoteClick = onVoteClick,
+                    onDeleteVoteClick = onDeleteVoteClick
                 )
             }
         }
@@ -166,7 +182,10 @@ private fun PostsView(
 internal fun PostView(
     post: Post,
     onVideoClick: (okVideoData: Content.OkVideo) -> Unit,
-    onCommentsClick: () -> Unit
+    onCommentsClick: () -> Unit,
+    onPollOptionClick: (Poll, PollOption) -> Unit,
+    onVoteClick: (poll: Poll) -> Unit,
+    onDeleteVoteClick: (poll: Poll) -> Unit
 ) {
     Column(
         modifier = Modifier
@@ -174,22 +193,40 @@ internal fun PostView(
             .padding(16.dp),
         horizontalAlignment = CenterHorizontally
     ) {
-        FocusableBox {
-            Text(
-                modifier = Modifier.fillMaxWidth().focusable(),
-                text = post.title,
-                color = MaterialTheme.colorScheme.primary,
-                style = MaterialTheme.typography.titleMedium
-            )
+        if (post.title.isNotEmpty()) {
+            TitleView(post.title)
+            VerticalSpacer(16.dp)
         }
-        VerticalSpacer(16.dp)
-        Column(
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            post.data.forEach { postData ->
-                ContentView(post.signedQuery, postData, onVideoClick)
+        if (post.hasAccess || post.teaser.isEmpty()) {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                post.data.forEach { postData ->
+                    ContentView(post.signedQuery, postData, onVideoClick)
+                }
             }
         }
+
+        if (!post.hasAccess || post.data.isEmpty()) {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                post.teaser.forEach { postData ->
+                    ContentView(post.signedQuery, postData, onVideoClick)
+                }
+            }
+        }
+
+        if (post.poll != null) {
+            VerticalSpacer(16.dp)
+            PollView(
+                poll = post.poll,
+                onOptionClick = onPollOptionClick,
+                onVoteClick = { onVoteClick(post.poll) },
+                onDeleteVoteClick = { onDeleteVoteClick(post.poll) }
+            )
+        }
+
         VerticalSpacer(8.dp)
         FocusableBox(Modifier.fillMaxWidth()) {
             Row(
@@ -207,6 +244,18 @@ internal fun PostView(
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun TitleView(text: String) {
+    FocusableBox {
+        Text(
+            modifier = Modifier.fillMaxWidth().focusable(),
+            text = text,
+            color = MaterialTheme.colorScheme.primary,
+            style = MaterialTheme.typography.titleMedium
+        )
     }
 }
 

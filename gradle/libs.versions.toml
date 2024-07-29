@@ -1,27 +1,27 @@
 [versions]
 
 desugar_jdk_libs = "2.0.4"
-kotlin = "1.9.22"
-compose = "1.6.0" # https://github.com/JetBrains/compose-multiplatform
+kotlin = "1.9.24"
+compose = "1.6.11" # https://github.com/JetBrains/compose-multiplatform
 agp = "8.2.2"
-androidx-appcompat = "1.6.1"
-androidx-activityCompose = "1.8.2"
-compose-uitooling = "1.6.5"
+androidx-appcompat = "1.7.0"
+androidx-activityCompose = "1.9.1"
+compose-uitooling = "1.6.8"
 decompose = "2.2.2-compose-experimental" # https://github.com/arkivanov/Decompose
 essently = "1.3.0" # https://github.com/arkivanov/Essenty
 composeImageLoader = "1.7.1" # https://github.com/qdsfdhvh/compose-imageloader
 napier = "2.7.1" # https://github.com/AAkira/Napier
 buildConfig = "4.1.1"
-kotlinx-coroutines = "1.8.0"
-ktor = "2.3.9"
-kotlinx-serialization = "1.6.2"
-kotlinx-datetime = "0.6.0-RC.2" # https://github.com/Kotlin/kotlinx-datetime
+kotlinx-coroutines = "1.8.1"
+ktor = "2.3.11"
+kotlinx-serialization = "1.6.3"
+kotlinx-datetime = "0.6.0" # https://github.com/Kotlin/kotlinx-datetime
 multiplatformSettings = "1.1.1" # https://github.com/russhwolf/multiplatform-settings
-kodein = "7.20.2" # https://github.com/kosi-libs/Kodein
-media3 = "1.3.1" # https://github.com/androidx/media
+kodein = "7.21.2" # https://github.com/kosi-libs/Kodein
+media3 = "1.4.0" # https://github.com/androidx/media
 collections-immutable = "0.3.7" # https://github.com/Kotlin/kotlinx.collections.immutable/releases
 android-splashscreen = "1.0.1"
-kotlinx-io = "0.3.1" # https://github.com/Kotlin/kotlinx-io
+kotlinx-io = "0.3.5" # https://github.com/Kotlin/kotlinx-io
 qrose = "1.0.1" # https://github.com/alexzhirkevich/qrose
 
 [libraries]
