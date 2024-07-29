@@ -40,8 +40,9 @@ data class Poll(
     val isFinished: Boolean,
     val options: List<PollOption>,
     val counter: Int,
-    val answer: List<Int>
-){
+    val answer: List<Int>,
+    val checked: Set<Int> = emptySet()
+) {
     val titleText: String = title.joinToString()
 }
 
@@ -52,7 +53,7 @@ data class PollOption(
     val text: String,
     val counter: Int,
     val fraction: Int
-){
+) {
     val fractionText: String = "$fraction%"
 }
 

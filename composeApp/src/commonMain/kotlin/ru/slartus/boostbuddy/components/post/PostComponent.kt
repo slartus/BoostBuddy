@@ -34,6 +34,8 @@ interface PostComponent {
     fun onMoreRepliesClicked(commentItem: PostViewItem.CommentItem)
     fun onVideoItemClicked(postId: String, postData: Content.OkVideo)
     fun onPollOptionClicked(poll: Poll, pollOption: PollOption)
+    fun onVoteClicked(poll: Poll)
+    fun onDeleteVoteClicked(poll: Poll)
 
     val viewStates: Value<PostViewState>
     val dialogSlot: Value<ChildSlot<*, VideoTypeComponent>>
@@ -182,7 +184,11 @@ class PostComponentImpl(
     override fun onPollOptionClicked(poll: Poll, pollOption: PollOption) {
         scope.launch {
             if (poll.isMultiple) {
-
+                val newPoll = if (pollOption.id in poll.checked)
+                    poll.copy(checked = poll.checked - pollOption.id)
+                else
+                    poll.copy(checked = poll.checked + pollOption.id)
+                replacePoll(newPoll)
             } else {
                 if (pollOption.id in poll.answer)
                     postRepository.deletePollVote(poll.id)
@@ -192,14 +198,41 @@ class PostComponentImpl(
                 val pollResponse = postRepository.getPoll(blogUrl, poll.id)
                 if (pollResponse.isSuccess) {
                     val updatedPoll = pollResponse.getOrThrow()
-                    viewState = viewState.copy(
-                        post = viewState.post.copy(poll = updatedPoll)
-                    )
+                    replacePoll(updatedPoll)
                 }
             }
         }
     }
 
+    private suspend fun refreshPoll(pollId: Int) {
+        val pollResponse = postRepository.getPoll(blogUrl, pollId)
+        if (pollResponse.isSuccess) {
+            val updatedPoll = pollResponse.getOrThrow()
+            replacePoll(updatedPoll)
+        }
+    }
+
+    override fun onVoteClicked(poll: Poll) {
+        scope.launch {
+            postRepository.pollVote(poll.id, poll.checked.toList())
+
+            refreshPoll(poll.id)
+        }
+    }
+
+    override fun onDeleteVoteClicked(poll: Poll) {
+        scope.launch {
+            postRepository.deletePollVote(poll.id)
+
+            refreshPoll(poll.id)
+        }
+    }
+
+    private fun replacePoll(newPoll: Poll) {
+        viewState = viewState.copy(
+            post = viewState.post.copy(poll = newPoll)
+        )
+    }
 
     @Serializable
     private data class DialogConfig(

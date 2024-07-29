@@ -113,7 +113,9 @@ internal fun BlogScreen(component: BlogComponent) {
                                 poll,
                                 option
                             )
-                        }
+                        },
+                        onVoteClick = { component.onVoteClicked(it) },
+                        onDeleteVoteClick = { component.onDeleteVoteClicked(it) }
                     )
             }
         }
@@ -135,7 +137,9 @@ private fun PostsView(
     onScrolledToEnd: () -> Unit,
     onErrorItemClick: () -> Unit,
     onCommentsClick: (post: Post) -> Unit,
-    onPollOptionClick: (Poll, PollOption) -> Unit
+    onPollOptionClick: (Poll, PollOption) -> Unit,
+    onVoteClick: (poll: Poll) -> Unit,
+    onDeleteVoteClick: (poll: Poll) -> Unit
 ) {
     val listScrollState = rememberLazyListState()
 
@@ -160,7 +164,9 @@ private fun PostsView(
                     item.post,
                     onVideoClick = { onVideoItemClick(item, it) },
                     onCommentsClick = { onCommentsClick(item.post) },
-                    onPollOptionClick = onPollOptionClick
+                    onPollOptionClick = onPollOptionClick,
+                    onVoteClick = onVoteClick,
+                    onDeleteVoteClick = onDeleteVoteClick
                 )
             }
         }
@@ -177,7 +183,9 @@ internal fun PostView(
     post: Post,
     onVideoClick: (okVideoData: Content.OkVideo) -> Unit,
     onCommentsClick: () -> Unit,
-    onPollOptionClick: (Poll, PollOption) -> Unit
+    onPollOptionClick: (Poll, PollOption) -> Unit,
+    onVoteClick: (poll: Poll) -> Unit,
+    onDeleteVoteClick: (poll: Poll) -> Unit
 ) {
     Column(
         modifier = Modifier
@@ -203,7 +211,12 @@ internal fun PostView(
         }
         if (post.poll != null) {
             VerticalSpacer(16.dp)
-            PollView(post.poll, onPollOptionClick)
+            PollView(
+                poll = post.poll,
+                onOptionClick = onPollOptionClick,
+                onVoteClick = { onVoteClick(post.poll) },
+                onDeleteVoteClick = { onDeleteVoteClick(post.poll) }
+            )
         }
 
         VerticalSpacer(8.dp)

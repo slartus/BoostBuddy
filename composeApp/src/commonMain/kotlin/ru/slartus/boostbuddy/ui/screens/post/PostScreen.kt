@@ -107,7 +107,9 @@ internal fun PostScreen(component: PostComponent) {
                             },
                             onPollOptionClick = { poll, option ->
                                 component.onPollOptionClicked(poll, option)
-                            }
+                            },
+                            onVoteClick = { component.onVoteClicked(it) },
+                            onDeleteVoteClick = { component.onDeleteVoteClicked(it) }
                         )
             }
         }
@@ -128,7 +130,9 @@ private fun FullPostView(
     onMoreClick: () -> Unit,
     onMoreRepliesClick: (PostViewItem.CommentItem) -> Unit,
     onVideoClick: (okVideoData: Content.OkVideo) -> Unit,
-    onPollOptionClick: (Poll, PollOption) -> Unit
+    onPollOptionClick: (Poll, PollOption) -> Unit,
+    onVoteClick: (poll: Poll) -> Unit,
+    onDeleteVoteClick: (poll: Poll) -> Unit
 ) {
     val state = rememberLazyListState(initialFirstVisibleItemIndex = 1)
     LazyColumn(modifier = Modifier.fillMaxSize(), state = state) {
@@ -137,7 +141,9 @@ private fun FullPostView(
                 post = post,
                 onVideoClick = onVideoClick,
                 onCommentsClick = {},
-                onPollOptionClick = onPollOptionClick
+                onPollOptionClick = onPollOptionClick,
+                onVoteClick = onVoteClick,
+                onDeleteVoteClick = onDeleteVoteClick
             )
         }
         commentsView(items, onMoreClick, onMoreRepliesClick)

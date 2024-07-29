@@ -38,6 +38,8 @@ interface BlogComponent {
     fun onErrorItemClicked()
     fun onCommentsClicked(post: Post)
     fun onPollOptionClicked(poll: Poll, pollOption: PollOption)
+    fun onVoteClicked(poll: Poll)
+    fun onDeleteVoteClicked(poll: Poll)
 }
 
 class BlogComponentImpl(
@@ -182,29 +184,57 @@ class BlogComponentImpl(
         onPostSelected(blog, post)
     }
 
+    private suspend fun refreshPoll(pollId: Int) {
+        val pollResponse = postRepository.getPoll(blog.blogUrl, pollId)
+        if (pollResponse.isSuccess) {
+            val updatedPoll = pollResponse.getOrThrow()
+            replacePoll(updatedPoll)
+        }
+    }
+
     override fun onPollOptionClicked(poll: Poll, pollOption: PollOption) {
         scope.launch {
             if (poll.isMultiple) {
-
+                val newPoll = if (pollOption.id in poll.checked)
+                    poll.copy(checked = poll.checked - pollOption.id)
+                else
+                    poll.copy(checked = poll.checked + pollOption.id)
+                replacePoll(newPoll)
             } else {
                 if (pollOption.id in poll.answer)
                     postRepository.deletePollVote(poll.id)
                 else
                     postRepository.pollVote(poll.id, listOf(pollOption.id))
 
-                val pollResponse = postRepository.getPoll(blog.blogUrl, poll.id)
-                if (pollResponse.isSuccess) {
-                    val updatedPoll = pollResponse.getOrThrow()
-                    viewState = viewState.copy(
-                        items = viewState.items.map { item ->
-                            if (item is BlogItem.PostItem && item.post.poll?.id == updatedPoll.id)
-                                item.copy(post = item.post.copy(poll = updatedPoll))
-                            else item
-                        }.toImmutableList()
-                    )
-                }
+                refreshPoll(poll.id)
             }
         }
+    }
+
+    override fun onVoteClicked(poll: Poll) {
+        scope.launch {
+            postRepository.pollVote(poll.id, poll.checked.toList())
+
+            refreshPoll(poll.id)
+        }
+    }
+
+    override fun onDeleteVoteClicked(poll: Poll) {
+        scope.launch {
+            postRepository.deletePollVote(poll.id)
+
+            refreshPoll(poll.id)
+        }
+    }
+
+    private fun replacePoll(newPoll: Poll) {
+        viewState = viewState.copy(
+            items = viewState.items.map { item ->
+                if (item is BlogItem.PostItem && item.post.poll?.id == newPoll.id)
+                    item.copy(post = item.post.copy(poll = newPoll))
+                else item
+            }.toImmutableList()
+        )
     }
 
     companion object {
