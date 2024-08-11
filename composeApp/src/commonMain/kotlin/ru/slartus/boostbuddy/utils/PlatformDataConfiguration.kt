@@ -11,6 +11,7 @@ import ru.slartus.boostbuddy.data.ktor.buildGithubHttpClient
 import ru.slartus.boostbuddy.data.repositories.AppSettings
 import ru.slartus.boostbuddy.data.repositories.BlogRepository
 import ru.slartus.boostbuddy.data.repositories.BoostyApi
+import ru.slartus.boostbuddy.data.repositories.EventsRepository
 import ru.slartus.boostbuddy.data.repositories.GithubRepository
 import ru.slartus.boostbuddy.data.repositories.PostRepository
 import ru.slartus.boostbuddy.data.repositories.ProfileRepository
@@ -70,5 +71,6 @@ object PlatformDataConfiguration {
         bindSingleton { PostRepository(boostyApi = instance()) }
         bindSingleton { VideoRepository(boostyApi = instance()) }
         bindSingleton { ProfileRepository(boostyApi = instance()) }
+        bindSingleton { EventsRepository(boostyApi = instance()) }
     }
 }

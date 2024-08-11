@@ -102,4 +102,7 @@ internal class BoostyApi(
         blog: String,
         pollId: Int
     ): HttpResponse = httpClient.get("v1/blog/$blog/poll/$pollId")
+
+    suspend fun events(
+    ): HttpResponse = httpClient.get("v1/notification/standalone/event/")
 }
