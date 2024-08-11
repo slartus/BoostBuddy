@@ -4,6 +4,7 @@ import androidx.compose.runtime.Immutable
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
 import ru.slartus.boostbuddy.data.repositories.Blog
+import ru.slartus.boostbuddy.data.repositories.models.Event
 import ru.slartus.boostbuddy.data.repositories.models.Post
 import ru.slartus.boostbuddy.data.repositories.models.VideoQuality
 
@@ -23,6 +24,7 @@ data class BlogViewState(
 
 @Immutable
 sealed class BlogItem(val key: String, val contentType: String) {
+    data class EventItem(val event: Event) : BlogItem(event.id.toString(), "event")
     data class PostItem(val post: Post) : BlogItem(post.id, "post")
     data object LoadingItem : BlogItem("loading", "loading")
     data class ErrorItem(val description: String) : BlogItem("error", "error")

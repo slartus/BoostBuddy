@@ -23,7 +23,7 @@ internal data class EventsResponse(
         val isRead: Boolean? = null,
         val blog: Blog? = null,
         val type: String? = null,
-        val eventTime: Int? = null,
+        val eventTime: Long? = null,
         val id: Int? = null,
         val aggregation: Aggregation? = null,
         val author: Author? = null,

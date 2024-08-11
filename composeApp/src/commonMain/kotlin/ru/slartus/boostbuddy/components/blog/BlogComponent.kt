@@ -10,15 +10,18 @@ import com.arkivanov.decompose.router.slot.dismiss
 import com.arkivanov.decompose.value.Value
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.toImmutableList
+import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import ru.slartus.boostbuddy.components.BaseComponent
 import ru.slartus.boostbuddy.data.Inject
 import ru.slartus.boostbuddy.data.repositories.Blog
 import ru.slartus.boostbuddy.data.repositories.BlogRepository
+import ru.slartus.boostbuddy.data.repositories.EventsRepository
 import ru.slartus.boostbuddy.data.repositories.PostRepository
 import ru.slartus.boostbuddy.data.repositories.SettingsRepository
 import ru.slartus.boostbuddy.data.repositories.models.Content
+import ru.slartus.boostbuddy.data.repositories.models.Event
 import ru.slartus.boostbuddy.data.repositories.models.Offset
 import ru.slartus.boostbuddy.data.repositories.models.PlayerUrl
 import ru.slartus.boostbuddy.data.repositories.models.Poll
@@ -55,6 +58,7 @@ class BlogComponentImpl(
     private val settingsRepository by Inject.lazy<SettingsRepository>()
     private val blogRepository by Inject.lazy<BlogRepository>()
     private val postRepository by Inject.lazy<PostRepository>()
+    private val eventsRepository by Inject.lazy<EventsRepository>()
     private val dialogNavigation = SlotNavigation<DialogConfig>()
 
     override val dialogSlot: Value<ChildSlot<*, VideoTypeComponent>> =
@@ -91,21 +95,26 @@ class BlogComponentImpl(
         viewState =
             viewState.copy(progressProgressState = BlogViewState.ProgressState.Loading)
         scope.launch {
-            val response = blogRepository.getData(
-                url = blog.blogUrl,
-                offset = null
-            )
+            val responseJob = async {
+                blogRepository.getData(
+                    url = blog.blogUrl,
+                    offset = null
+                )
+            }
+            val eventsJob = async { fetchEvents() }
+            val response = responseJob.await()
             if (response.isSuccess) {
+                val events = eventsJob.await()
                 val data = response.getOrNull()
                 val newItems = data?.items.orEmpty()
                     .map { BlogItem.PostItem(it) }
                     .toImmutableList()
-                viewState =
-                    viewState.copy(
-                        items = newItems,
-                        hasMore = data?.isLast != true,
-                        progressProgressState = BlogViewState.ProgressState.Loaded
-                    )
+                    .plusEvents(events)
+                viewState = viewState.copy(
+                    items = newItems,
+                    hasMore = data?.isLast != true,
+                    progressProgressState = BlogViewState.ProgressState.Loaded
+                )
             } else {
                 viewState =
                     viewState.copy(
@@ -127,7 +136,8 @@ class BlogComponentImpl(
             if (response.isSuccess) {
                 val data = response.getOrNull()
                 val newItems =
-                    viewState.items.plusItems(data?.items.orEmpty().map { BlogItem.PostItem(it) })
+                    viewState.items
+                        .plusItems(data?.items.orEmpty().map { BlogItem.PostItem(it) })
 
                 viewState =
                     viewState.copy(
@@ -148,9 +158,14 @@ class BlogComponentImpl(
         }
     }
 
+    private suspend fun fetchEvents(): List<Event> =
+        eventsRepository.getEvents()
+            .getOrNull().orEmpty()
+            .filter { it.blogUrl == viewState.blog.blogUrl }
+
     private fun fetchNext() {
         scope.launch {
-            val token = settingsRepository.getAccessToken() ?: unauthorizedError()
+            settingsRepository.getAccessToken() ?: unauthorizedError()
             val lastItem = viewState.items.filterIsInstance<BlogItem.PostItem>().last()
             val offset = Offset(lastItem.post.intId, lastItem.post.createdAt)
             fetchBlog(offset)
@@ -171,7 +186,7 @@ class BlogComponentImpl(
 
     override fun onRepeatClicked() {
         scope.launch {
-            val token = settingsRepository.getAccessToken() ?: unauthorizedError()
+            settingsRepository.getAccessToken() ?: unauthorizedError()
             fetchBlog()
         }
     }
@@ -238,6 +253,13 @@ class BlogComponentImpl(
     }
 
     companion object {
+        private fun List<BlogItem>.plusEvents(events: List<Event>): ImmutableList<BlogItem> =
+            events
+                .map { BlogItem.EventItem(it) }
+                .plus(this)
+                .distinctBy { it.key }
+                .toImmutableList()
+
         private fun List<BlogItem>.plusItems(items: List<BlogItem>): ImmutableList<BlogItem> =
             dropLastWhile { it !is BlogItem.PostItem }
                 .plus(items)

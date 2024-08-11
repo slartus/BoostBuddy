@@ -168,6 +168,8 @@ private fun PostsView(
                     onVoteClick = onVoteClick,
                     onDeleteVoteClick = onDeleteVoteClick
                 )
+
+                is BlogItem.EventItem -> EventView(item.event)
             }
         }
     }
