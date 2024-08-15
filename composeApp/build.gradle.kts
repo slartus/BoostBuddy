@@ -25,7 +25,6 @@ kotlin {
             baseName = "BoostBuddyShared"
             export(libs.decompose)
             export(libs.decompose.compose)
-            export(libs.decompose.extensions.experimental)
             export(libs.essently.lifecycle)
         }
     }
@@ -43,7 +42,6 @@ kotlin {
             @OptIn(org.jetbrains.compose.ExperimentalComposeLibrary::class)
             implementation(compose.components.resources)
             api(libs.decompose)
-            api(libs.decompose.extensions.experimental)
             api(libs.decompose.compose)
             implementation(libs.composeImageLoader)
             implementation(libs.kotlinx.coroutines.core)

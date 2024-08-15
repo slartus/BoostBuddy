@@ -43,7 +43,7 @@ import androidx.compose.ui.Alignment.Companion.Center
 import androidx.compose.ui.Alignment.Companion.CenterVertically
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
+import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.seiko.imageloader.rememberImagePainter
 import kotlinx.collections.immutable.ImmutableList
 import ru.slartus.boostbuddy.components.subscribes.SubscribesComponent
