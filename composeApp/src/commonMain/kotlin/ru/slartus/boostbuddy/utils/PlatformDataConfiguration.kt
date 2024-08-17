@@ -5,6 +5,7 @@ import kotlinx.coroutines.runBlocking
 import org.kodein.di.DI
 import org.kodein.di.bindSingleton
 import org.kodein.di.instance
+import ru.slartus.boostbuddy.navigation.NavigationRouterImpl
 import ru.slartus.boostbuddy.data.Inject
 import ru.slartus.boostbuddy.data.ktor.buildBoostyHttpClient
 import ru.slartus.boostbuddy.data.ktor.buildGithubHttpClient
@@ -28,6 +29,7 @@ object PlatformDataConfiguration {
         Inject.createDependenciesTree {
             bindSingleton { GlobalExceptionHandlersChain() }
             bindSingleton { platformConfiguration }
+            bindSingleton { NavigationRouterImpl() }
             bindSingleton { Permissions(platformConfiguration = instance()) }
             bindSingleton { SettingsFactory(platformConfiguration = instance()).createDefault() }
             bindSingleton { SettingsRepository(settings = instance()) }

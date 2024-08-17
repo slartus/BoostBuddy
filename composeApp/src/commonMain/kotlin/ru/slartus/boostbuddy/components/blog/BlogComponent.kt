@@ -14,6 +14,9 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import ru.slartus.boostbuddy.components.BaseComponent
+import ru.slartus.boostbuddy.navigation.NavigationRouter
+import ru.slartus.boostbuddy.navigation.NavigationTree
+import ru.slartus.boostbuddy.navigation.navigateTo
 import ru.slartus.boostbuddy.data.Inject
 import ru.slartus.boostbuddy.data.repositories.Blog
 import ru.slartus.boostbuddy.data.repositories.BlogRepository
@@ -23,7 +26,6 @@ import ru.slartus.boostbuddy.data.repositories.SettingsRepository
 import ru.slartus.boostbuddy.data.repositories.models.Content
 import ru.slartus.boostbuddy.data.repositories.models.Event
 import ru.slartus.boostbuddy.data.repositories.models.Offset
-import ru.slartus.boostbuddy.data.repositories.models.PlayerUrl
 import ru.slartus.boostbuddy.data.repositories.models.Poll
 import ru.slartus.boostbuddy.data.repositories.models.PollOption
 import ru.slartus.boostbuddy.data.repositories.models.Post
@@ -48,9 +50,7 @@ interface BlogComponent {
 class BlogComponentImpl(
     componentContext: ComponentContext,
     private val blog: Blog,
-    private val onItemSelected: (postId: String, postData: Content.OkVideo, playerUrl: PlayerUrl) -> Unit,
     private val onBackClicked: () -> Unit,
-    private val onPostSelected: (blog: Blog, item: Post) -> Unit,
 ) : BaseComponent<BlogViewState, Any>(
     componentContext,
     BlogViewState(blog)
@@ -59,6 +59,7 @@ class BlogComponentImpl(
     private val blogRepository by Inject.lazy<BlogRepository>()
     private val postRepository by Inject.lazy<PostRepository>()
     private val eventsRepository by Inject.lazy<EventsRepository>()
+    private val navigationRouter by Inject.lazy<NavigationRouter>()
     private val dialogNavigation = SlotNavigation<DialogConfig>()
 
     override val dialogSlot: Value<ChildSlot<*, VideoTypeComponent>> =
@@ -73,7 +74,14 @@ class BlogComponentImpl(
                 onDismissed = dialogNavigation::dismiss,
                 onItemClicked = { playerUrl ->
                     dialogNavigation.dismiss()
-                    onItemSelected(config.postId, config.postData, playerUrl)
+                    navigationRouter.navigateTo(
+                        NavigationTree.Video(
+                            blog.blogUrl,
+                            config.postId,
+                            config.postData,
+                            playerUrl
+                        )
+                    )
                 }
             )
         }
@@ -196,7 +204,7 @@ class BlogComponentImpl(
     }
 
     override fun onCommentsClicked(post: Post) {
-        onPostSelected(blog, post)
+        navigationRouter.navigateTo(NavigationTree.BlogPost(blog.blogUrl, post))
     }
 
     private suspend fun refreshPoll(pollId: Int) {

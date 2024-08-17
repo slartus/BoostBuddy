@@ -50,7 +50,6 @@ import ru.slartus.boostbuddy.components.subscribes.SubscribesComponent
 import ru.slartus.boostbuddy.components.subscribes.SubscribesViewState
 import ru.slartus.boostbuddy.data.repositories.Blog
 import ru.slartus.boostbuddy.data.repositories.SubscribeItem
-import ru.slartus.boostbuddy.ui.common.QrDialog
 import ru.slartus.boostbuddy.ui.theme.LocalThemeIsDark
 import ru.slartus.boostbuddy.ui.widgets.EmptyView
 import ru.slartus.boostbuddy.ui.widgets.ErrorView
@@ -89,24 +88,6 @@ internal fun SubscribesScreen(component: SubscribesComponent) {
                     onItemClicked = component::onItemClicked
                 )
             }
-        }
-    }
-    val dialogSlot by component.dialogSlot.subscribeAsState()
-    dialogSlot.child?.instance?.also { child ->
-        when (child) {
-            is SubscribesComponent.DialogChild.Logout ->
-                LogoutDialogView(
-                    modifier = Modifier,
-                    onDismissClicked = { child.component.onDismissed() },
-                    onAcceptClicked = { child.component.onAcceptClicked() },
-                    onCancelClicked = { child.component.onCancelClicked() },
-                )
-
-            is SubscribesComponent.DialogChild.Qr -> QrDialog(
-                title = "Обсудить на форуме",
-                url = child.url,
-                onDismiss = { component.onDialogDismissed() }
-            )
         }
     }
 }
