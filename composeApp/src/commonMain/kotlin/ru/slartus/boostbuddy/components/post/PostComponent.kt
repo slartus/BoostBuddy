@@ -2,28 +2,22 @@ package ru.slartus.boostbuddy.components.post
 
 import androidx.compose.runtime.Stable
 import com.arkivanov.decompose.ComponentContext
-import com.arkivanov.decompose.router.slot.ChildSlot
-import com.arkivanov.decompose.router.slot.SlotNavigation
-import com.arkivanov.decompose.router.slot.activate
-import com.arkivanov.decompose.router.slot.childSlot
-import com.arkivanov.decompose.router.slot.dismiss
 import com.arkivanov.decompose.value.Value
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.launch
-import kotlinx.serialization.Serializable
 import ru.slartus.boostbuddy.components.BaseComponent
-import ru.slartus.boostbuddy.components.blog.VideoTypeComponent
-import ru.slartus.boostbuddy.components.blog.VideoTypeComponentImpl
 import ru.slartus.boostbuddy.data.Inject
 import ru.slartus.boostbuddy.data.repositories.PostRepository
 import ru.slartus.boostbuddy.data.repositories.SettingsRepository
 import ru.slartus.boostbuddy.data.repositories.comments.CommentsRepository
 import ru.slartus.boostbuddy.data.repositories.comments.models.Comments
 import ru.slartus.boostbuddy.data.repositories.models.Content
-import ru.slartus.boostbuddy.data.repositories.models.PlayerUrl
 import ru.slartus.boostbuddy.data.repositories.models.Poll
 import ru.slartus.boostbuddy.data.repositories.models.PollOption
 import ru.slartus.boostbuddy.data.repositories.models.Post
+import ru.slartus.boostbuddy.navigation.NavigationRouter
+import ru.slartus.boostbuddy.navigation.NavigationTree
+import ru.slartus.boostbuddy.navigation.navigateTo
 import ru.slartus.boostbuddy.utils.messageOrThrow
 import ru.slartus.boostbuddy.utils.unauthorizedError
 
@@ -38,7 +32,6 @@ interface PostComponent {
     fun onDeleteVoteClicked(poll: Poll)
 
     val viewStates: Value<PostViewState>
-    val dialogSlot: Value<ChildSlot<*, VideoTypeComponent>>
     val onBackClicked: () -> Unit
 }
 
@@ -47,7 +40,6 @@ class PostComponentImpl(
     private val blogUrl: String,
     private val post: Post,
     override val onBackClicked: () -> Unit,
-    private val onItemSelected: (postId: String, postData: Content.OkVideo, playerUrl: PlayerUrl) -> Unit,
 ) : BaseComponent<PostViewState, Any>(
     componentContext,
     PostViewState(post)
@@ -55,24 +47,7 @@ class PostComponentImpl(
     private val settingsRepository by Inject.lazy<SettingsRepository>()
     private val commentsRepository by Inject.lazy<CommentsRepository>()
     private val postRepository by Inject.lazy<PostRepository>()
-    private val dialogNavigation = SlotNavigation<DialogConfig>()
-
-    override val dialogSlot: Value<ChildSlot<*, VideoTypeComponent>> =
-        childSlot(
-            source = dialogNavigation,
-            serializer = DialogConfig.serializer(), // Or null to disable navigation state saving
-            handleBackButton = true, // Close the dialog on back button press
-        ) { config, _ ->
-            VideoTypeComponentImpl(
-                componentContext = this,
-                postData = config.postData,
-                onDismissed = dialogNavigation::dismiss,
-                onItemClicked = { playerUrl ->
-                    dialogNavigation.dismiss()
-                    onItemSelected(config.postId, config.postData, playerUrl)
-                }
-            )
-        }
+    private val navigationRouter by Inject.lazy<NavigationRouter>()
 
     init {
         subscribeToken()
@@ -178,7 +153,12 @@ class PostComponentImpl(
     }
 
     override fun onVideoItemClicked(postId: String, postData: Content.OkVideo) {
-        dialogNavigation.activate(DialogConfig(postId = postId, postData = postData))
+        navigationRouter.navigateTo(
+            NavigationTree.VideoType(
+            blogUrl = blogUrl,
+            postId = postId,
+            postData = postData
+        ))
     }
 
     override fun onPollOptionClicked(poll: Poll, pollOption: PollOption) {
@@ -233,10 +213,4 @@ class PostComponentImpl(
             post = viewState.post.copy(poll = newPoll)
         )
     }
-
-    @Serializable
-    private data class DialogConfig(
-        val postId: String,
-        val postData: Content.OkVideo,
-    )
 }

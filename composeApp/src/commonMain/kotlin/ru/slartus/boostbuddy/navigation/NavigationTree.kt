@@ -24,4 +24,9 @@ object NavigationTree {
 
     data object Logout : Screen
     class Qr(val title: String, val url: String) : Screen
+    class VideoType(
+        val blogUrl: String,
+        val postId: String,
+        val postData: Content.OkVideo,
+    ) : Screen
 }

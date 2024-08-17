@@ -26,6 +26,8 @@ import ru.slartus.boostbuddy.components.auth.AuthComponent
 import ru.slartus.boostbuddy.components.auth.AuthComponentImpl
 import ru.slartus.boostbuddy.components.blog.BlogComponent
 import ru.slartus.boostbuddy.components.blog.BlogComponentImpl
+import ru.slartus.boostbuddy.components.blog.VideoTypeComponent
+import ru.slartus.boostbuddy.components.blog.VideoTypeComponentImpl
 import ru.slartus.boostbuddy.components.main.MainComponent
 import ru.slartus.boostbuddy.components.main.MainComponentImpl
 import ru.slartus.boostbuddy.components.post.PostComponent
@@ -51,6 +53,7 @@ import ru.slartus.boostbuddy.navigation.NavigationRouter
 import ru.slartus.boostbuddy.navigation.NavigationTree
 import ru.slartus.boostbuddy.navigation.Screen
 import ru.slartus.boostbuddy.navigation.ScreenAction
+import ru.slartus.boostbuddy.navigation.navigateTo
 import ru.slartus.boostbuddy.utils.Permission
 import ru.slartus.boostbuddy.utils.Permissions
 import ru.slartus.boostbuddy.utils.Platform
@@ -93,6 +96,7 @@ interface RootComponent : AppComponent<RootViewAction> {
         data class AppSettings(val component: SettingsComponent) : DialogChild()
         data class Logout(val component: LogoutDialogComponent) : DialogChild()
         data class Qr(val title: String, val url: String) : DialogChild()
+        data class VideoType(val component: VideoTypeComponent) : DialogChild()
     }
 }
 
@@ -196,6 +200,14 @@ class RootComponentImpl(
                     url = screen.url
                 )
             )
+
+            is NavigationTree.VideoType -> dialogNavigation.activate(
+                DialogConfig.VideoType(
+                    blogUrl = screen.blogUrl,
+                    postId = screen.postId,
+                    postData = screen.postData
+                )
+            )
         }
     }
 
@@ -294,6 +306,25 @@ class RootComponentImpl(
                 title = config.title,
                 url = config.url
             )
+
+            is DialogConfig.VideoType -> RootComponent.DialogChild.VideoType(
+                VideoTypeComponentImpl(
+                    componentContext = this,
+                    postData = config.postData,
+                    onDismissed = dialogNavigation::dismiss,
+                    onItemClicked = { playerUrl ->
+                        dialogNavigation.dismiss()
+                        navigationRouter.navigateTo(
+                            NavigationTree.Video(
+                                blogUrl = config.blogUrl,
+                                postId = config.postId,
+                                postData = config.postData,
+                                playerUrl = playerUrl
+                            )
+                        )
+                    }
+                )
+            )
         }
 
     private fun logout() {
@@ -351,15 +382,7 @@ class RootComponentImpl(
             componentContext = componentContext,
             blogUrl = config.blogUrl,
             post = config.post,
-            onBackClicked = { navigation.popWhile { it == config } },
-            onItemSelected = { postId, postData, playerUrl ->
-                playVideo(
-                    blogUrl = config.blogUrl,
-                    postId = postId,
-                    postData = postData,
-                    playerUrl = playerUrl
-                )
-            },
+            onBackClicked = { navigation.popWhile { it == config } }
         )
 
     private fun playVideo(
@@ -486,5 +509,11 @@ class RootComponentImpl(
 
         @Serializable
         data class Qr(val title: String, val url: String) : DialogConfig
+
+        data class VideoType(
+            val blogUrl: String,
+            val postId: String,
+            val postData: Content.OkVideo,
+        ) : DialogConfig
     }
 }

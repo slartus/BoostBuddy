@@ -39,6 +39,7 @@ import ru.slartus.boostbuddy.components.observeAction
 import ru.slartus.boostbuddy.components.settings.SettingsComponent
 import ru.slartus.boostbuddy.ui.common.QrDialog
 import ru.slartus.boostbuddy.ui.screens.blog.BlogScreen
+import ru.slartus.boostbuddy.ui.screens.blog.VideoTypeDialogView
 import ru.slartus.boostbuddy.ui.screens.post.PostScreen
 import ru.slartus.boostbuddy.ui.theme.AppTheme
 import ru.slartus.boostbuddy.ui.theme.LocalThemeIsDark
@@ -112,6 +113,13 @@ fun RootScreen(component: RootComponent, modifier: Modifier = Modifier) {
                         url = dialogComponent.url,
                         onDismiss = { component.onDialogDismissed() }
                     )
+
+                    is RootComponent.DialogChild.VideoType -> {
+                        VideoTypeDialogView(
+                            modifier = Modifier,
+                            component = dialogComponent.component
+                        )
+                    }
                 }
             }
 

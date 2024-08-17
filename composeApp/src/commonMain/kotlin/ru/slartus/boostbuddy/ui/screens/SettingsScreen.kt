@@ -17,7 +17,6 @@ import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import ru.slartus.boostbuddy.components.settings.SettingsComponent
 import ru.slartus.boostbuddy.ui.common.BottomView
 import ru.slartus.boostbuddy.ui.common.LocalPlatformConfiguration
-import ru.slartus.boostbuddy.ui.common.QrDialog
 
 @Composable
 internal fun SettingsScreen(component: SettingsComponent) {
@@ -61,17 +60,6 @@ internal fun SettingsScreen(component: SettingsComponent) {
                 onClick = {
                     component.onVersionClicked()
                 }
-            )
-        }
-    }
-
-    val dialogSlot by component.dialogSlot.subscribeAsState()
-    dialogSlot.child?.instance?.also { child ->
-        when (child) {
-            is SettingsComponent.DialogChild.Qr -> QrDialog(
-                title = child.title,
-                url = child.url,
-                onDismiss = { component.onDialogDismissed() }
             )
         }
     }

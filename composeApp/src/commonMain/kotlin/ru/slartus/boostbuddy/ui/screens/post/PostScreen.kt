@@ -48,7 +48,6 @@ import ru.slartus.boostbuddy.ui.common.VerticalSpacer
 import ru.slartus.boostbuddy.ui.screens.blog.ContentView
 import ru.slartus.boostbuddy.ui.screens.blog.FocusableBox
 import ru.slartus.boostbuddy.ui.screens.blog.PostView
-import ru.slartus.boostbuddy.ui.screens.blog.VideoTypeDialogView
 import ru.slartus.boostbuddy.ui.widgets.ErrorView
 import ru.slartus.boostbuddy.ui.widgets.LoaderView
 
@@ -113,13 +112,6 @@ internal fun PostScreen(component: PostComponent) {
                         )
             }
         }
-    }
-    val dialogSlot by component.dialogSlot.subscribeAsState()
-    dialogSlot.child?.instance?.also { videoTypeComponent ->
-        VideoTypeDialogView(
-            modifier = Modifier,
-            component = videoTypeComponent,
-        )
     }
 }
 
