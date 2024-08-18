@@ -40,8 +40,8 @@ import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import kotlinx.collections.immutable.ImmutableList
 import ru.slartus.boostbuddy.components.blog.BlogComponent
-import ru.slartus.boostbuddy.components.blog.BlogItem
-import ru.slartus.boostbuddy.components.blog.BlogViewState
+import ru.slartus.boostbuddy.components.common.ProgressState
+import ru.slartus.boostbuddy.components.feed.FeedPostItem
 import ru.slartus.boostbuddy.data.repositories.models.Content
 import ru.slartus.boostbuddy.data.repositories.models.Poll
 import ru.slartus.boostbuddy.data.repositories.models.PollOption
@@ -86,36 +86,38 @@ internal fun BlogScreen(component: BlogComponent) {
             modifier = Modifier.fillMaxSize().padding(innerPadding),
             contentAlignment = Alignment.Center
         ) {
-            when (val progressState = state.progressProgressState) {
-                is BlogViewState.ProgressState.Error -> ErrorView(
+            when (val progressState = state.progressState) {
+                is ProgressState.Error -> ErrorView(
                     message = progressState.description,
                     onRepeatClick = { component.onRepeatClicked() }
                 )
 
-                BlogViewState.ProgressState.Init,
-                BlogViewState.ProgressState.Loading -> LoaderView()
+                ProgressState.Init,
+                ProgressState.Loading -> LoaderView()
 
-                is BlogViewState.ProgressState.Loaded ->
+                is ProgressState.Loaded ->
                     PostsView(
                         items = state.items,
                         canLoadMore = state.hasMore,
                         onVideoItemClick = { post, data ->
                             component.onVideoItemClicked(
-                                post.post.id,
+                                post.post,
                                 data
                             )
                         },
                         onScrolledToEnd = { component.onScrolledToEnd() },
                         onErrorItemClick = { component.onErrorItemClicked() },
                         onCommentsClick = { component.onCommentsClicked(it) },
-                        onPollOptionClick = { poll, option ->
-                            component.onPollOptionClicked(
-                                poll,
-                                option
-                            )
+                        onPollOptionClick = { post, poll, option ->
+                            component.onPollOptionClicked(post, poll, option)
                         },
-                        onVoteClick = { component.onVoteClicked(it) },
-                        onDeleteVoteClick = { component.onDeleteVoteClicked(it) }
+                        onVoteClick = { post, poll -> component.onVoteClicked(post, poll) },
+                        onDeleteVoteClick = { post, poll ->
+                            component.onDeleteVoteClicked(
+                                post,
+                                poll
+                            )
+                        }
                     )
             }
         }
@@ -124,15 +126,15 @@ internal fun BlogScreen(component: BlogComponent) {
 
 @Composable
 private fun PostsView(
-    items: ImmutableList<BlogItem>,
+    items: ImmutableList<FeedPostItem>,
     canLoadMore: Boolean,
-    onVideoItemClick: (BlogItem.PostItem, Content.OkVideo) -> Unit,
+    onVideoItemClick: (FeedPostItem.PostItem, Content.OkVideo) -> Unit,
     onScrolledToEnd: () -> Unit,
     onErrorItemClick: () -> Unit,
     onCommentsClick: (post: Post) -> Unit,
-    onPollOptionClick: (Poll, PollOption) -> Unit,
-    onVoteClick: (poll: Poll) -> Unit,
-    onDeleteVoteClick: (poll: Poll) -> Unit
+    onPollOptionClick: (Post, Poll, PollOption) -> Unit,
+    onVoteClick: (Post, poll: Poll) -> Unit,
+    onDeleteVoteClick: (Post, poll: Poll) -> Unit
 ) {
     val listScrollState = rememberLazyListState()
 
@@ -148,12 +150,12 @@ private fun PostsView(
     ) {
         items(items, key = { it.key }, contentType = { it.contentType }) { item ->
             when (item) {
-                is BlogItem.ErrorItem -> ErrorView(
+                is FeedPostItem.ErrorItem -> ErrorView(
                     item.description,
                     onClick = { onErrorItemClick() })
 
-                BlogItem.LoadingItem -> LoadingView()
-                is BlogItem.PostItem -> PostView(
+                FeedPostItem.LoadingItem -> LoadingView()
+                is FeedPostItem.PostItem -> PostView(
                     item.post,
                     onVideoClick = { onVideoItemClick(item, it) },
                     onCommentsClick = { onCommentsClick(item.post) },
@@ -161,13 +163,11 @@ private fun PostsView(
                     onVoteClick = onVoteClick,
                     onDeleteVoteClick = onDeleteVoteClick
                 )
-
-                is BlogItem.EventItem -> EventView(item.event)
             }
         }
     }
     LaunchedEffect(endOfListReached.value, items) {
-        if (endOfListReached.value && canLoadMore && items.last() is BlogItem.PostItem) {
+        if (endOfListReached.value && canLoadMore && items.last() is FeedPostItem.PostItem) {
             onScrolledToEnd()
         }
     }
@@ -178,9 +178,9 @@ internal fun PostView(
     post: Post,
     onVideoClick: (okVideoData: Content.OkVideo) -> Unit,
     onCommentsClick: () -> Unit,
-    onPollOptionClick: (Poll, PollOption) -> Unit,
-    onVoteClick: (poll: Poll) -> Unit,
-    onDeleteVoteClick: (poll: Poll) -> Unit
+    onPollOptionClick: (Post, Poll, PollOption) -> Unit,
+    onVoteClick: (Post, poll: Poll) -> Unit,
+    onDeleteVoteClick: (Post, poll: Poll) -> Unit
 ) {
     Column(
         modifier = Modifier
@@ -216,9 +216,9 @@ internal fun PostView(
             VerticalSpacer(16.dp)
             PollView(
                 poll = post.poll,
-                onOptionClick = onPollOptionClick,
-                onVoteClick = { onVoteClick(post.poll) },
-                onDeleteVoteClick = { onDeleteVoteClick(post.poll) }
+                onOptionClick = { option -> onPollOptionClick(post, post.poll, option) },
+                onVoteClick = { onVoteClick(post, post.poll) },
+                onDeleteVoteClick = { onDeleteVoteClick(post, post.poll) }
             )
         }
 

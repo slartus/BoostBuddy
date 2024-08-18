@@ -38,7 +38,7 @@ import ru.slartus.boostbuddy.ui.common.VerticalSpacer
 @Composable
 internal fun PollView(
     poll: Poll,
-    onOptionClick: (Poll, PollOption) -> Unit,
+    onOptionClick: (PollOption) -> Unit,
     onVoteClick: () -> Unit,
     onDeleteVoteClick: () -> Unit
 ) {
@@ -56,7 +56,7 @@ internal fun PollView(
             PollFinishedView()
         VerticalSpacer(12.dp)
         PollOptionsView(poll, onOptionClick = { option ->
-            onOptionClick(poll, option)
+            onOptionClick(option)
         })
 
         if (poll.isMultiple && !poll.isFinished) {

@@ -4,156 +4,53 @@ import androidx.compose.runtime.Stable
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.value.Value
 import kotlinx.collections.immutable.ImmutableList
-import kotlinx.collections.immutable.toImmutableList
-import kotlinx.coroutines.async
-import kotlinx.coroutines.launch
-import ru.slartus.boostbuddy.components.BaseComponent
+import ru.slartus.boostbuddy.components.common.ProgressState
+import ru.slartus.boostbuddy.components.feed.FeedPostItem
+import ru.slartus.boostbuddy.components.feed.PostsFeedComponent
 import ru.slartus.boostbuddy.data.Inject
 import ru.slartus.boostbuddy.data.repositories.Blog
 import ru.slartus.boostbuddy.data.repositories.BlogRepository
-import ru.slartus.boostbuddy.data.repositories.EventsRepository
-import ru.slartus.boostbuddy.data.repositories.PostRepository
-import ru.slartus.boostbuddy.data.repositories.SettingsRepository
 import ru.slartus.boostbuddy.data.repositories.models.Content
-import ru.slartus.boostbuddy.data.repositories.models.Event
 import ru.slartus.boostbuddy.data.repositories.models.Offset
 import ru.slartus.boostbuddy.data.repositories.models.Poll
 import ru.slartus.boostbuddy.data.repositories.models.PollOption
 import ru.slartus.boostbuddy.data.repositories.models.Post
-import ru.slartus.boostbuddy.navigation.NavigationRouter
-import ru.slartus.boostbuddy.navigation.NavigationTree
-import ru.slartus.boostbuddy.navigation.navigateTo
-import ru.slartus.boostbuddy.utils.messageOrThrow
-import ru.slartus.boostbuddy.utils.unauthorizedError
+import ru.slartus.boostbuddy.data.repositories.models.Posts
 
 @Stable
 interface BlogComponent {
     val viewStates: Value<BlogViewState>
-    fun onVideoItemClicked(postId: String, postData: Content.OkVideo)
+    fun onVideoItemClicked(post: Post, postData: Content.OkVideo)
     fun onBackClicked()
     fun onScrolledToEnd()
     fun onRepeatClicked()
     fun onErrorItemClicked()
     fun onCommentsClicked(post: Post)
-    fun onPollOptionClicked(poll: Poll, pollOption: PollOption)
-    fun onVoteClicked(poll: Poll)
-    fun onDeleteVoteClicked(poll: Poll)
+    fun onPollOptionClicked(post: Post, poll: Poll, pollOption: PollOption)
+    fun onVoteClicked(post: Post, poll: Poll)
+    fun onDeleteVoteClicked(post: Post, poll: Poll)
 }
 
 class BlogComponentImpl(
     componentContext: ComponentContext,
     private val blog: Blog,
     private val onBackClicked: () -> Unit,
-) : BaseComponent<BlogViewState, Any>(
+) : PostsFeedComponent<BlogViewState, Any>(
     componentContext,
     BlogViewState(blog)
 ), BlogComponent {
-    private val settingsRepository by Inject.lazy<SettingsRepository>()
     private val blogRepository by Inject.lazy<BlogRepository>()
-    private val postRepository by Inject.lazy<PostRepository>()
-    private val eventsRepository by Inject.lazy<EventsRepository>()
-    private val navigationRouter by Inject.lazy<NavigationRouter>()
+    override val viewStateItems: List<FeedPostItem> get() = viewState.items
 
-    init {
-        subscribeToken()
+    override suspend fun fetch(offset: Offset?): Result<Posts> =
+        blogRepository.getData(blog.blogUrl, offset)
+
+    override fun onProgressStateChanged(progressState: ProgressState) {
+        viewState = viewState.copy(progressState = progressState)
     }
 
-    private fun subscribeToken() {
-        scope.launch {
-            settingsRepository.tokenFlow.collect { token ->
-                if (token != null)
-                    fetchBlog()
-            }
-        }
-    }
-
-    private fun fetchBlog() {
-        viewState =
-            viewState.copy(progressProgressState = BlogViewState.ProgressState.Loading)
-        scope.launch {
-            val responseJob = async {
-                blogRepository.getData(
-                    url = blog.blogUrl,
-                    offset = null
-                )
-            }
-            val eventsJob = async { fetchEvents() }
-            val response = responseJob.await()
-            if (response.isSuccess) {
-                val events = eventsJob.await()
-                val data = response.getOrNull()
-                val newItems = data?.items.orEmpty()
-                    .map { BlogItem.PostItem(it) }
-                    .toImmutableList()
-                    .plusEvents(events)
-                viewState = viewState.copy(
-                    items = newItems,
-                    hasMore = data?.isLast != true,
-                    progressProgressState = BlogViewState.ProgressState.Loaded
-                )
-            } else {
-                viewState =
-                    viewState.copy(
-                        progressProgressState = BlogViewState.ProgressState.Error(
-                            response.exceptionOrNull()?.messageOrThrow() ?: "Ошибка загрузки"
-                        )
-                    )
-            }
-        }
-    }
-
-    private fun fetchBlog(offset: Offset? = null) {
-        viewState = viewState.copy(items = viewState.items.plusItem(BlogItem.LoadingItem))
-        scope.launch {
-            val response = blogRepository.getData(
-                url = blog.blogUrl,
-                offset = offset
-            )
-            if (response.isSuccess) {
-                val data = response.getOrNull()
-                val newItems =
-                    viewState.items
-                        .plusItems(data?.items.orEmpty().map { BlogItem.PostItem(it) })
-
-                viewState =
-                    viewState.copy(
-                        items = newItems,
-                        hasMore = data?.isLast != true,
-                        progressProgressState = BlogViewState.ProgressState.Loaded
-                    )
-            } else {
-                viewState =
-                    viewState.copy(
-                        items = viewState.items.plusItem(
-                            BlogItem.ErrorItem(
-                                response.exceptionOrNull()?.messageOrThrow() ?: "Ошибка загрузки"
-                            )
-                        )
-                    )
-            }
-        }
-    }
-
-    private suspend fun fetchEvents(): List<Event> =
-        eventsRepository.getEvents()
-            .getOrNull().orEmpty()
-            .filter { it.blogUrl == viewState.blog.blogUrl }
-
-    private fun fetchNext() {
-        scope.launch {
-            settingsRepository.getAccessToken() ?: unauthorizedError()
-            val lastItem = viewState.items.filterIsInstance<BlogItem.PostItem>().last()
-            val offset = Offset(lastItem.post.intId, lastItem.post.createdAt)
-            fetchBlog(offset)
-        }
-    }
-
-    override fun onVideoItemClicked(postId: String, postData: Content.OkVideo) {
-        navigationRouter.navigateTo(NavigationTree.VideoType(
-            blogUrl = blog.blogUrl,
-            postId = postId,
-            postData = postData
-        ))
+    override fun onNewItems(items: ImmutableList<FeedPostItem>, hasMore: Boolean) {
+        viewState = viewState.copy(items = items, hasMore = hasMore)
     }
 
     override fun onBackClicked() {
@@ -165,91 +62,6 @@ class BlogComponentImpl(
     }
 
     override fun onRepeatClicked() {
-        scope.launch {
-            settingsRepository.getAccessToken() ?: unauthorizedError()
-            fetchBlog()
-        }
-    }
-
-    override fun onErrorItemClicked() {
-        fetchNext()
-    }
-
-    override fun onCommentsClicked(post: Post) {
-        navigationRouter.navigateTo(NavigationTree.BlogPost(blog.blogUrl, post))
-    }
-
-    private suspend fun refreshPoll(pollId: Int) {
-        val pollResponse = postRepository.getPoll(blog.blogUrl, pollId)
-        if (pollResponse.isSuccess) {
-            val updatedPoll = pollResponse.getOrThrow()
-            replacePoll(updatedPoll)
-        }
-    }
-
-    override fun onPollOptionClicked(poll: Poll, pollOption: PollOption) {
-        scope.launch {
-            if (poll.isMultiple) {
-                val newPoll = if (pollOption.id in poll.checked)
-                    poll.copy(checked = poll.checked - pollOption.id)
-                else
-                    poll.copy(checked = poll.checked + pollOption.id)
-                replacePoll(newPoll)
-            } else {
-                if (pollOption.id in poll.answer)
-                    postRepository.deletePollVote(poll.id)
-                else
-                    postRepository.pollVote(poll.id, listOf(pollOption.id))
-
-                refreshPoll(poll.id)
-            }
-        }
-    }
-
-    override fun onVoteClicked(poll: Poll) {
-        scope.launch {
-            postRepository.pollVote(poll.id, poll.checked.toList())
-
-            refreshPoll(poll.id)
-        }
-    }
-
-    override fun onDeleteVoteClicked(poll: Poll) {
-        scope.launch {
-            postRepository.deletePollVote(poll.id)
-
-            refreshPoll(poll.id)
-        }
-    }
-
-    private fun replacePoll(newPoll: Poll) {
-        viewState = viewState.copy(
-            items = viewState.items.map { item ->
-                if (item is BlogItem.PostItem && item.post.poll?.id == newPoll.id)
-                    item.copy(post = item.post.copy(poll = newPoll))
-                else item
-            }.toImmutableList()
-        )
-    }
-
-    companion object {
-        private fun List<BlogItem>.plusEvents(events: List<Event>): ImmutableList<BlogItem> =
-            events
-                .map { BlogItem.EventItem(it) }
-                .plus(this)
-                .distinctBy { it.key }
-                .toImmutableList()
-
-        private fun List<BlogItem>.plusItems(items: List<BlogItem>): ImmutableList<BlogItem> =
-            dropLastWhile { it !is BlogItem.PostItem }
-                .plus(items)
-                .distinctBy { it.key }
-                .toImmutableList()
-
-        private fun List<BlogItem>.plusItem(item: BlogItem): ImmutableList<BlogItem> =
-            dropLastWhile { it !is BlogItem.PostItem }
-                .plus(item)
-                .distinctBy { it.key }
-                .toImmutableList()
+        refresh()
     }
 }

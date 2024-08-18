@@ -51,6 +51,21 @@ internal class BoostyApi(
         parameter("reply_limit", replyLimit)
     }
 
+    suspend fun feed(
+        limit: Int,
+        offset: Offset?,
+        commentsLimit: Int,
+        replyLimit: Int
+    ): HttpResponse = httpClient.get("v1/feed/post/") {
+        parameter("limit", limit)
+        offset?.let {
+            parameter("offset", "${offset.createdAt}:${offset.postId}")
+        }
+        parameter("comments_limit", commentsLimit)
+        parameter("reply_limit", replyLimit)
+        parameter("only_allowed", "true")
+    }
+
     suspend fun post(
         blog: String,
         postId: String,
