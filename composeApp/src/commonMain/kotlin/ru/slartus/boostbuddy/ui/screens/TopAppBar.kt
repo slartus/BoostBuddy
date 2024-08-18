@@ -31,9 +31,10 @@ import ru.slartus.boostbuddy.components.top_bar.TopBarComponent
 import ru.slartus.boostbuddy.ui.theme.LocalThemeIsDark
 
 @Composable
-internal fun TopAppBar(component: TopBarComponent){
+internal fun TopAppBar(title: String, component: TopBarComponent) {
     val isDarkState by LocalThemeIsDark.current
     TopAppBar(
+        title = title,
         onRefreshClick = { component.onRefreshClicked() },
         onChangeDarkModeClick = { component.onSetDarkModeClicked(!isDarkState) },
         onLogoutClick = { component.onLogoutClicked() },
@@ -45,6 +46,7 @@ internal fun TopAppBar(component: TopBarComponent){
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun TopAppBar(
+    title: String,
     onRefreshClick: () -> Unit,
     onChangeDarkModeClick: () -> Unit,
     onLogoutClick: () -> Unit,
@@ -54,7 +56,7 @@ private fun TopAppBar(
     val isDarkState by LocalThemeIsDark.current
     var showDropDownMenu by remember { mutableStateOf(false) }
     androidx.compose.material3.TopAppBar(
-        title = { Text("Подписки") },
+        title = { Text(title) },
         actions = {
             IconButton(onClick = { onRefreshClick() }) {
                 Icon(

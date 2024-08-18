@@ -22,8 +22,8 @@ interface MainComponent {
     val topBarComponent: TopBarComponent
     fun onSubscribesTabClicked()
 
-    sealed class Child {
-        class SubscribesChild(val component: SubscribesComponent) : Child()
+    sealed class Child(val title: String) {
+        class SubscribesChild(val component: SubscribesComponent) : Child("Подписки")
     }
 }
 
