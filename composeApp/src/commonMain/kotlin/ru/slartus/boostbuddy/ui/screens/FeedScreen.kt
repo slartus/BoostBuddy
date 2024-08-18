@@ -32,6 +32,7 @@ internal fun FeedScreen(component: FeedComponent) {
             is ProgressState.Loaded ->
                 PostsView(
                     items = state.items,
+                    showBlogInfo = true,
                     canLoadMore = state.hasMore,
                     onVideoItemClick = { post, data ->
                         component.onVideoItemClicked(
@@ -51,7 +52,8 @@ internal fun FeedScreen(component: FeedComponent) {
                             post,
                             poll
                         )
-                    }
+                    },
+                    onBlogClick = { post -> component.onBlogClicked(post) }
                 )
         }
     }

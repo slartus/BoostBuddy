@@ -26,6 +26,7 @@ interface FeedComponent {
     fun onPollOptionClicked(post: Post, poll: Poll, pollOption: PollOption)
     fun onVoteClicked(post: Post, poll: Poll)
     fun onDeleteVoteClicked(post: Post, poll: Poll)
+    fun onBlogClicked(post: Post)
 }
 
 class FeedComponentImpl(

@@ -131,11 +131,13 @@ private fun FullPostView(
         item(contentType = "post", key = "post_${post.id}") {
             PostView(
                 post = post,
+                showBlogInfo = false,
                 onVideoClick = onVideoClick,
                 onCommentsClick = {},
                 onPollOptionClick = onPollOptionClick,
                 onVoteClick = onVoteClick,
-                onDeleteVoteClick = onDeleteVoteClick
+                onDeleteVoteClick = onDeleteVoteClick,
+                onBlogClick = {}
             )
         }
         commentsView(items, onMoreClick, onMoreRepliesClick)

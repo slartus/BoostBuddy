@@ -1,5 +1,6 @@
 package ru.slartus.boostbuddy.ui.screens
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
@@ -9,6 +10,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -26,15 +28,18 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.Alignment.Companion.CenterVertically
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
+import com.seiko.imageloader.rememberImagePainter
 import kotlinx.collections.immutable.ImmutableList
 import ru.slartus.boostbuddy.components.feed.FeedPostItem
 import ru.slartus.boostbuddy.data.repositories.models.Content
 import ru.slartus.boostbuddy.data.repositories.models.Poll
 import ru.slartus.boostbuddy.data.repositories.models.PollOption
 import ru.slartus.boostbuddy.data.repositories.models.Post
+import ru.slartus.boostbuddy.data.repositories.models.User
 import ru.slartus.boostbuddy.ui.common.HorizontalSpacer
 import ru.slartus.boostbuddy.ui.common.VerticalSpacer
 import ru.slartus.boostbuddy.ui.common.isEndOfListReached
@@ -46,10 +51,12 @@ import ru.slartus.boostbuddy.ui.screens.blog.PollView
 @Composable
 internal fun PostsView(
     items: ImmutableList<FeedPostItem>,
+    showBlogInfo: Boolean,
     canLoadMore: Boolean,
     onVideoItemClick: (FeedPostItem.PostItem, Content.OkVideo) -> Unit,
     onScrolledToEnd: () -> Unit,
     onErrorItemClick: () -> Unit,
+    onBlogClick: (post: Post) -> Unit,
     onCommentsClick: (post: Post) -> Unit,
     onPollOptionClick: (Post, Poll, PollOption) -> Unit,
     onVoteClick: (Post, poll: Poll) -> Unit,
@@ -75,12 +82,14 @@ internal fun PostsView(
 
                 FeedPostItem.LoadingItem -> LoadingView()
                 is FeedPostItem.PostItem -> PostView(
-                    item.post,
+                    post = item.post,
+                    showBlogInfo = showBlogInfo,
                     onVideoClick = { onVideoItemClick(item, it) },
                     onCommentsClick = { onCommentsClick(item.post) },
                     onPollOptionClick = onPollOptionClick,
                     onVoteClick = onVoteClick,
-                    onDeleteVoteClick = onDeleteVoteClick
+                    onDeleteVoteClick = onDeleteVoteClick,
+                    onBlogClick = { onBlogClick(item.post) }
                 )
             }
         }
@@ -95,6 +104,8 @@ internal fun PostsView(
 @Composable
 internal fun PostView(
     post: Post,
+    showBlogInfo: Boolean,
+    onBlogClick: () -> Unit,
     onVideoClick: (okVideoData: Content.OkVideo) -> Unit,
     onCommentsClick: () -> Unit,
     onPollOptionClick: (Post, Poll, PollOption) -> Unit,
@@ -107,6 +118,9 @@ internal fun PostView(
             .padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
+        if (showBlogInfo) {
+            BlogInfo(post.user, onBlogClick)
+        }
         if (post.title.isNotEmpty()) {
             TitleView(post.title)
             VerticalSpacer(16.dp)
@@ -157,6 +171,36 @@ internal fun PostView(
                     text = post.count.comments.toString()
                 )
             }
+        }
+    }
+}
+
+@Composable
+private fun BlogInfo(
+    user: User,
+    onClick: () -> Unit
+) {
+    FocusableBox {
+        Row(
+            modifier = Modifier.fillMaxWidth().heightIn(min = 40.dp).clickable {
+                onClick()
+            },
+            verticalAlignment = CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            user.avatarUrl?.let { avatarUrl ->
+                Image(
+                    modifier = Modifier.size(32.dp),
+                    painter = rememberImagePainter(avatarUrl),
+                    contentDescription = "url",
+                )
+            }
+            Text(
+                modifier = Modifier.fillMaxWidth().focusable(),
+                text = user.name,
+                color = MaterialTheme.colorScheme.primary,
+                style = MaterialTheme.typography.titleSmall
+            )
         }
     }
 }

@@ -8,6 +8,8 @@ import kotlinx.coroutines.launch
 import ru.slartus.boostbuddy.components.BaseComponent
 import ru.slartus.boostbuddy.components.common.ProgressState
 import ru.slartus.boostbuddy.data.Inject
+import ru.slartus.boostbuddy.data.repositories.Blog
+import ru.slartus.boostbuddy.data.repositories.Owner
 import ru.slartus.boostbuddy.data.repositories.PostRepository
 import ru.slartus.boostbuddy.data.repositories.SettingsRepository
 import ru.slartus.boostbuddy.data.repositories.models.Content
@@ -32,7 +34,7 @@ sealed class FeedPostItem(val key: String, val contentType: String) {
 abstract class PostsFeedComponent<State : Any, Action>(
     componentContext: ComponentContext,
     initState: State,
-): BaseComponent<State, Action>(
+) : BaseComponent<State, Action>(
     componentContext,
     initState
 ) {
@@ -94,9 +96,13 @@ abstract class PostsFeedComponent<State : Any, Action>(
                 onNewItems(newItems, data?.isLast != true)
                 onProgressStateChanged(ProgressState.Loaded)
             } else {
-                onNewItems(viewStateItems.plusItem(FeedPostItem.ErrorItem(
-                    response.exceptionOrNull()?.messageOrThrow() ?: "Ошибка загрузки"
-                )), true)
+                onNewItems(
+                    viewStateItems.plusItem(
+                        FeedPostItem.ErrorItem(
+                            response.exceptionOrNull()?.messageOrThrow() ?: "Ошибка загрузки"
+                        )
+                    ), true
+                )
             }
         }
     }
@@ -127,11 +133,11 @@ abstract class PostsFeedComponent<State : Any, Action>(
         }
     }
 
-    open fun onErrorItemClicked() {
+    fun onErrorItemClicked() {
         fetchNext()
     }
 
-    open fun onCommentsClicked(post: Post) {
+    fun onCommentsClicked(post: Post) {
         navigationRouter.navigateTo(NavigationTree.BlogPost(post))
     }
 
@@ -143,7 +149,7 @@ abstract class PostsFeedComponent<State : Any, Action>(
         }
     }
 
-    open fun onPollOptionClicked(post: Post, poll: Poll, pollOption: PollOption) {
+    fun onPollOptionClicked(post: Post, poll: Poll, pollOption: PollOption) {
         scope.launch {
             if (poll.isMultiple) {
                 val newPoll = if (pollOption.id in poll.checked)
@@ -162,7 +168,7 @@ abstract class PostsFeedComponent<State : Any, Action>(
         }
     }
 
-    open fun onVoteClicked(post: Post, poll: Poll) {
+    fun onVoteClicked(post: Post, poll: Poll) {
         scope.launch {
             postRepository.pollVote(poll.id, poll.checked.toList())
 
@@ -170,12 +176,27 @@ abstract class PostsFeedComponent<State : Any, Action>(
         }
     }
 
-    open fun onDeleteVoteClicked(post: Post, poll: Poll) {
+    fun onDeleteVoteClicked(post: Post, poll: Poll) {
         scope.launch {
             postRepository.deletePollVote(poll.id)
 
             refreshPoll(post, poll.id)
         }
+    }
+
+    fun onBlogClicked(post: Post) {
+        navigationRouter.navigateTo(
+            NavigationTree.Blog(
+                Blog(
+                    title = "",
+                    blogUrl = post.user.blogUrl,
+                    owner = Owner(
+                        name = post.user.name,
+                        avatarUrl = post.user.avatarUrl
+                    )
+                )
+            )
+        )
     }
 
     private fun replacePoll(newPoll: Poll) {
