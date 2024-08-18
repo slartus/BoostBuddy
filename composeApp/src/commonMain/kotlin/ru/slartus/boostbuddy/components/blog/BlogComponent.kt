@@ -4,6 +4,7 @@ import androidx.compose.runtime.Stable
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.value.Value
 import kotlinx.collections.immutable.ImmutableList
+import kotlinx.coroutines.launch
 import ru.slartus.boostbuddy.components.common.ProgressState
 import ru.slartus.boostbuddy.components.feed.FeedPostItem
 import ru.slartus.boostbuddy.components.feed.PostsFeedComponent
@@ -33,7 +34,7 @@ interface BlogComponent {
 
 class BlogComponentImpl(
     componentContext: ComponentContext,
-    private val blog: Blog,
+    blog: Blog,
     private val onBackClicked: () -> Unit,
 ) : PostsFeedComponent<BlogViewState, Any>(
     componentContext,
@@ -41,13 +42,28 @@ class BlogComponentImpl(
 ), BlogComponent {
     private val blogRepository by Inject.lazy<BlogRepository>()
     override val viewStateItems: List<FeedPostItem> get() = viewState.items
+    private val blog: Blog get() = viewState.blog
 
     init {
         subscribeToken()
     }
 
+    override fun tokenChanged(token: String?) {
+        super.tokenChanged(token)
+        fetchBlogInfo()
+    }
+
+    private fun fetchBlogInfo() {
+        scope.launch {
+            val result = blogRepository.fetchInfo(blog.blogUrl)
+            if (result.isSuccess) {
+                viewState = viewState.copy(blog = result.getOrThrow())
+            }
+        }
+    }
+
     override suspend fun fetch(offset: Offset?): Result<Posts> =
-        blogRepository.getData(blog.blogUrl, offset)
+        blogRepository.fetchPosts(blog.blogUrl, offset)
 
     override fun onProgressStateChanged(progressState: ProgressState) {
         viewState = viewState.copy(progressState = progressState)

@@ -47,10 +47,14 @@ abstract class PostsFeedComponent<State : Any, Action>(
     protected fun subscribeToken() {
         scope.launch {
             settingsRepository.tokenFlow.collect { token ->
-                if (token != null)
-                    fetchData()
+                tokenChanged(token)
             }
         }
+    }
+
+    protected open fun tokenChanged(token: String?) {
+        if (token != null)
+            fetchData()
     }
 
     protected abstract suspend fun fetch(offset: Offset?): Result<Posts>

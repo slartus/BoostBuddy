@@ -51,6 +51,10 @@ internal class BoostyApi(
         parameter("reply_limit", replyLimit)
     }
 
+    suspend fun blogInfo(
+        blogUrl: String
+    ): HttpResponse = httpClient.get("v1/blog/$blogUrl")
+
     suspend fun feed(
         limit: Int,
         offset: Offset?,
