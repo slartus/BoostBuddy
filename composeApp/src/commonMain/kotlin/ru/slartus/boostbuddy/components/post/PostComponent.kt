@@ -37,7 +37,6 @@ interface PostComponent {
 
 class PostComponentImpl(
     componentContext: ComponentContext,
-    private val blogUrl: String,
     private val post: Post,
     override val onBackClicked: () -> Unit,
 ) : BaseComponent<PostViewState, Any>(
@@ -48,6 +47,7 @@ class PostComponentImpl(
     private val commentsRepository by Inject.lazy<CommentsRepository>()
     private val postRepository by Inject.lazy<PostRepository>()
     private val navigationRouter by Inject.lazy<NavigationRouter>()
+    private val blogUrl: String = post.user.blogUrl
 
     init {
         subscribeToken()
@@ -155,10 +155,11 @@ class PostComponentImpl(
     override fun onVideoItemClicked(postId: String, postData: Content.OkVideo) {
         navigationRouter.navigateTo(
             NavigationTree.VideoType(
-            blogUrl = blogUrl,
-            postId = postId,
-            postData = postData
-        ))
+                blogUrl = blogUrl,
+                postId = postId,
+                postData = postData
+            )
+        )
     }
 
     override fun onPollOptionClicked(poll: Poll, pollOption: PollOption) {

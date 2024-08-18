@@ -45,9 +45,9 @@ import ru.slartus.boostbuddy.data.repositories.models.PollOption
 import ru.slartus.boostbuddy.data.repositories.models.Post
 import ru.slartus.boostbuddy.ui.common.HorizontalSpacer
 import ru.slartus.boostbuddy.ui.common.VerticalSpacer
+import ru.slartus.boostbuddy.ui.screens.PostView
 import ru.slartus.boostbuddy.ui.screens.blog.ContentView
 import ru.slartus.boostbuddy.ui.screens.blog.FocusableBox
-import ru.slartus.boostbuddy.ui.screens.blog.PostView
 import ru.slartus.boostbuddy.ui.widgets.ErrorView
 import ru.slartus.boostbuddy.ui.widgets.LoaderView
 

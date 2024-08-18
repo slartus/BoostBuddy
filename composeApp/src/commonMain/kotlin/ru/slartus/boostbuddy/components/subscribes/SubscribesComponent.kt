@@ -21,7 +21,6 @@ import ru.slartus.boostbuddy.utils.unauthorizedError
 interface SubscribesComponent {
     val viewStates: Value<SubscribesViewState>
     fun onItemClicked(item: SubscribeItem)
-    fun onBackClicked()
     fun onRepeatClicked()
     fun refresh()
 }
@@ -38,8 +37,7 @@ data class SubscribesViewState(
 }
 
 class SubscribesComponentImpl(
-    componentContext: ComponentContext,
-    private val onBackClicked: () -> Unit,
+    componentContext: ComponentContext
 ) : BaseComponent<SubscribesViewState, Any>(
     componentContext,
     SubscribesViewState(SubscribesViewState.ProgressState.Init)
@@ -102,10 +100,6 @@ class SubscribesComponentImpl(
 
     override fun onItemClicked(item: SubscribeItem) {
         navigationRouter.navigateTo(NavigationTree.Blog(item.blog))
-    }
-
-    override fun onBackClicked() {
-        onBackClicked.invoke()
     }
 
     override fun onRepeatClicked() {

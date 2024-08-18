@@ -6,10 +6,11 @@ import com.arkivanov.decompose.router.stack.ChildStack
 import com.arkivanov.decompose.router.stack.StackNavigation
 import com.arkivanov.decompose.router.stack.bringToFront
 import com.arkivanov.decompose.router.stack.childStack
-import com.arkivanov.decompose.router.stack.pop
 import com.arkivanov.decompose.value.Value
 import kotlinx.serialization.Serializable
 import ru.slartus.boostbuddy.components.BaseComponent
+import ru.slartus.boostbuddy.components.feed.FeedComponent
+import ru.slartus.boostbuddy.components.feed.FeedComponentImpl
 import ru.slartus.boostbuddy.components.subscribes.SubscribesComponent
 import ru.slartus.boostbuddy.components.subscribes.SubscribesComponentImpl
 import ru.slartus.boostbuddy.components.top_bar.TopBarComponent
@@ -21,9 +22,11 @@ interface MainComponent {
 
     val topBarComponent: TopBarComponent
     fun onSubscribesTabClicked()
+    fun onFeedTabClicked()
 
     sealed class Child(val title: String) {
         class SubscribesChild(val component: SubscribesComponent) : Child("Подписки")
+        class FeedChild(val component: FeedComponent) : Child("Лента")
     }
 }
 
@@ -44,7 +47,7 @@ internal class MainComponentImpl(
         childStack(
             source = navigation,
             serializer = Config.serializer(),
-            initialConfiguration = Config.Subscribes,
+            initialConfiguration = Config.Feed,
             childFactory = ::child,
         )
 
@@ -52,18 +55,23 @@ internal class MainComponentImpl(
         when (config) {
             is Config.Subscribes ->
                 MainComponent.Child.SubscribesChild(subscribesComponent(componentContext))
+
+            Config.Feed ->
+                MainComponent.Child.FeedChild(feedComponent(componentContext))
         }
 
+    private fun feedComponent(componentContext: ComponentContext): FeedComponent =
+        FeedComponentImpl(componentContext)
+
     private fun subscribesComponent(componentContext: ComponentContext): SubscribesComponent =
-        SubscribesComponentImpl(
-            componentContext = componentContext,
-            onBackClicked = {
-                navigation.pop()
-            }
-        )
+        SubscribesComponentImpl(componentContext)
 
     override fun onSubscribesTabClicked() {
         navigation.bringToFront(Config.Subscribes)
+    }
+
+    override fun onFeedTabClicked() {
+        navigation.bringToFront(Config.Feed)
     }
 
     private fun refresh() {
@@ -72,6 +80,7 @@ internal class MainComponentImpl(
             .forEach { child ->
                 when (child) {
                     is MainComponent.Child.SubscribesChild -> child.component.refresh()
+                    is MainComponent.Child.FeedChild -> child.component.refresh()
                 }
             }
     }
@@ -80,6 +89,8 @@ internal class MainComponentImpl(
     private sealed interface Config {
         @Serializable
         data object Subscribes : Config
+        @Serializable
+        data object Feed : Config
     }
 
 }

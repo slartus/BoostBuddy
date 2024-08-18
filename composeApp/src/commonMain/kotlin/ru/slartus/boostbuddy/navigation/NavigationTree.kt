@@ -8,9 +8,8 @@ sealed interface Screen
 
 object NavigationTree {
     data object Main : Screen
-    data object Subscribes : Screen
     class Blog(val blog: ru.slartus.boostbuddy.data.repositories.Blog) : Screen
-    class BlogPost(val blogUrl: String, val post: Post) :
+    class BlogPost(val post: Post) :
         Screen
 
     class Video(

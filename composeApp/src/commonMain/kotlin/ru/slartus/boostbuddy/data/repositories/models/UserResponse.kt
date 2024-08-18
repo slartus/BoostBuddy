@@ -13,7 +13,7 @@ internal data class UserResponse(
 internal fun UserResponse.mapToUserOrNull(): User? {
     return User(
         name = name ?: return null,
-        blogUrl = blogUrl ?: return null,
+        blogUrl = blogUrl.orEmpty(),
         avatarUrl = avatarUrl,
     )
 }

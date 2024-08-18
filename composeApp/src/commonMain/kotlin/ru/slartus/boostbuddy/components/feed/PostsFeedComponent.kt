@@ -42,11 +42,7 @@ abstract class PostsFeedComponent<State : Any, Action>(
 
     protected abstract val viewStateItems: List<FeedPostItem>
 
-    init {
-        subscribeToken()
-    }
-
-    private fun subscribeToken() {
+    protected fun subscribeToken() {
         scope.launch {
             settingsRepository.tokenFlow.collect { token ->
                 if (token != null)
@@ -64,7 +60,7 @@ abstract class PostsFeedComponent<State : Any, Action>(
         hasMore: Boolean = true
     )
 
-    protected fun fetchData() {
+    private fun fetchData() {
         onProgressStateChanged(ProgressState.Loading)
         scope.launch {
             val response = fetch(null)
@@ -124,7 +120,7 @@ abstract class PostsFeedComponent<State : Any, Action>(
         )
     }
 
-    protected fun refresh() {
+    fun refresh() {
         scope.launch {
             settingsRepository.getAccessToken() ?: unauthorizedError()
             fetchData()
@@ -136,7 +132,7 @@ abstract class PostsFeedComponent<State : Any, Action>(
     }
 
     open fun onCommentsClicked(post: Post) {
-        navigationRouter.navigateTo(NavigationTree.BlogPost(post.user.blogUrl, post))
+        navigationRouter.navigateTo(NavigationTree.BlogPost(post))
     }
 
     private suspend fun refreshPoll(post: Post, pollId: Int) {

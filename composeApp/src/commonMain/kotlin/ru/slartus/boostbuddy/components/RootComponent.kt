@@ -10,7 +10,6 @@ import com.arkivanov.decompose.router.slot.dismiss
 import com.arkivanov.decompose.router.stack.ChildStack
 import com.arkivanov.decompose.router.stack.StackNavigation
 import com.arkivanov.decompose.router.stack.childStack
-import com.arkivanov.decompose.router.stack.pop
 import com.arkivanov.decompose.router.stack.popTo
 import com.arkivanov.decompose.router.stack.popWhile
 import com.arkivanov.decompose.router.stack.push
@@ -175,13 +174,11 @@ class RootComponentImpl(
             is NavigationTree.Blog -> navigation.push(Config.BlogConfig(blog = screen.blog))
             is NavigationTree.BlogPost -> navigation.push(
                 Config.PostConfig(
-                    blogUrl = screen.blogUrl,
                     post = screen.post
                 )
             )
 
             NavigationTree.Main -> navigation.pushToFront(Config.Main)
-            NavigationTree.Subscribes -> navigation.push(Config.Subscribes)
             is NavigationTree.Video -> playVideo(
                 blogUrl = screen.blogUrl,
                 postId = screen.postId,
@@ -345,22 +342,15 @@ class RootComponentImpl(
         AuthComponentImpl(
             componentContext = componentContext,
             onLogined = {
-                navigation.replaceAll(Config.Subscribes)
+                navigation.replaceAll(Config.Main)
             },
         )
 
     private fun subscribesComponent(componentContext: ComponentContext): SubscribesComponent =
-        SubscribesComponentImpl(
-            componentContext = componentContext,
-            onBackClicked = {
-                navigation.pop()
-            }
-        )
+        SubscribesComponentImpl(componentContext)
 
     private fun mainComponent(componentContext: ComponentContext): MainComponent =
-        MainComponentImpl(
-            componentContext = componentContext
-        )
+        MainComponentImpl(componentContext)
 
     private fun blogComponent(
         componentContext: ComponentContext,
@@ -380,7 +370,6 @@ class RootComponentImpl(
     ): PostComponent =
         PostComponentImpl(
             componentContext = componentContext,
-            blogUrl = config.blogUrl,
             post = config.post,
             onBackClicked = { navigation.popWhile { it == config } }
         )
@@ -487,7 +476,7 @@ class RootComponentImpl(
         ) : Config
 
         @Serializable
-        data class PostConfig(val blogUrl: String, val post: Post) : Config
+        data class PostConfig(val post: Post) : Config
     }
 
     @Serializable

@@ -1,8 +1,8 @@
 package ru.slartus.boostbuddy.data.repositories
 
 import io.ktor.client.call.body
+import ru.slartus.boostbuddy.data.repositories.models.FeedResponse
 import ru.slartus.boostbuddy.data.repositories.models.Offset
-import ru.slartus.boostbuddy.data.repositories.models.PostResponse
 import ru.slartus.boostbuddy.data.repositories.models.Posts
 import ru.slartus.boostbuddy.utils.fetchOrError
 
@@ -11,7 +11,7 @@ internal class FeedRepository(
 ) {
     suspend fun getData(offset: Offset?): Result<Posts> =
         fetchOrError {
-            val response: PostResponse = boostyApi.feed(
+            val response: FeedResponse = boostyApi.feed(
                 limit = 10,
                 offset = offset,
                 commentsLimit = 0,
@@ -19,7 +19,7 @@ internal class FeedRepository(
             ).body()
 
             Posts(
-                items = response.data?.mapNotNull { it.mapToPostOrNull() } ?: emptyList(),
+                items = response.data?.posts?.mapNotNull { it.mapToPostOrNull() } ?: emptyList(),
                 isLast = response.extra?.isLast == true
             )
         }

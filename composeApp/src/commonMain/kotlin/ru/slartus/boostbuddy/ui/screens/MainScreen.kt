@@ -13,6 +13,7 @@ import androidx.compose.material.BottomNavigation
 import androidx.compose.material.BottomNavigationItem
 import androidx.compose.material.Icon
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.RssFeed
 import androidx.compose.material.icons.filled.Subscriptions
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -54,7 +55,8 @@ private fun Children(component: MainComponent, modifier: Modifier = Modifier) {
         animation = stackAnimation(fade()),
     ) {
         when (val child = it.instance) {
-            is MainComponent.Child.SubscribesChild -> SubscribesScreen(component = child.component)
+            is MainComponent.Child.SubscribesChild -> SubscribesScreen(child.component)
+            is MainComponent.Child.FeedChild -> FeedScreen(child.component)
         }
     }
 }
@@ -72,6 +74,17 @@ private fun BottomBar(component: MainComponent, modifier: Modifier = Modifier) {
         backgroundColor = MaterialTheme.colorScheme.onPrimary,
         elevation = 4.dp,
     ) {
+        BottomNavigationItem(
+            selectedContentColor = MaterialTheme.colorScheme.primary,
+            selected = activeComponent is MainComponent.Child.FeedChild,
+            onClick = component::onFeedTabClicked,
+            icon = {
+                Icon(
+                    imageVector = Icons.Default.RssFeed,
+                    contentDescription = "Feed",
+                )
+            },
+        )
         BottomNavigationItem(
             selectedContentColor = MaterialTheme.colorScheme.primary,
             selected = activeComponent is MainComponent.Child.SubscribesChild,
