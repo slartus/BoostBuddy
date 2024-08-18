@@ -16,4 +16,18 @@ sealed class Platform(val name: String) {
     data object Android : Platform(name = "android")
     data object AndroidTV : Platform(name = "androidTV")
     data object iOS : Platform(name = "ios")
+
+    val isPhone: Boolean
+        get() = when (this) {
+            Android -> true
+            AndroidTV -> false
+            iOS -> true
+        }
+
+    val isTV: Boolean
+        get() = when (this) {
+            Android -> false
+            AndroidTV -> true
+            iOS -> false
+        }
 }

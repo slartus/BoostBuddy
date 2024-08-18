@@ -21,12 +21,11 @@ interface MainComponent {
     val stack: Value<ChildStack<*, Child>>
 
     val topBarComponent: TopBarComponent
-    fun onSubscribesTabClicked()
-    fun onFeedTabClicked()
+    fun onNavigationItemClick(item: MainViewNavigationItem)
 
-    sealed class Child(val title: String) {
-        class SubscribesChild(val component: SubscribesComponent) : Child("Подписки")
-        class FeedChild(val component: FeedComponent) : Child("Лента")
+    sealed class Child(val navigationItem: MainViewNavigationItem) {
+        class SubscribesChild(val component: SubscribesComponent) : Child(MainViewNavigationItem.Subscribes)
+        class FeedChild(val component: FeedComponent) : Child(MainViewNavigationItem.Feed)
     }
 }
 
@@ -66,12 +65,12 @@ internal class MainComponentImpl(
     private fun subscribesComponent(componentContext: ComponentContext): SubscribesComponent =
         SubscribesComponentImpl(componentContext)
 
-    override fun onSubscribesTabClicked() {
-        navigation.bringToFront(Config.Subscribes)
-    }
-
-    override fun onFeedTabClicked() {
-        navigation.bringToFront(Config.Feed)
+    override fun onNavigationItemClick(item: MainViewNavigationItem) {
+        val config = when(item){
+            MainViewNavigationItem.Feed -> Config.Feed
+            MainViewNavigationItem.Subscribes -> Config.Subscribes
+        }
+        navigation.bringToFront(config)
     }
 
     private fun refresh() {
@@ -92,5 +91,4 @@ internal class MainComponentImpl(
         @Serializable
         data object Feed : Config
     }
-
 }

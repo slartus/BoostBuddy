@@ -9,6 +9,7 @@ import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.Feedback
 import androidx.compose.material.icons.filled.LightMode
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Settings
@@ -31,7 +32,11 @@ import ru.slartus.boostbuddy.components.top_bar.TopBarComponent
 import ru.slartus.boostbuddy.ui.theme.LocalThemeIsDark
 
 @Composable
-internal fun TopAppBar(title: String, component: TopBarComponent) {
+internal fun TopAppBar(
+    title: String,
+    component: TopBarComponent,
+    onMenuClick: () -> Unit
+) {
     val isDarkState by LocalThemeIsDark.current
     TopAppBar(
         title = title,
@@ -39,7 +44,8 @@ internal fun TopAppBar(title: String, component: TopBarComponent) {
         onChangeDarkModeClick = { component.onSetDarkModeClicked(!isDarkState) },
         onLogoutClick = { component.onLogoutClicked() },
         onFeedbackClick = { component.onFeedbackClicked() },
-        onSettingsClick = { component.onSettingsClicked() }
+        onSettingsClick = { component.onSettingsClicked() },
+        onMenuClick = onMenuClick
     )
 }
 
@@ -47,6 +53,7 @@ internal fun TopAppBar(title: String, component: TopBarComponent) {
 @Composable
 private fun TopAppBar(
     title: String,
+    onMenuClick: () -> Unit,
     onRefreshClick: () -> Unit,
     onChangeDarkModeClick: () -> Unit,
     onLogoutClick: () -> Unit,
@@ -57,6 +64,14 @@ private fun TopAppBar(
     var showDropDownMenu by remember { mutableStateOf(false) }
     androidx.compose.material3.TopAppBar(
         title = { Text(title) },
+        navigationIcon = {
+            IconButton(onClick = { onMenuClick() }) {
+                Icon(
+                    imageVector = Icons.Filled.Menu,
+                    contentDescription = "Меню"
+                )
+            }
+        },
         actions = {
             IconButton(onClick = { onRefreshClick() }) {
                 Icon(
