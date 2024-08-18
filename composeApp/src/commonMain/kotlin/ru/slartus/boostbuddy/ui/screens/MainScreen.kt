@@ -5,9 +5,11 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.consumeWindowInsets
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material.BottomNavigation
 import androidx.compose.material.BottomNavigationItem
 import androidx.compose.material.Icon
@@ -15,6 +17,7 @@ import androidx.compose.material.MaterialTheme
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Subscriptions
 import androidx.compose.material.primarySurface
+import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
@@ -28,9 +31,18 @@ import ru.slartus.boostbuddy.components.main.MainComponent
 
 @Composable
 internal fun MainScreen(component: MainComponent) {
-    Column {
-        Children(component = component, modifier = Modifier.weight(1F).consumeWindowInsets(WindowInsets.navigationBars))
-        //BottomBar(component = component, modifier = Modifier.fillMaxWidth())
+    Scaffold(
+        topBar = {
+            TopAppBar(component.topBarComponent)
+        },
+    ) { innerPadding ->
+        Column(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
+            Children(
+                modifier = Modifier.weight(1F).consumeWindowInsets(WindowInsets.navigationBars),
+                component = component,
+            )
+            //BottomBar(component = component, modifier = Modifier.fillMaxWidth())
+        }
     }
 }
 

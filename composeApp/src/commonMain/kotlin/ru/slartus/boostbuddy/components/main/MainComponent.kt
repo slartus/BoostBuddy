@@ -12,11 +12,14 @@ import kotlinx.serialization.Serializable
 import ru.slartus.boostbuddy.components.BaseComponent
 import ru.slartus.boostbuddy.components.subscribes.SubscribesComponent
 import ru.slartus.boostbuddy.components.subscribes.SubscribesComponentImpl
+import ru.slartus.boostbuddy.components.top_bar.TopBarComponent
+import ru.slartus.boostbuddy.components.top_bar.TopBarComponentImpl
 
 @Stable
 interface MainComponent {
     val stack: Value<ChildStack<*, Child>>
 
+    val topBarComponent: TopBarComponent
     fun onSubscribesTabClicked()
 
     sealed class Child {
@@ -26,11 +29,16 @@ interface MainComponent {
 
 internal class MainComponentImpl(
     componentContext: ComponentContext,
-) : BaseComponent<MainViewState, Any>(
+) : BaseComponent<Unit, Unit>(
     componentContext,
-    MainViewState()
+    Unit
 ), MainComponent {
     private val navigation = StackNavigation<Config>()
+
+    override val topBarComponent: TopBarComponent = TopBarComponentImpl(
+        componentContext,
+        onRefresh = { refresh() }
+    )
 
     override val stack: Value<ChildStack<*, MainComponent.Child>> =
         childStack(
@@ -56,6 +64,16 @@ internal class MainComponentImpl(
 
     override fun onSubscribesTabClicked() {
         navigation.bringToFront(Config.Subscribes)
+    }
+
+    private fun refresh() {
+        stack.value.items
+            .map { it.instance }
+            .forEach { child ->
+                when (child) {
+                    is MainComponent.Child.SubscribesChild -> child.component.refresh()
+                }
+            }
     }
 
     @Serializable
