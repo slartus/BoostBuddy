@@ -7,6 +7,7 @@ import com.arkivanov.decompose.router.stack.StackNavigation
 import com.arkivanov.decompose.router.stack.bringToFront
 import com.arkivanov.decompose.router.stack.childStack
 import com.arkivanov.decompose.value.Value
+import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import ru.slartus.boostbuddy.components.BaseComponent
 import ru.slartus.boostbuddy.components.feed.FeedComponent
@@ -15,6 +16,9 @@ import ru.slartus.boostbuddy.components.subscribes.SubscribesComponent
 import ru.slartus.boostbuddy.components.subscribes.SubscribesComponentImpl
 import ru.slartus.boostbuddy.components.top_bar.TopBarComponent
 import ru.slartus.boostbuddy.components.top_bar.TopBarComponentImpl
+import ru.slartus.boostbuddy.data.Inject
+import ru.slartus.boostbuddy.data.repositories.SettingsRepository
+import ru.slartus.boostbuddy.utils.unauthorizedError
 
 @Stable
 interface MainComponent {
@@ -24,7 +28,9 @@ interface MainComponent {
     fun onNavigationItemClick(item: MainViewNavigationItem)
 
     sealed class Child(val navigationItem: MainViewNavigationItem) {
-        class SubscribesChild(val component: SubscribesComponent) : Child(MainViewNavigationItem.Subscribes)
+        class SubscribesChild(val component: SubscribesComponent) :
+            Child(MainViewNavigationItem.Subscribes)
+
         class FeedChild(val component: FeedComponent) : Child(MainViewNavigationItem.Feed)
     }
 }
@@ -35,6 +41,7 @@ internal class MainComponentImpl(
     componentContext,
     Unit
 ), MainComponent {
+    private val settingsRepository by Inject.lazy<SettingsRepository>()
     private val navigation = StackNavigation<Config>()
 
     override val topBarComponent: TopBarComponent = TopBarComponentImpl(
@@ -49,6 +56,17 @@ internal class MainComponentImpl(
             initialConfiguration = Config.Feed,
             childFactory = ::child,
         )
+
+    init {
+        checkToken()
+    }
+
+    private fun checkToken() {
+        scope.launch {
+            if (settingsRepository.getAccessToken() == null)
+                unauthorizedError()
+        }
+    }
 
     private fun child(config: Config, componentContext: ComponentContext): MainComponent.Child =
         when (config) {
@@ -66,7 +84,7 @@ internal class MainComponentImpl(
         SubscribesComponentImpl(componentContext)
 
     override fun onNavigationItemClick(item: MainViewNavigationItem) {
-        val config = when(item){
+        val config = when (item) {
             MainViewNavigationItem.Feed -> Config.Feed
             MainViewNavigationItem.Subscribes -> Config.Subscribes
         }
@@ -88,6 +106,7 @@ internal class MainComponentImpl(
     private sealed interface Config {
         @Serializable
         data object Subscribes : Config
+
         @Serializable
         data object Feed : Config
     }

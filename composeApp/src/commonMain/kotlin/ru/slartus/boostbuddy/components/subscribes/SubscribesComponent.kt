@@ -47,15 +47,7 @@ class SubscribesComponentImpl(
     private val navigationRouter by Inject.lazy<NavigationRouter>()
 
     init {
-        checkToken()
         subscribeToken()
-    }
-
-    private fun checkToken() {
-        scope.launch {
-            if (settingsRepository.getAccessToken() == null)
-                unauthorizedError()
-        }
     }
 
     private fun subscribeToken() {
