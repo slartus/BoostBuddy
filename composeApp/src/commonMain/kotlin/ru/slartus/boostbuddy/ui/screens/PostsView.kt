@@ -123,8 +123,11 @@ internal fun PostView(
         }
         if (post.title.isNotEmpty()) {
             TitleView(post.title)
-            VerticalSpacer(16.dp)
         }
+
+        DateTimeView(post.createdAtString)
+        VerticalSpacer(16.dp)
+
         if (post.hasAccess || post.teaser.isEmpty()) {
             Column(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -172,6 +175,18 @@ internal fun PostView(
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun DateTimeView(createdAt: String) {
+    FocusableBox {
+        Text(
+            modifier = Modifier.fillMaxWidth(),
+            text = createdAt,
+            color = MaterialTheme.colorScheme.secondary,
+            style = MaterialTheme.typography.titleSmall
+        )
     }
 }
 
