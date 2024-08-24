@@ -9,7 +9,6 @@ import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.Feedback
 import androidx.compose.material.icons.filled.LightMode
-import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Settings
@@ -64,14 +63,14 @@ private fun TopAppBar(
     var showDropDownMenu by remember { mutableStateOf(false) }
     androidx.compose.material3.TopAppBar(
         title = { Text(title) },
-        navigationIcon = {
-            IconButton(onClick = { onMenuClick() }) {
-                Icon(
-                    imageVector = Icons.Filled.Menu,
-                    contentDescription = "Меню"
-                )
-            }
-        },
+//        navigationIcon = {
+//            IconButton(onClick = { onMenuClick() }) {
+//                Icon(
+//                    imageVector = Icons.Filled.Menu,
+//                    contentDescription = "Меню"
+//                )
+//            }
+//        },
         actions = {
             IconButton(onClick = { onRefreshClick() }) {
                 Icon(

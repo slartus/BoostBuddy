@@ -1,29 +1,35 @@
 package ru.slartus.boostbuddy.ui.screens.main
 
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.consumeWindowInsets
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.calculateEndPadding
+import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.RssFeed
+import androidx.compose.material.icons.filled.Subscriptions
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.unit.LayoutDirection
 import com.arkivanov.decompose.extensions.compose.stack.Children
 import com.arkivanov.decompose.extensions.compose.stack.animation.fade
 import com.arkivanov.decompose.extensions.compose.stack.animation.stackAnimation
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import kotlinx.coroutines.launch
 import ru.slartus.boostbuddy.components.main.MainComponent
+import ru.slartus.boostbuddy.components.main.MainViewNavigationItem
 import ru.slartus.boostbuddy.components.main.title
 import ru.slartus.boostbuddy.ui.common.BackHandlerEffect
 import ru.slartus.boostbuddy.ui.screens.FeedScreen
 import ru.slartus.boostbuddy.ui.screens.SubscribesScreen
 import ru.slartus.boostbuddy.ui.screens.TopAppBar
+import ru.slartus.boostbuddy.ui.widgets.NavigationComponent
+import ru.slartus.boostbuddy.ui.widgets.NavigationItem
 
 @Composable
 internal fun MainScreen(component: MainComponent) {
@@ -36,38 +42,44 @@ internal fun MainScreen(component: MainComponent) {
             drawerState.close()
         }
     }
-    NavigationDrawer(
-        activeComponent = activeComponent,
-        drawerState = drawerState,
-        onItemClick = { item ->
-            component.onNavigationItemClick(item)
-            scope.launch {
-                drawerState.close()
-            }
+    val items = remember(activeComponent.navigationItem) {
+        MainViewNavigationItem.entries.map { item ->
+            NavigationItem(
+                icon = item.icon,
+                label = item.title,
+                selected = activeComponent.navigationItem == item
+            )
         }
-    ) {
-        Scaffold(
-            topBar = {
-                TopAppBar(
-                    title = activeComponent.navigationItem.title,
-                    component = component.topBarComponent,
-                    onMenuClick = {
-                        scope.launch {
-                            if (drawerState.isOpen)
-                                drawerState.close()
-                            else
-                                drawerState.open()
-                        }
+    }
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = activeComponent.navigationItem.title,
+                component = component.topBarComponent,
+                onMenuClick = {
+                    scope.launch {
+                        if (drawerState.isOpen)
+                            drawerState.close()
+                        else
+                            drawerState.open()
                     }
-                )
-            },
-        ) { innerPadding ->
-            Column(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
-                Children(
-                    modifier = Modifier.weight(1F).consumeWindowInsets(WindowInsets.navigationBars),
-                    component = component,
-                )
+                }
+            )
+        },
+    ) { innerPaddings ->
+        NavigationComponent(
+            modifier = Modifier
+                .padding(
+                    top = innerPaddings.calculateTopPadding(),
+                    start = innerPaddings.calculateStartPadding(LayoutDirection.Ltr),
+                    end = innerPaddings.calculateEndPadding(LayoutDirection.Ltr)
+                ),
+            items = items,
+            onItemClick = { item ->
+                component.onNavigationItemClick(MainViewNavigationItem.entries.single { it.title == item.label })
             }
+        ) {
+            Children(component)
         }
     }
 }
@@ -86,51 +98,8 @@ private fun Children(component: MainComponent, modifier: Modifier = Modifier) {
     }
 }
 
-//
-//@Composable
-//private fun BottomBar(
-//    activeComponent: MainComponent.Child) {
-//    BottomNavigation(
-//        modifier = Modifier
-//            .fillMaxWidth()
-//            .navigationBarsPadding(),
-//        backgroundColor = MaterialTheme.colorScheme.onPrimary,
-//        elevation = 4.dp,
-//    ) {
-//        MainViewNavigationItem.entries.forEach {item->
-//            BottomNavigationItem(
-//                selectedContentColor = MaterialTheme.colorScheme.primary,
-//                selected = activeComponent is MainComponent.Child.FeedChild,
-//                onClick = component::onFeedTabClicked,
-//                icon = {
-//                    Icon(
-//                        imageVector = Icons.Default.RssFeed,
-//                        contentDescription = "Feed",
-//                    )
-//                },
-//            )
-//        }
-//        BottomNavigationItem(
-//            selectedContentColor = MaterialTheme.colorScheme.primary,
-//            selected = activeComponent is MainComponent.Child.FeedChild,
-//            onClick = component::onFeedTabClicked,
-//            icon = {
-//                Icon(
-//                    imageVector = Icons.Default.RssFeed,
-//                    contentDescription = "Feed",
-//                )
-//            },
-//        )
-//        BottomNavigationItem(
-//            selectedContentColor = MaterialTheme.colorScheme.primary,
-//            selected = activeComponent is MainComponent.Child.SubscribesChild,
-//            onClick = component::onSubscribesTabClicked,
-//            icon = {
-//                Icon(
-//                    imageVector = Icons.Default.Subscriptions,
-//                    contentDescription = "Subscribes",
-//                )
-//            },
-//        )
-//    }
-//}
+internal val MainViewNavigationItem.icon: ImageVector
+    get() = when (this) {
+        MainViewNavigationItem.Feed -> Icons.Default.RssFeed
+        MainViewNavigationItem.Subscribes -> Icons.Default.Subscriptions
+    }
