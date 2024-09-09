@@ -1,7 +1,7 @@
 [versions]
 
 desugar_jdk_libs = "2.0.4"
-kotlin = "1.9.24"
+kotlin = "2.0.20"
 compose = "1.6.11" # https://github.com/JetBrains/compose-multiplatform
 agp = "8.2.2"
 androidx-appcompat = "1.7.0"
@@ -73,3 +73,4 @@ compose = { id = "org.jetbrains.compose", version.ref = "compose" }
 android-application = { id = "com.android.application", version.ref = "agp" }
 buildConfig = { id = "com.github.gmazzo.buildconfig", version.ref = "buildConfig" }
 kotlinx-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
+compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
