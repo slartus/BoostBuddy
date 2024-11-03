@@ -1,7 +1,7 @@
 package ru.slartus.boostbuddy.data.repositories
 
 import io.ktor.client.call.body
-import ru.slartus.boostbuddy.data.repositories.models.Offset
+import ru.slartus.boostbuddy.data.repositories.models.Extra
 import ru.slartus.boostbuddy.data.repositories.models.Poll
 import ru.slartus.boostbuddy.data.repositories.models.PollOption
 import ru.slartus.boostbuddy.data.repositories.models.Post
@@ -16,7 +16,7 @@ import ru.slartus.boostbuddy.utils.fetchOrError
 internal class BlogRepository(
     private val boostyApi: BoostyApi,
 ) {
-    suspend fun getData(url: String, offset: Offset?): Result<Posts> =
+    suspend fun getData(url: String, offset: String?): Result<Posts> =
         fetchOrError {
             val response: PostResponse = boostyApi.blogPosts(
                 blog = url,
@@ -28,9 +28,16 @@ internal class BlogRepository(
 
             Posts(
                 items = response.data?.mapNotNull { it.mapToPostOrNull() } ?: emptyList(),
-                isLast = response.extra?.isLast == true
+                extra = response.extra?.mapToExtraOrNull(),
             )
         }
+}
+
+internal fun PostResponse.Extra.mapToExtraOrNull(): Extra? {
+    return Extra(
+        offset = offset ?: return null,
+        isLast = isLast ?: true
+    )
 }
 
 internal fun PostResponse.Post.mapToPostOrNull(): Post? {

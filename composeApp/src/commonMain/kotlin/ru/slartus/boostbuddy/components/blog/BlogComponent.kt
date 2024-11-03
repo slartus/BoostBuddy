@@ -19,7 +19,6 @@ import ru.slartus.boostbuddy.data.repositories.BlogRepository
 import ru.slartus.boostbuddy.data.repositories.PostRepository
 import ru.slartus.boostbuddy.data.repositories.SettingsRepository
 import ru.slartus.boostbuddy.data.repositories.models.Content
-import ru.slartus.boostbuddy.data.repositories.models.Offset
 import ru.slartus.boostbuddy.data.repositories.models.PlayerUrl
 import ru.slartus.boostbuddy.data.repositories.models.Poll
 import ru.slartus.boostbuddy.data.repositories.models.PollOption
@@ -103,7 +102,7 @@ class BlogComponentImpl(
                 viewState =
                     viewState.copy(
                         items = newItems,
-                        hasMore = data?.isLast != true,
+                        extra = data?.extra,
                         progressProgressState = BlogViewState.ProgressState.Loaded
                     )
             } else {
@@ -117,7 +116,7 @@ class BlogComponentImpl(
         }
     }
 
-    private fun fetchBlog(offset: Offset? = null) {
+    private fun fetchBlog(offset: String? = null) {
         viewState = viewState.copy(items = viewState.items.plusItem(BlogItem.LoadingItem))
         scope.launch {
             val response = blogRepository.getData(
@@ -132,7 +131,7 @@ class BlogComponentImpl(
                 viewState =
                     viewState.copy(
                         items = newItems,
-                        hasMore = data?.isLast != true,
+                        extra = data?.extra,
                         progressProgressState = BlogViewState.ProgressState.Loaded
                     )
             } else {
@@ -150,10 +149,8 @@ class BlogComponentImpl(
 
     private fun fetchNext() {
         scope.launch {
-            val token = settingsRepository.getAccessToken() ?: unauthorizedError()
-            val lastItem = viewState.items.filterIsInstance<BlogItem.PostItem>().last()
-            val offset = Offset(lastItem.post.intId, lastItem.post.createdAt)
-            fetchBlog(offset)
+            settingsRepository.getAccessToken() ?: unauthorizedError()
+            fetchBlog(viewState.extra?.offset)
         }
     }
 
@@ -171,7 +168,7 @@ class BlogComponentImpl(
 
     override fun onRepeatClicked() {
         scope.launch {
-            val token = settingsRepository.getAccessToken() ?: unauthorizedError()
+            settingsRepository.getAccessToken() ?: unauthorizedError()
             fetchBlog()
         }
     }
