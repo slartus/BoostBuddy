@@ -83,7 +83,6 @@ kotlin {
             implementation(libs.exoplayer.rtsp)
             implementation(libs.exoplayer.smoothstreaming)
             implementation(libs.android.splashscreen)
-            implementation(libs.androidx.compose.material3.adaptive.navigation.suite)
         }
 
         iosMain.dependencies {

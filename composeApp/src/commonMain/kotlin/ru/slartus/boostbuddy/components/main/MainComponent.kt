@@ -2,11 +2,8 @@ package ru.slartus.boostbuddy.components.main
 
 import androidx.compose.runtime.Stable
 import com.arkivanov.decompose.ComponentContext
-import com.arkivanov.decompose.router.stack.ChildStack
 import com.arkivanov.decompose.router.stack.StackNavigation
 import com.arkivanov.decompose.router.stack.bringToFront
-import com.arkivanov.decompose.router.stack.childStack
-import com.arkivanov.decompose.value.Value
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import ru.slartus.boostbuddy.components.BaseComponent
@@ -22,17 +19,12 @@ import ru.slartus.boostbuddy.utils.unauthorizedError
 
 @Stable
 interface MainComponent {
-    val stack: Value<ChildStack<*, Child>>
+    val feedComponent: FeedComponent
+    val subscribesComponent: SubscribesComponent
 
     val topBarComponent: TopBarComponent
     fun onNavigationItemClick(item: MainViewNavigationItem)
 
-    sealed class Child(val navigationItem: MainViewNavigationItem) {
-        class SubscribesChild(val component: SubscribesComponent) :
-            Child(MainViewNavigationItem.Subscribes)
-
-        class FeedChild(val component: FeedComponent) : Child(MainViewNavigationItem.Feed)
-    }
 }
 
 internal class MainComponentImpl(
@@ -43,19 +35,13 @@ internal class MainComponentImpl(
 ), MainComponent {
     private val settingsRepository by Inject.lazy<SettingsRepository>()
     private val navigation = StackNavigation<Config>()
+    override val feedComponent: FeedComponent = feedComponent(componentContext)
+    override val subscribesComponent: SubscribesComponent = subscribesComponent(componentContext)
 
     override val topBarComponent: TopBarComponent = TopBarComponentImpl(
         componentContext,
         onRefresh = { refresh() }
     )
-
-    override val stack: Value<ChildStack<*, MainComponent.Child>> =
-        childStack(
-            source = navigation,
-            serializer = Config.serializer(),
-            initialConfiguration = Config.Feed,
-            childFactory = ::child,
-        )
 
     init {
         checkToken()
@@ -67,15 +53,6 @@ internal class MainComponentImpl(
                 unauthorizedError()
         }
     }
-
-    private fun child(config: Config, componentContext: ComponentContext): MainComponent.Child =
-        when (config) {
-            is Config.Subscribes ->
-                MainComponent.Child.SubscribesChild(subscribesComponent(componentContext))
-
-            Config.Feed ->
-                MainComponent.Child.FeedChild(feedComponent(componentContext))
-        }
 
     private fun feedComponent(componentContext: ComponentContext): FeedComponent =
         FeedComponentImpl(componentContext)
@@ -92,14 +69,8 @@ internal class MainComponentImpl(
     }
 
     private fun refresh() {
-        stack.value.items
-            .map { it.instance }
-            .forEach { child ->
-                when (child) {
-                    is MainComponent.Child.SubscribesChild -> child.component.refresh()
-                    is MainComponent.Child.FeedChild -> child.component.refresh()
-                }
-            }
+        feedComponent.refresh()
+        subscribesComponent.refresh()
     }
 
     @Serializable
