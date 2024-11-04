@@ -44,7 +44,7 @@ internal class BoostyApi(
     ): HttpResponse = httpClient.get("v1/blog/$blog/post/") {
         parameter("limit", limit)
         offset?.let {
-            parameter("offset", "$offset")
+            parameter("offset", offset)
         }
         parameter("comments_limit", commentsLimit)
         parameter("reply_limit", replyLimit)
@@ -56,13 +56,13 @@ internal class BoostyApi(
 
     suspend fun feed(
         limit: Int,
-        offset: Offset?,
+        offset: String?,
         commentsLimit: Int,
         replyLimit: Int
     ): HttpResponse = httpClient.get("v1/feed/post/") {
         parameter("limit", limit)
         offset?.let {
-            parameter("offset", "${offset.createdAt}:${offset.postId}")
+            parameter("offset", offset)
         }
         parameter("comments_limit", commentsLimit)
         parameter("reply_limit", replyLimit)

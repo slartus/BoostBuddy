@@ -2,14 +2,13 @@ package ru.slartus.boostbuddy.data.repositories
 
 import io.ktor.client.call.body
 import ru.slartus.boostbuddy.data.repositories.models.FeedResponse
-import ru.slartus.boostbuddy.data.repositories.models.Offset
 import ru.slartus.boostbuddy.data.repositories.models.Posts
 import ru.slartus.boostbuddy.utils.fetchOrError
 
 internal class FeedRepository(
     private val boostyApi: BoostyApi,
 ) {
-    suspend fun getData(offset: Offset?): Result<Posts> =
+    suspend fun getData(offset: String?): Result<Posts> =
         fetchOrError {
             val response: FeedResponse = boostyApi.feed(
                 limit = 10,
@@ -20,7 +19,7 @@ internal class FeedRepository(
 
             Posts(
                 items = response.data?.posts?.mapNotNull { it.mapToPostOrNull() } ?: emptyList(),
-                isLast = response.extra?.isLast == true
+                extra = response.extra?.mapToExtraOrNull()
             )
         }
 }

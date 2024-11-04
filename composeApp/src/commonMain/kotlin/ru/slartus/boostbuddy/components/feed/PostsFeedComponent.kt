@@ -13,7 +13,7 @@ import ru.slartus.boostbuddy.data.repositories.Owner
 import ru.slartus.boostbuddy.data.repositories.PostRepository
 import ru.slartus.boostbuddy.data.repositories.SettingsRepository
 import ru.slartus.boostbuddy.data.repositories.models.Content
-import ru.slartus.boostbuddy.data.repositories.models.Offset
+import ru.slartus.boostbuddy.data.repositories.models.Extra
 import ru.slartus.boostbuddy.data.repositories.models.Poll
 import ru.slartus.boostbuddy.data.repositories.models.PollOption
 import ru.slartus.boostbuddy.data.repositories.models.Post
@@ -42,6 +42,7 @@ abstract class PostsFeedComponent<State : Any, Action>(
     private val settingsRepository by Inject.lazy<SettingsRepository>()
     private val postRepository by Inject.lazy<PostRepository>()
 
+    protected abstract val extra: Extra?
     protected abstract val viewStateItems: List<FeedPostItem>
 
     protected fun subscribeToken() {
@@ -57,13 +58,13 @@ abstract class PostsFeedComponent<State : Any, Action>(
             fetchData()
     }
 
-    protected abstract suspend fun fetch(offset: Offset?): Result<Posts>
+    protected abstract suspend fun fetch(offset: String?): Result<Posts>
 
     protected abstract fun onProgressStateChanged(progressState: ProgressState)
 
     protected abstract fun onNewItems(
         items: ImmutableList<FeedPostItem>,
-        hasMore: Boolean = true
+        extra: Extra? = null
     )
 
     private fun fetchData() {
@@ -75,7 +76,7 @@ abstract class PostsFeedComponent<State : Any, Action>(
                 val newItems = data?.items.orEmpty()
                     .map { FeedPostItem.PostItem(it) }
                     .toImmutableList()
-                onNewItems(items = newItems, hasMore = data?.isLast != true)
+                onNewItems(items = newItems, extra = data?.extra)
                 onProgressStateChanged(ProgressState.Loaded)
             } else {
                 onProgressStateChanged(
@@ -87,7 +88,7 @@ abstract class PostsFeedComponent<State : Any, Action>(
         }
     }
 
-    private fun fetchData(offset: Offset) {
+    private fun fetchData(offset: String?) {
         onNewItems(viewStateItems.plusItem(FeedPostItem.LoadingItem))
         scope.launch {
             val response = fetch(offset = offset)
@@ -97,7 +98,7 @@ abstract class PostsFeedComponent<State : Any, Action>(
                     viewStateItems
                         .plusItems(data?.items.orEmpty().map { FeedPostItem.PostItem(it) })
 
-                onNewItems(newItems, data?.isLast != true)
+                onNewItems(newItems, data?.extra)
                 onProgressStateChanged(ProgressState.Loaded)
             } else {
                 onNewItems(
@@ -105,7 +106,7 @@ abstract class PostsFeedComponent<State : Any, Action>(
                         FeedPostItem.ErrorItem(
                             response.exceptionOrNull()?.messageOrThrow() ?: "Ошибка загрузки"
                         )
-                    ), true
+                    ), extra
                 )
             }
         }
@@ -114,9 +115,7 @@ abstract class PostsFeedComponent<State : Any, Action>(
     protected fun fetchNext() {
         scope.launch {
             settingsRepository.getAccessToken() ?: unauthorizedError()
-            val lastItem = viewStateItems.filterIsInstance<FeedPostItem.PostItem>().last()
-            val offset = Offset(lastItem.post.intId, lastItem.post.createdAt)
-            fetchData(offset)
+            fetchData(extra?.offset)
         }
     }
 

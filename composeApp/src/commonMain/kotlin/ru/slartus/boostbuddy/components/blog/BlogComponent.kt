@@ -12,8 +12,7 @@ import ru.slartus.boostbuddy.data.Inject
 import ru.slartus.boostbuddy.data.repositories.Blog
 import ru.slartus.boostbuddy.data.repositories.BlogRepository
 import ru.slartus.boostbuddy.data.repositories.models.Content
-import ru.slartus.boostbuddy.data.repositories.models.Offset
-import ru.slartus.boostbuddy.data.repositories.models.PlayerUrl
+import ru.slartus.boostbuddy.data.repositories.models.Extra
 import ru.slartus.boostbuddy.data.repositories.models.Poll
 import ru.slartus.boostbuddy.data.repositories.models.PollOption
 import ru.slartus.boostbuddy.data.repositories.models.Post
@@ -42,6 +41,7 @@ class BlogComponentImpl(
     BlogViewState(blog)
 ), BlogComponent {
     private val blogRepository by Inject.lazy<BlogRepository>()
+    override val extra: Extra? get() = viewState.extra
     override val viewStateItems: List<FeedPostItem> get() = viewState.items
     private val blog: Blog get() = viewState.blog
 
@@ -63,15 +63,15 @@ class BlogComponentImpl(
         }
     }
 
-    override suspend fun fetch(offset: Offset?): Result<Posts> =
+    override suspend fun fetch(offset: String?): Result<Posts> =
         blogRepository.fetchPosts(blog.blogUrl, offset)
 
     override fun onProgressStateChanged(progressState: ProgressState) {
         viewState = viewState.copy(progressState = progressState)
     }
 
-    override fun onNewItems(items: ImmutableList<FeedPostItem>, hasMore: Boolean) {
-        viewState = viewState.copy(items = items, hasMore = hasMore)
+    override fun onNewItems(items: ImmutableList<FeedPostItem>, extra: Extra?) {
+        viewState = viewState.copy(items = items, extra = extra)
     }
 
     override fun onBackClicked() {
