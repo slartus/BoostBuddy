@@ -11,7 +11,6 @@ import io.ktor.client.request.put
 import io.ktor.client.request.setBody
 import io.ktor.client.statement.HttpResponse
 import io.ktor.http.Parameters
-import ru.slartus.boostbuddy.data.repositories.models.Offset
 
 internal class BoostyApi(
     private val httpClient: HttpClient
@@ -39,13 +38,13 @@ internal class BoostyApi(
     suspend fun blogPosts(
         blog: String,
         limit: Int,
-        offset: Offset?,
+        offset: String?,
         commentsLimit: Int,
         replyLimit: Int
     ): HttpResponse = httpClient.get("v1/blog/$blog/post/") {
         parameter("limit", limit)
         offset?.let {
-            parameter("offset", "${offset.createdAt}:${offset.postId}")
+            parameter("offset", "$offset")
         }
         parameter("comments_limit", commentsLimit)
         parameter("reply_limit", replyLimit)

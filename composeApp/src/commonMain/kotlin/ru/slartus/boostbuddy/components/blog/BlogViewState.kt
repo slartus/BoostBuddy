@@ -5,14 +5,17 @@ import kotlinx.collections.immutable.persistentListOf
 import ru.slartus.boostbuddy.components.common.ProgressState
 import ru.slartus.boostbuddy.components.feed.FeedPostItem
 import ru.slartus.boostbuddy.data.repositories.Blog
+import ru.slartus.boostbuddy.data.repositories.models.Extra
 import ru.slartus.boostbuddy.data.repositories.models.VideoQuality
 
 data class BlogViewState(
     val blog: Blog,
     val items: ImmutableList<FeedPostItem> = persistentListOf(),
-    val hasMore: Boolean = true,
+    val extra: Extra? = null,
     val progressState: ProgressState = ProgressState.Init,
-)
+) {
+    val hasMore: Boolean = extra?.isLast == false
+}
 
 val VideoQuality.text
     get() = when (this) {

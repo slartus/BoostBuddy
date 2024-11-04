@@ -8,15 +8,14 @@ import kotlinx.serialization.json.jsonPrimitive
 import ru.slartus.boostbuddy.utils.dateTimeFromUnix
 import ru.slartus.boostbuddy.utils.toHumanString
 
-
-data class Offset(
-    val postId: Long,
-    val createdAt: Long
-)
-
 data class Posts(
     val items: List<Post>,
-    val isLast: Boolean,
+    val extra: Extra?,
+)
+
+data class Extra(
+    val offset: String,
+    val isLast: Boolean
 )
 
 @Immutable
