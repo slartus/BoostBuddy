@@ -240,8 +240,11 @@ private fun VideoPreview(url: String, onClick: () -> Unit) {
 private fun PostDataImageView(postData: Content.Image) {
     Box(modifier = Modifier.heightIn(min = 200.dp).focusable()) {
         Image(
-            modifier = Modifier.widthIn(max = 640.dp).fillMaxWidth()
+            modifier = Modifier
+                .widthIn(max = 640.dp)
+                .fillMaxWidth()
                 .wrapContentHeight(),
+            contentScale = ContentScale.FillWidth,
             painter = rememberImagePainter(postData.url),
             contentDescription = "url",
         )
