@@ -18,7 +18,10 @@ import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import ru.slartus.boostbuddy.components.main.MainComponent
 import ru.slartus.boostbuddy.components.main.MainViewNavigationItem
+import ru.slartus.boostbuddy.ui.common.AppKeyEventAction
+import ru.slartus.boostbuddy.ui.common.AppKeyEventKeyCode
 import ru.slartus.boostbuddy.ui.common.BackHandlerEffect
+import ru.slartus.boostbuddy.ui.common.onAppKeyEvent
 import ru.slartus.boostbuddy.ui.screens.FeedScreen
 import ru.slartus.boostbuddy.ui.screens.SubscribesScreen
 import ru.slartus.boostbuddy.ui.screens.TopAppBar
@@ -34,6 +37,33 @@ internal fun MainScreen(component: MainComponent) {
     }
 
     Scaffold(
+        modifier = Modifier.onAppKeyEvent { keyEvent ->
+            if (keyEvent.action == AppKeyEventAction.Down) {
+                when (keyEvent.keyCode) {
+                    AppKeyEventKeyCode.DpadLeft -> {
+                        if (!drawerState.isOpen) {
+                            scope.launch {
+                                drawerState.open()
+                            }
+                        }
+                        return@onAppKeyEvent false
+                    }
+
+                    AppKeyEventKeyCode.DpadRight -> {
+                        if (drawerState.isOpen) {
+                            scope.launch {
+                                drawerState.close()
+                            }
+                        }
+                        return@onAppKeyEvent false
+                    }
+
+                    else -> return@onAppKeyEvent false
+                }
+
+            }
+            return@onAppKeyEvent false
+        },
         topBar = {
             TopAppBar(
                 title = "Лента",
@@ -51,7 +81,7 @@ internal fun MainScreen(component: MainComponent) {
     ) { innerPaddings ->
         ModalNavigationDrawer(
             modifier = Modifier.padding(innerPaddings),
-            drawerState= drawerState,
+            drawerState = drawerState,
             drawerContent = {
                 ModalDrawerSheet(
                     drawerShape = RoundedCornerShape(0.dp)
@@ -60,7 +90,9 @@ internal fun MainScreen(component: MainComponent) {
                 }
             }
         ) {
-            FeedScreen(component.feedComponent)
+            FeedScreen(
+                component = component.feedComponent
+            )
         }
     }
 }

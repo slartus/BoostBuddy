@@ -13,11 +13,14 @@ import ru.slartus.boostbuddy.ui.widgets.ErrorView
 import ru.slartus.boostbuddy.ui.widgets.LoaderView
 
 @Composable
-internal fun FeedScreen(component: FeedComponent) {
+internal fun FeedScreen(
+    component: FeedComponent,
+    modifier: Modifier = Modifier,
+) {
     val state by component.viewStates.subscribeAsState()
 
     Box(
-        modifier = Modifier.fillMaxSize(),
+        modifier = modifier.fillMaxSize(),
         contentAlignment = Alignment.Center
     ) {
         when (val progressState = state.progressState) {
