@@ -44,10 +44,29 @@ internal class BoostyApi(
     ): HttpResponse = httpClient.get("v1/blog/$blog/post/") {
         parameter("limit", limit)
         offset?.let {
-            parameter("offset", "$offset")
+            parameter("offset", offset)
         }
         parameter("comments_limit", commentsLimit)
         parameter("reply_limit", replyLimit)
+    }
+
+    suspend fun blogInfo(
+        blogUrl: String
+    ): HttpResponse = httpClient.get("v1/blog/$blogUrl")
+
+    suspend fun feed(
+        limit: Int,
+        offset: String?,
+        commentsLimit: Int,
+        replyLimit: Int
+    ): HttpResponse = httpClient.get("v1/feed/post/") {
+        parameter("limit", limit)
+        offset?.let {
+            parameter("offset", offset)
+        }
+        parameter("comments_limit", commentsLimit)
+        parameter("reply_limit", replyLimit)
+        parameter("only_allowed", "true")
     }
 
     suspend fun post(
@@ -101,4 +120,7 @@ internal class BoostyApi(
         blog: String,
         pollId: Int
     ): HttpResponse = httpClient.get("v1/blog/$blog/poll/$pollId")
+
+    suspend fun events(
+    ): HttpResponse = httpClient.get("v1/notification/standalone/event/")
 }

@@ -11,6 +11,8 @@ import ru.slartus.boostbuddy.data.ktor.buildGithubHttpClient
 import ru.slartus.boostbuddy.data.repositories.AppSettings
 import ru.slartus.boostbuddy.data.repositories.BlogRepository
 import ru.slartus.boostbuddy.data.repositories.BoostyApi
+import ru.slartus.boostbuddy.data.repositories.EventsRepository
+import ru.slartus.boostbuddy.data.repositories.FeedRepository
 import ru.slartus.boostbuddy.data.repositories.GithubRepository
 import ru.slartus.boostbuddy.data.repositories.PostRepository
 import ru.slartus.boostbuddy.data.repositories.ProfileRepository
@@ -19,6 +21,7 @@ import ru.slartus.boostbuddy.data.repositories.SubscribesRepository
 import ru.slartus.boostbuddy.data.repositories.VideoRepository
 import ru.slartus.boostbuddy.data.repositories.comments.CommentsRepository
 import ru.slartus.boostbuddy.data.settings.SettingsFactory
+import ru.slartus.boostbuddy.navigation.NavigationRouterImpl
 
 object PlatformDataConfiguration {
     private const val TAG_HTTP_CLIENT_BOOSTY = "boosty"
@@ -27,6 +30,7 @@ object PlatformDataConfiguration {
         Inject.createDependenciesTree {
             bindSingleton { GlobalExceptionHandlersChain() }
             bindSingleton { platformConfiguration }
+            bindSingleton { NavigationRouterImpl() }
             bindSingleton { Permissions(platformConfiguration = instance()) }
             bindSingleton { SettingsFactory(platformConfiguration = instance()).createDefault() }
             bindSingleton { SettingsRepository(settings = instance()) }
@@ -70,5 +74,7 @@ object PlatformDataConfiguration {
         bindSingleton { PostRepository(boostyApi = instance()) }
         bindSingleton { VideoRepository(boostyApi = instance()) }
         bindSingleton { ProfileRepository(boostyApi = instance()) }
+        bindSingleton { EventsRepository(boostyApi = instance()) }
+        bindSingleton { FeedRepository(boostyApi = instance()) }
     }
 }

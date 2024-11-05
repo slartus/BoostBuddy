@@ -32,7 +32,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
-import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
+import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.seiko.imageloader.rememberImagePainter
 import kotlinx.collections.immutable.ImmutableList
 import ru.slartus.boostbuddy.components.post.PostComponent
@@ -45,10 +45,9 @@ import ru.slartus.boostbuddy.data.repositories.models.PollOption
 import ru.slartus.boostbuddy.data.repositories.models.Post
 import ru.slartus.boostbuddy.ui.common.HorizontalSpacer
 import ru.slartus.boostbuddy.ui.common.VerticalSpacer
+import ru.slartus.boostbuddy.ui.screens.PostView
 import ru.slartus.boostbuddy.ui.screens.blog.ContentView
 import ru.slartus.boostbuddy.ui.screens.blog.FocusableBox
-import ru.slartus.boostbuddy.ui.screens.blog.PostView
-import ru.slartus.boostbuddy.ui.screens.blog.VideoTypeDialogView
 import ru.slartus.boostbuddy.ui.widgets.ErrorView
 import ru.slartus.boostbuddy.ui.widgets.LoaderView
 
@@ -105,21 +104,14 @@ internal fun PostScreen(component: PostComponent) {
                             onVideoClick = {
                                 component.onVideoItemClicked(state.post.id, it)
                             },
-                            onPollOptionClick = { poll, option ->
+                            onPollOptionClick = { _, poll, option ->
                                 component.onPollOptionClicked(poll, option)
                             },
-                            onVoteClick = { component.onVoteClicked(it) },
-                            onDeleteVoteClick = { component.onDeleteVoteClicked(it) }
+                            onVoteClick = { _, poll -> component.onVoteClicked(poll) },
+                            onDeleteVoteClick = { _, poll -> component.onDeleteVoteClicked(poll) }
                         )
             }
         }
-    }
-    val dialogSlot by component.dialogSlot.subscribeAsState()
-    dialogSlot.child?.instance?.also { videoTypeComponent ->
-        VideoTypeDialogView(
-            modifier = Modifier,
-            component = videoTypeComponent,
-        )
     }
 }
 
@@ -130,20 +122,22 @@ private fun FullPostView(
     onMoreClick: () -> Unit,
     onMoreRepliesClick: (PostViewItem.CommentItem) -> Unit,
     onVideoClick: (okVideoData: Content.OkVideo) -> Unit,
-    onPollOptionClick: (Poll, PollOption) -> Unit,
-    onVoteClick: (poll: Poll) -> Unit,
-    onDeleteVoteClick: (poll: Poll) -> Unit
+    onPollOptionClick: (Post, Poll, PollOption) -> Unit,
+    onVoteClick: (Post, poll: Poll) -> Unit,
+    onDeleteVoteClick: (Post, poll: Poll) -> Unit
 ) {
     val state = rememberLazyListState(initialFirstVisibleItemIndex = 1)
     LazyColumn(modifier = Modifier.fillMaxSize(), state = state) {
         item(contentType = "post", key = "post_${post.id}") {
             PostView(
                 post = post,
+                showBlogInfo = false,
                 onVideoClick = onVideoClick,
                 onCommentsClick = {},
                 onPollOptionClick = onPollOptionClick,
                 onVoteClick = onVoteClick,
-                onDeleteVoteClick = onDeleteVoteClick
+                onDeleteVoteClick = onDeleteVoteClick,
+                onBlogClick = {}
             )
         }
         commentsView(items, onMoreClick, onMoreRepliesClick)

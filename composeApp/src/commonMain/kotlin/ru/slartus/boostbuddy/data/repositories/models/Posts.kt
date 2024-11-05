@@ -5,6 +5,8 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.jsonPrimitive
+import ru.slartus.boostbuddy.utils.dateTimeFromUnix
+import ru.slartus.boostbuddy.utils.toHumanString
 
 data class Posts(
     val items: List<Post>,
@@ -30,7 +32,9 @@ data class Post(
     val count: PostCount,
     val poll: Poll?,
     val hasAccess: Boolean
-)
+) {
+    val createdAtString: String = dateTimeFromUnix(createdAt).toHumanString()
+}
 
 @Immutable
 @Serializable

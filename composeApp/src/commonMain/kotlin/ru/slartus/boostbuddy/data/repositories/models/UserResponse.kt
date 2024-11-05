@@ -6,12 +6,14 @@ import kotlinx.serialization.Serializable
 internal data class UserResponse(
     val id: String? = null,
     val name: String? = null,
-    val avatarUrl: String? = null
+    val avatarUrl: String? = null,
+    val blogUrl: String? = null,
 )
 
 internal fun UserResponse.mapToUserOrNull(): User? {
     return User(
         name = name ?: return null,
-        avatarUrl = avatarUrl
+        blogUrl = blogUrl.orEmpty(),
+        avatarUrl = avatarUrl,
     )
 }

@@ -4,6 +4,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.buildConfig)
     alias(libs.plugins.kotlinx.serialization)
+    alias(libs.plugins.compose.compiler)
     id("kotlin-parcelize")
 }
 
@@ -25,7 +26,6 @@ kotlin {
             baseName = "BoostBuddyShared"
             export(libs.decompose)
             export(libs.decompose.compose)
-            export(libs.decompose.extensions.experimental)
             export(libs.essently.lifecycle)
         }
     }
@@ -38,12 +38,13 @@ kotlin {
         }
         commonMain.dependencies {
             implementation(compose.runtime)
+            implementation(compose.material)
             implementation(compose.material3)
             implementation(compose.materialIconsExtended)
+            implementation(compose.ui)
             @OptIn(org.jetbrains.compose.ExperimentalComposeLibrary::class)
             implementation(compose.components.resources)
             api(libs.decompose)
-            api(libs.decompose.extensions.experimental)
             api(libs.decompose.compose)
             implementation(libs.composeImageLoader)
             implementation(libs.kotlinx.coroutines.core)
@@ -100,8 +101,8 @@ android {
         targetSdk = 34
 
         applicationId = "ru.slartus.boostbuddy"
-        versionCode = 71
-        versionName = "1.5.1"
+        versionCode = 72
+        versionName = "1.6.0"
     }
     sourceSets["main"].apply {
         manifest.srcFile("src/androidMain/AndroidManifest.xml")

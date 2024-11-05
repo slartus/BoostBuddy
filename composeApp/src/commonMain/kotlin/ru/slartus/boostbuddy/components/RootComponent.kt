@@ -10,24 +10,31 @@ import com.arkivanov.decompose.router.slot.dismiss
 import com.arkivanov.decompose.router.stack.ChildStack
 import com.arkivanov.decompose.router.stack.StackNavigation
 import com.arkivanov.decompose.router.stack.childStack
-import com.arkivanov.decompose.router.stack.pop
 import com.arkivanov.decompose.router.stack.popTo
 import com.arkivanov.decompose.router.stack.popWhile
 import com.arkivanov.decompose.router.stack.push
+import com.arkivanov.decompose.router.stack.pushToFront
 import com.arkivanov.decompose.router.stack.replaceAll
 import com.arkivanov.decompose.value.Value
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import ru.slartus.boostbuddy.components.auth.AuthComponent
 import ru.slartus.boostbuddy.components.auth.AuthComponentImpl
 import ru.slartus.boostbuddy.components.blog.BlogComponent
 import ru.slartus.boostbuddy.components.blog.BlogComponentImpl
+import ru.slartus.boostbuddy.components.blog.VideoTypeComponent
+import ru.slartus.boostbuddy.components.blog.VideoTypeComponentImpl
+import ru.slartus.boostbuddy.components.main.MainComponent
+import ru.slartus.boostbuddy.components.main.MainComponentImpl
 import ru.slartus.boostbuddy.components.post.PostComponent
 import ru.slartus.boostbuddy.components.post.PostComponentImpl
 import ru.slartus.boostbuddy.components.settings.SettingsComponent
 import ru.slartus.boostbuddy.components.settings.SettingsComponentImpl
+import ru.slartus.boostbuddy.components.subscribes.LogoutDialogComponent
+import ru.slartus.boostbuddy.components.subscribes.LogoutDialogComponentImpl
 import ru.slartus.boostbuddy.components.subscribes.SubscribesComponent
 import ru.slartus.boostbuddy.components.subscribes.SubscribesComponentImpl
 import ru.slartus.boostbuddy.components.video.VideoComponent
@@ -41,12 +48,19 @@ import ru.slartus.boostbuddy.data.repositories.SettingsRepository
 import ru.slartus.boostbuddy.data.repositories.models.Content
 import ru.slartus.boostbuddy.data.repositories.models.PlayerUrl
 import ru.slartus.boostbuddy.data.repositories.models.Post
+import ru.slartus.boostbuddy.navigation.NavigationRouter
+import ru.slartus.boostbuddy.navigation.NavigationTree
+import ru.slartus.boostbuddy.navigation.Screen
+import ru.slartus.boostbuddy.navigation.ScreenAction
+import ru.slartus.boostbuddy.navigation.navigateTo
 import ru.slartus.boostbuddy.utils.Permission
 import ru.slartus.boostbuddy.utils.Permissions
 import ru.slartus.boostbuddy.utils.Platform
 import ru.slartus.boostbuddy.utils.PlatformConfiguration
 import ru.slartus.boostbuddy.utils.VersionsComparer.greaterThan
 import ru.slartus.boostbuddy.utils.VideoPlayer
+import ru.slartus.boostbuddy.utils.WebManager
+import ru.slartus.boostbuddy.utils.unauthorizedError
 
 @Stable
 interface RootComponent : AppComponent<RootViewAction> {
@@ -57,17 +71,15 @@ interface RootComponent : AppComponent<RootViewAction> {
     // It's possible to pop multiple screens at a time on iOS
     fun onBackClicked(toIndex: Int)
     fun showAuthorizeComponent()
-
-    fun onDialogVersionDismissed()
     fun onDialogVersionAcceptClicked(child: DialogChild.NewVersion)
     fun onDialogVersionCancelClicked()
-    fun onDialogErrorDismissed()
     fun onErrorReceived(ex: Throwable)
-    fun onDialogSettingsDismissed()
+    fun onDialogDismissed()
 
     // Defines all possible child components
     sealed class Child {
         class AuthChild(val component: AuthComponent) : Child()
+        class MainChild(val component: MainComponent) : Child()
         class SubscribesChild(val component: SubscribesComponent) : Child()
         class BlogChild(val component: BlogComponent) : Child()
         class VideoChild(val component: VideoComponent) : Child()
@@ -81,6 +93,9 @@ interface RootComponent : AppComponent<RootViewAction> {
         data class Error(val message: String) : DialogChild()
 
         data class AppSettings(val component: SettingsComponent) : DialogChild()
+        data class Logout(val component: LogoutDialogComponent) : DialogChild()
+        data class Qr(val title: String, val url: String) : DialogChild()
+        data class VideoType(val component: VideoTypeComponent) : DialogChild()
     }
 }
 
@@ -101,6 +116,7 @@ class RootComponentImpl(
     RootComponent {
     private val navigation = StackNavigation<Config>()
     private val dialogNavigation = SlotNavigation<DialogConfig>()
+    private val navigationRouter by Inject.lazy<NavigationRouter>()
     private val settingsRepository by Inject.lazy<SettingsRepository>()
     private val githubRepository by Inject.lazy<GithubRepository>()
     private val platformConfiguration by Inject.lazy<PlatformConfiguration>()
@@ -121,7 +137,7 @@ class RootComponentImpl(
             key = "DefaultChildStack",
             source = navigation,
             serializer = Config.serializer(),
-            initialConfiguration = Config.Subscribes,
+            initialConfiguration = Config.Main,
             handleBackButton = true,
             childFactory = ::child,
         )
@@ -129,6 +145,7 @@ class RootComponentImpl(
     init {
         subscribeSettings()
         fetchLastReleaseInfo()
+        subscribeToRouter()
     }
 
     private fun subscribeSettings() {
@@ -136,6 +153,58 @@ class RootComponentImpl(
             settingsRepository.appSettingsFlow.collect {
                 viewState = viewState.copy(appSettings = it)
             }
+        }
+    }
+
+    private fun subscribeToRouter() {
+        scope.launch {
+            navigationRouter.screensStack
+                .filterNotNull()
+                .collect { action ->
+                    navigationRouter.actionInvoked()
+                    when (action) {
+                        is ScreenAction -> navigateToScreen(action.screen)
+                    }
+                }
+        }
+    }
+
+    private fun navigateToScreen(screen: Screen) {
+        when (screen) {
+            is NavigationTree.Blog -> navigation.push(Config.BlogConfig(blog = screen.blog))
+            is NavigationTree.BlogPost -> navigation.push(
+                Config.PostConfig(
+                    post = screen.post
+                )
+            )
+
+            NavigationTree.Main -> navigation.pushToFront(Config.Main)
+            is NavigationTree.Video -> playVideo(
+                blogUrl = screen.blogUrl,
+                postId = screen.postId,
+                postData = screen.postData,
+                playerUrl = screen.playerUrl
+            )
+
+            NavigationTree.AppSettings -> dialogNavigation.activate(
+                DialogConfig.AppSettings
+            )
+
+            NavigationTree.Logout -> dialogNavigation.activate(DialogConfig.Logout)
+            is NavigationTree.Qr -> dialogNavigation.activate(
+                DialogConfig.Qr(
+                    title = screen.title,
+                    url = screen.url
+                )
+            )
+
+            is NavigationTree.VideoType -> dialogNavigation.activate(
+                DialogConfig.VideoType(
+                    blogUrl = screen.blogUrl,
+                    postId = screen.postId,
+                    postData = screen.postData
+                )
+            )
         }
     }
 
@@ -184,30 +253,23 @@ class RootComponentImpl(
         when (config) {
             is Config.Auth -> RootComponent.Child.AuthChild(authComponent(componentContext))
             is Config.Subscribes -> RootComponent.Child.SubscribesChild(
-                subscribesComponent(
-                    componentContext
-                )
+                subscribesComponent(componentContext)
             )
 
             is Config.BlogConfig -> RootComponent.Child.BlogChild(
-                blogComponent(
-                    componentContext,
-                    config
-                )
+                blogComponent(componentContext, config)
             )
 
             is Config.VideoConfig -> RootComponent.Child.VideoChild(
-                videoComponent(
-                    componentContext,
-                    config
-                )
+                videoComponent(componentContext, config)
             )
 
             is Config.PostConfig -> RootComponent.Child.PostChild(
-                postComponent(
-                    componentContext,
-                    config
-                )
+                postComponent(componentContext, config)
+            )
+
+            Config.Main -> RootComponent.Child.MainChild(
+                mainComponent(componentContext)
             )
         }
 
@@ -228,7 +290,48 @@ class RootComponentImpl(
                     componentContext
                 )
             )
+
+            DialogConfig.Logout -> RootComponent.DialogChild.Logout(
+                LogoutDialogComponentImpl(
+                    onDismissed = dialogNavigation::dismiss,
+                    onAcceptClicked = ::logout,
+                    onCancelClicked = dialogNavigation::dismiss
+                )
+            )
+
+            is DialogConfig.Qr -> RootComponent.DialogChild.Qr(
+                title = config.title,
+                url = config.url
+            )
+
+            is DialogConfig.VideoType -> RootComponent.DialogChild.VideoType(
+                VideoTypeComponentImpl(
+                    componentContext = this,
+                    postData = config.postData,
+                    onDismissed = dialogNavigation::dismiss,
+                    onItemClicked = { playerUrl ->
+                        dialogNavigation.dismiss()
+                        navigationRouter.navigateTo(
+                            NavigationTree.Video(
+                                blogUrl = config.blogUrl,
+                                postId = config.postId,
+                                postData = config.postData,
+                                playerUrl = playerUrl
+                            )
+                        )
+                    }
+                )
+            )
         }
+
+    private fun logout() {
+        scope.launch {
+            settingsRepository.putAccessToken(null)
+            WebManager.clearWebViewCookies()
+            WebManager.clearWebViewStorage()
+            unauthorizedError()
+        }
+    }
 
     private fun settingsComponent(componentContext: ComponentContext): SettingsComponent =
         SettingsComponentImpl(componentContext = componentContext, onVersionClickedHandler = {
@@ -239,25 +342,15 @@ class RootComponentImpl(
         AuthComponentImpl(
             componentContext = componentContext,
             onLogined = {
-                navigation.replaceAll(Config.Subscribes)
+                navigation.replaceAll(Config.Main)
             },
         )
 
     private fun subscribesComponent(componentContext: ComponentContext): SubscribesComponent =
-        SubscribesComponentImpl(
-            componentContext = componentContext,
-            onItemSelected = {
-                navigation.push(Config.BlogConfig(blog = it.blog))
-            },
-            onBackClicked = {
-                navigation.pop()
-            },
-            onAppSettingsClicked = {
-                dialogNavigation.activate(
-                    DialogConfig.AppSettings
-                )
-            }
-        )
+        SubscribesComponentImpl(componentContext)
+
+    private fun mainComponent(componentContext: ComponentContext): MainComponent =
+        MainComponentImpl(componentContext)
 
     private fun blogComponent(
         componentContext: ComponentContext,
@@ -266,19 +359,8 @@ class RootComponentImpl(
         BlogComponentImpl(
             componentContext = componentContext,
             blog = config.blog,
-            onItemSelected = { postId, postData, playerUrl ->
-                playVideo(
-                    blogUrl = config.blog.blogUrl,
-                    postId = postId,
-                    postData = postData,
-                    playerUrl = playerUrl
-                )
-            },
             onBackClicked = {
                 navigation.popWhile { it == config }
-            },
-            onPostSelected = { blog, post ->
-                navigation.push(Config.PostConfig(blogUrl = blog.blogUrl, post = post))
             }
         )
 
@@ -288,17 +370,8 @@ class RootComponentImpl(
     ): PostComponent =
         PostComponentImpl(
             componentContext = componentContext,
-            blogUrl = config.blogUrl,
             post = config.post,
-            onBackClicked = { navigation.popWhile { it == config } },
-            onItemSelected = { postId, postData, playerUrl ->
-                playVideo(
-                    blogUrl = config.blogUrl,
-                    postId = postId,
-                    postData = postData,
-                    playerUrl = playerUrl
-                )
-            },
+            onBackClicked = { navigation.popWhile { it == config } }
         )
 
     private fun playVideo(
@@ -348,10 +421,6 @@ class RootComponentImpl(
         navigation.popTo(index = toIndex)
     }
 
-    override fun onDialogVersionDismissed() {
-        dialogNavigation.dismiss()
-    }
-
     override fun onDialogVersionAcceptClicked(child: RootComponent.DialogChild.NewVersion) {
         dialogNavigation.dismiss()
         scope.launch {
@@ -376,15 +445,11 @@ class RootComponentImpl(
         dialogNavigation.dismiss()
     }
 
-    override fun onDialogErrorDismissed() {
-        dialogNavigation.dismiss()
-    }
-
     override fun onErrorReceived(ex: Throwable) {
         viewAction = RootViewAction.ShowSnackBar(ex.message ?: ex.toString())
     }
 
-    override fun onDialogSettingsDismissed() {
+    override fun onDialogDismissed() {
         dialogNavigation.dismiss()
     }
 
@@ -392,6 +457,9 @@ class RootComponentImpl(
     private sealed interface Config {
         @Serializable
         data object Auth : Config
+
+        @Serializable
+        data object Main : Config
 
         @Serializable
         data object Subscribes : Config
@@ -408,7 +476,7 @@ class RootComponentImpl(
         ) : Config
 
         @Serializable
-        data class PostConfig(val blogUrl: String, val post: Post) : Config
+        data class PostConfig(val post: Post) : Config
     }
 
     @Serializable
@@ -424,5 +492,17 @@ class RootComponentImpl(
 
         @Serializable
         data object AppSettings : DialogConfig
+
+        @Serializable
+        data object Logout : DialogConfig
+
+        @Serializable
+        data class Qr(val title: String, val url: String) : DialogConfig
+
+        data class VideoType(
+            val blogUrl: String,
+            val postId: String,
+            val postData: Content.OkVideo,
+        ) : DialogConfig
     }
 }

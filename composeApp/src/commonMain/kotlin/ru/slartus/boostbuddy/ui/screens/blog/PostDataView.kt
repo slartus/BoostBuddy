@@ -32,6 +32,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Alignment.Companion.CenterVertically
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.Placeholder
 import androidx.compose.ui.text.PlaceholderVerticalAlign
 import androidx.compose.ui.text.TextLayoutResult
@@ -206,8 +207,11 @@ private fun VideoPreview(url: String, onClick: () -> Unit) {
             .heightIn(min = 200.dp)
     ) {
         Image(
-            modifier = Modifier.widthIn(max = 640.dp).fillMaxWidth()
+            modifier = Modifier
+                .widthIn(max = 640.dp)
+                .fillMaxWidth()
                 .wrapContentHeight(),
+            contentScale = ContentScale.FillWidth,
             painter = rememberImagePainter(url),
             contentDescription = "preview",
         )
@@ -236,8 +240,11 @@ private fun VideoPreview(url: String, onClick: () -> Unit) {
 private fun PostDataImageView(postData: Content.Image) {
     Box(modifier = Modifier.heightIn(min = 200.dp).focusable()) {
         Image(
-            modifier = Modifier.widthIn(max = 640.dp).fillMaxWidth()
+            modifier = Modifier
+                .widthIn(max = 640.dp)
+                .fillMaxWidth()
                 .wrapContentHeight(),
+            contentScale = ContentScale.FillWidth,
             painter = rememberImagePainter(postData.url),
             contentDescription = "url",
         )
