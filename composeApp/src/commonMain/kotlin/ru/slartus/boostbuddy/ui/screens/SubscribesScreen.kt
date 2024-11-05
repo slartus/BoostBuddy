@@ -69,7 +69,7 @@ private fun SubscribesView(
     } else {
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            verticalArrangement = Arrangement.spacedBy(2.dp)
         ) {
             items(items) { item ->
                 BlogView(item.blog, onClick = { onItemClicked(item) })
