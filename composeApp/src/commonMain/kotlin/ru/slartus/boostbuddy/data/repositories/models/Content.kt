@@ -20,10 +20,12 @@ sealed class Content {
 
     @Serializable
     data class OkVideo(
+        val id: String,
         val vid: String,
         val title: String,
         val playerUrls: List<PlayerUrl>,
         val previewUrl: String,
+        val timeCode: Long
     ) : Content()
 
     data class Image(
@@ -64,6 +66,12 @@ sealed class Content {
         val largeUrl: String?,
         val smallUrl: String?,
         val mediumUrl: String?
+    ) : Content()
+
+    data class File(
+        val title: String,
+        val url: String,
+        val size: Long?
     ) : Content()
 
     data object Unknown : Content()

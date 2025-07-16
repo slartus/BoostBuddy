@@ -29,14 +29,18 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.arkivanov.decompose.extensions.compose.jetbrains.stack.Children
-import com.arkivanov.decompose.extensions.compose.jetbrains.stack.animation.fade
-import com.arkivanov.decompose.extensions.compose.jetbrains.stack.animation.stackAnimation
-import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
+import com.arkivanov.decompose.extensions.compose.stack.Children
+import com.arkivanov.decompose.extensions.compose.stack.animation.fade
+import com.arkivanov.decompose.extensions.compose.stack.animation.stackAnimation
+import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import ru.slartus.boostbuddy.components.RootComponent
 import ru.slartus.boostbuddy.components.RootViewAction
 import ru.slartus.boostbuddy.components.observeAction
+import ru.slartus.boostbuddy.components.settings.SettingsComponent
+import ru.slartus.boostbuddy.ui.common.QrDialog
 import ru.slartus.boostbuddy.ui.screens.blog.BlogScreen
+import ru.slartus.boostbuddy.ui.screens.blog.VideoTypeDialogView
+import ru.slartus.boostbuddy.ui.screens.main.MainScreen
 import ru.slartus.boostbuddy.ui.screens.post.PostScreen
 import ru.slartus.boostbuddy.ui.theme.AppTheme
 import ru.slartus.boostbuddy.ui.theme.LocalThemeIsDark
@@ -48,10 +52,10 @@ fun RootScreen(component: RootComponent, modifier: Modifier = Modifier) {
     val dialogSlot by component.dialogSlot.subscribeAsState()
     val snackState = remember { SnackbarHostState() }
 
-    AppTheme(state.darkMode) {
+    AppTheme(state.appSettings.isDarkMode) {
         WindowInsetsBox {
             var isDarkState by LocalThemeIsDark.current
-            isDarkState = state.darkMode ?: isDarkState
+            isDarkState = state.appSettings.isDarkMode ?: isDarkState
             Children(
                 stack = component.stack,
                 modifier = modifier,
@@ -59,6 +63,7 @@ fun RootScreen(component: RootComponent, modifier: Modifier = Modifier) {
             ) {
                 when (val child = it.instance) {
                     is RootComponent.Child.AuthChild -> AuthScreen(child.component)
+                    is RootComponent.Child.MainChild -> MainScreen(child.component)
                     is RootComponent.Child.SubscribesChild -> SubscribesScreen(child.component)
                     is RootComponent.Child.BlogChild -> BlogScreen(child.component)
                     is RootComponent.Child.VideoChild -> VideoScreen(child.component)
@@ -79,20 +84,50 @@ fun RootScreen(component: RootComponent, modifier: Modifier = Modifier) {
                                 component.onDialogVersionCancelClicked()
                             },
                             onDismissClicked = {
-                                component.onDialogVersionDismissed()
+                                component.onDialogDismissed()
                             },
                         )
 
                     is RootComponent.DialogChild.Error -> ErrorDialogView(
                         error = dialogComponent.message,
                         onDismissClicked = {
-                            component.onDialogErrorDismissed()
+                            component.onDialogDismissed()
                         },
                     )
+
+                    is RootComponent.DialogChild.AppSettings -> SettingsDialogView(
+                        component = dialogComponent.component,
+                        onDismissClicked = {
+                            component.onDialogDismissed()
+                        },
+                    )
+
+                    is RootComponent.DialogChild.Logout -> LogoutDialogView(
+                        modifier = Modifier,
+                        onDismissClicked = { component.onDialogDismissed() },
+                        onAcceptClicked = { dialogComponent.component.onAcceptClicked() },
+                        onCancelClicked = { dialogComponent.component.onCancelClicked() },
+                    )
+
+                    is RootComponent.DialogChild.Qr -> QrDialog(
+                        title = dialogComponent.title,
+                        url = dialogComponent.url,
+                        onDismiss = { component.onDialogDismissed() }
+                    )
+
+                    is RootComponent.DialogChild.VideoType -> {
+                        VideoTypeDialogView(
+                            modifier = Modifier,
+                            component = dialogComponent.component
+                        )
+                    }
                 }
             }
 
-            SnackbarHost(hostState = snackState, Modifier.fillMaxWidth().align(Alignment.BottomCenter))
+            SnackbarHost(
+                hostState = snackState,
+                Modifier.fillMaxWidth().align(Alignment.BottomCenter)
+            )
 
             component.observeAction { action ->
                 when (action) {
@@ -107,13 +142,34 @@ fun RootScreen(component: RootComponent, modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun WindowInsetsBox(modifier: Modifier = Modifier, content: @Composable BoxScope.() -> Unit) {
+private fun WindowInsetsBox(
+    modifier: Modifier = Modifier,
+    content: @Composable BoxScope.() -> Unit
+) {
     Column(modifier) {
         Box(Modifier.weight(1f)) {
             content()
         }
 
         Spacer(Modifier.windowInsetsBottomHeight(WindowInsets.ime))
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun SettingsDialogView(
+    component: SettingsComponent,
+    onDismissClicked: () -> Unit,
+) {
+    val sheetState = rememberModalBottomSheetState(
+        skipPartiallyExpanded = true
+    )
+    ModalBottomSheet(
+        modifier = Modifier,
+        onDismissRequest = { onDismissClicked() },
+        sheetState = sheetState
+    ) {
+        SettingsScreen(component)
     }
 }
 

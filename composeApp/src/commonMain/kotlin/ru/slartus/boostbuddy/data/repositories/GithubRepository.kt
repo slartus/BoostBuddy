@@ -7,6 +7,7 @@ import io.ktor.client.request.prepareGet
 import io.ktor.utils.io.ByteReadChannel
 import io.ktor.utils.io.core.isEmpty
 import io.ktor.utils.io.core.readBytes
+import io.ktor.utils.io.readRemaining
 import kotlinx.io.Buffer
 import kotlinx.io.files.Path
 import kotlinx.io.files.SystemFileSystem
@@ -22,7 +23,7 @@ internal class GithubRepository(
         fetchOrError {
             val response: ReleaseInfoResponse =
                 httpClient
-                    .get("https://api.github.com/repos/slartus/BoostBuddy/releases/latest")
+                    .get("repos/slartus/BoostBuddy/releases/latest")
                     .body()
             ReleaseInfo(
                 version = response.name ?: return@fetchOrError null,

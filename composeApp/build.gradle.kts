@@ -4,15 +4,14 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.buildConfig)
     alias(libs.plugins.kotlinx.serialization)
+    alias(libs.plugins.compose.compiler)
     id("kotlin-parcelize")
 }
 
 kotlin {
     androidTarget {
-        compilations.all {
-            kotlinOptions {
-                jvmTarget = "17"
-            }
+        compilerOptions {
+            jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
         }
     }
 
@@ -25,7 +24,6 @@ kotlin {
             baseName = "BoostBuddyShared"
             export(libs.decompose)
             export(libs.decompose.compose)
-            export(libs.decompose.extensions.experimental)
             export(libs.essently.lifecycle)
         }
     }
@@ -38,15 +36,17 @@ kotlin {
         }
         commonMain.dependencies {
             implementation(compose.runtime)
+            implementation(compose.material)
             implementation(compose.material3)
             implementation(compose.materialIconsExtended)
+            implementation(compose.ui)
             @OptIn(org.jetbrains.compose.ExperimentalComposeLibrary::class)
             implementation(compose.components.resources)
             api(libs.decompose)
-            api(libs.decompose.extensions.experimental)
             api(libs.decompose.compose)
             implementation(libs.composeImageLoader)
             implementation(libs.kotlinx.coroutines.core)
+            implementation(libs.ktor.auth)
             implementation(libs.ktor.core)
             implementation(libs.ktor.json)
             implementation(libs.ktor.serialization.json)
@@ -72,7 +72,7 @@ kotlin {
             implementation(libs.androidx.activityCompose)
             implementation(libs.compose.uitooling)
             implementation(libs.kotlinx.coroutines.android)
-            implementation(libs.ktor.client.okhttp)
+            implementation(libs.ktor.okhttp)
 
             implementation(libs.exoplayer.core)
             implementation(libs.exoplayer.dash)
@@ -84,7 +84,7 @@ kotlin {
         }
 
         iosMain.dependencies {
-            implementation(libs.ktor.client.darwin)
+            implementation(libs.ktor.darwin)
         }
 
     }
@@ -92,15 +92,15 @@ kotlin {
 
 android {
     namespace = "ru.slartus.boostbuddy"
-    compileSdk = 34
+    compileSdk = 35
 
     defaultConfig {
         minSdk = 24
         targetSdk = 34
 
         applicationId = "ru.slartus.boostbuddy"
-        versionCode = 60
-        versionName = "1.0.9"
+        versionCode = 72
+        versionName = "1.6.0"
     }
     sourceSets["main"].apply {
         manifest.srcFile("src/androidMain/AndroidManifest.xml")
@@ -108,6 +108,7 @@ android {
         resources.srcDirs("src/commonMain/resources")
     }
     compileOptions {
+        isCoreLibraryDesugaringEnabled = true
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
@@ -118,6 +119,10 @@ android {
     composeOptions {
         kotlinCompilerExtensionVersion = "1.5.4"
     }
+}
+
+dependencies {
+    coreLibraryDesugaring(libs.desugar.jdk.libs)
 }
 
 buildConfig {

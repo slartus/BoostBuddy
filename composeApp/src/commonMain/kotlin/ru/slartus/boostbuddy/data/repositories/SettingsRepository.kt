@@ -6,11 +6,14 @@ import kotlinx.coroutines.IO
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 
-class SettingsRepository(
+internal class SettingsRepository(
     private val settings: Settings
 ) {
+    private val locker = Mutex()
     private val tokenBus: MutableStateFlow<String?> = MutableStateFlow(
         null
     )
@@ -18,52 +21,120 @@ class SettingsRepository(
     val tokenFlow: StateFlow<String?>
         get() = tokenBus.asStateFlow()
 
-    private val darkModeBus: MutableStateFlow<Boolean?> = MutableStateFlow(
-        null
+    private val appSettingsBus: MutableStateFlow<AppSettings> = MutableStateFlow(
+        AppSettings.Default
     )
 
-    val darkModeFlow: StateFlow<Boolean?>
-        get() = darkModeBus.asStateFlow()
+    val appSettingsFlow: StateFlow<AppSettings>
+        get() = appSettingsBus.asStateFlow()
 
     init {
         tokenBus.value = settings.getStringOrNull(ACCESS_TOKEN_KEY)
-        darkModeBus.value = settings.getBooleanOrNull(DARK_MODE_KEY)
+        refreshAppSettings()
     }
 
-    suspend fun getString(key: String): String? = withContext(Dispatchers.IO) {
-        settings.getStringOrNull(key)
+    private fun refreshAppSettings() {
+        appSettingsBus.value =  loadAppSettings()
     }
 
-    suspend fun putString(key: String, value: String) = withContext(Dispatchers.IO) {
-        settings.putString(key, value)
-    }
+    private fun loadAppSettings(): AppSettings = AppSettings(
+        isDarkMode = settings.getBooleanOrNull(DARK_MODE_KEY),
+        useSystemVideoPlayer = settings.getBoolean(SYSTEM_PLAYER_KEY, false),
+        debugLog = settings.getBoolean(DEBUG_LOG, false)
+    )
 
-    suspend fun putLong(key: String, value: Long) = withContext(Dispatchers.IO) {
-        settings.putLong(key, value)
-    }
-
-    suspend fun getLong(key: String) = withContext(Dispatchers.IO) {
-        settings.getLongOrNull(key)
-    }
+    suspend fun getSettings(): AppSettings = appSettingsBus.value
 
     suspend fun setDarkMode(value: Boolean) = withContext(Dispatchers.IO) {
-        settings.putBoolean(DARK_MODE_KEY, value)
-        darkModeBus.value = value
+        putBoolean(DARK_MODE_KEY, value)
+        refreshAppSettings()
+    }
+
+    suspend fun setUseSystemVideoPlayer(value: Boolean) = withContext(Dispatchers.IO) {
+        putBoolean(SYSTEM_PLAYER_KEY, value)
+        refreshAppSettings()
+    }
+
+    suspend fun setDebugLog(value: Boolean) = withContext(Dispatchers.IO) {
+        putBoolean(DEBUG_LOG, value)
+        refreshAppSettings()
     }
 
     suspend fun putAccessToken(value: String?) = withContext(Dispatchers.IO) {
         if (value == null)
-            settings.remove(ACCESS_TOKEN_KEY)
+            remove(ACCESS_TOKEN_KEY)
         else
-            settings.putString(ACCESS_TOKEN_KEY, value)
+            putString(ACCESS_TOKEN_KEY, value)
         tokenBus.value = value
     }
 
     suspend fun getAccessToken(): String? = getString(ACCESS_TOKEN_KEY)
 
+    private suspend fun getString(key: String): String? = withContext(Dispatchers.IO) {
+        locker.withLock {
+            settings.getStringOrNull(key)
+        }
+    }
+
+    private suspend fun putString(key: String, value: String) = withContext(Dispatchers.IO) {
+        locker.withLock {
+            settings.putString(key, value)
+        }
+    }
+
+    private suspend fun putBoolean(key: String, value: Boolean) = withContext(Dispatchers.IO) {
+        locker.withLock {
+            settings.putBoolean(key, value)
+        }
+    }
+
+    private suspend fun getBoolean(key: String, defaultValue: Boolean): Boolean =
+        withContext(Dispatchers.IO) {
+            locker.withLock {
+                settings.getBoolean(key, defaultValue)
+            }
+        }
+
+    private suspend fun getBooleanOrNull(key: String): Boolean? = withContext(Dispatchers.IO) {
+        locker.withLock {
+            settings.getBooleanOrNull(key)
+        }
+    }
+
+    private suspend fun putLong(key: String, value: Long) = withContext(Dispatchers.IO) {
+        locker.withLock {
+            settings.putLong(key, value)
+        }
+    }
+
+    private suspend fun getLong(key: String) = withContext(Dispatchers.IO) {
+        locker.withLock {
+            settings.getLongOrNull(key)
+        }
+    }
+
+    private suspend fun remove(key: String) = withContext(Dispatchers.IO) {
+        locker.withLock {
+            settings.remove(key)
+        }
+    }
+
     private companion object {
         const val ACCESS_TOKEN_KEY = "access_token"
         const val DARK_MODE_KEY = "dark_mode"
+        const val SYSTEM_PLAYER_KEY = "system_player"
+        const val DEBUG_LOG = "debug_log"
+    }
+}
+
+data class AppSettings(
+    val isDarkMode: Boolean?,
+    val useSystemVideoPlayer: Boolean,
+    val debugLog: Boolean
+) {
+    companion object {
+        val Default: AppSettings =
+            AppSettings(isDarkMode = null, useSystemVideoPlayer = false, debugLog = false)
     }
 }
 

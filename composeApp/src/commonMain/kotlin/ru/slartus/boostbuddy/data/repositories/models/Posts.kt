@@ -5,16 +5,17 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.jsonPrimitive
-
-
-data class Offset(
-    val postId: Long,
-    val createdAt: Long
-)
+import ru.slartus.boostbuddy.utils.dateTimeFromUnix
+import ru.slartus.boostbuddy.utils.toHumanString
 
 data class Posts(
     val items: List<Post>,
-    val isLast: Boolean,
+    val extra: Extra?,
+)
+
+data class Extra(
+    val offset: String,
+    val isLast: Boolean
 )
 
 @Immutable
@@ -26,9 +27,40 @@ data class Post(
     val intId: Long,
     val title: String,
     val data: List<Content>,
+    val teaser: List<Content>,
     val user: User,
-    val count: PostCount
-)
+    val count: PostCount,
+    val poll: Poll?,
+    val hasAccess: Boolean
+) {
+    val createdAtString: String = dateTimeFromUnix(createdAt).toHumanString()
+}
+
+@Immutable
+@Serializable
+data class Poll(
+    val id: Int,
+    val title: List<String>,
+    val isMultiple: Boolean,
+    val isFinished: Boolean,
+    val options: List<PollOption>,
+    val counter: Int,
+    val answer: List<Int>,
+    val checked: Set<Int> = emptySet()
+) {
+    val titleText: String = title.joinToString()
+}
+
+@Immutable
+@Serializable
+data class PollOption(
+    val id: Int,
+    val text: String,
+    val counter: Int,
+    val fraction: Int
+) {
+    val fractionText: String = "$fraction%"
+}
 
 @Serializable
 data class PostCount(val likes: Int, val comments: Int)

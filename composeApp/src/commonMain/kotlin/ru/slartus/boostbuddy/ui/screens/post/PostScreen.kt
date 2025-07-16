@@ -3,7 +3,6 @@ package ru.slartus.boostbuddy.ui.screens.post
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -12,7 +11,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -31,15 +32,20 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
-import com.arkivanov.decompose.extensions.compose.jetbrains.subscribeAsState
+import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.seiko.imageloader.rememberImagePainter
 import kotlinx.collections.immutable.ImmutableList
-import ru.slartus.boostbuddy.components.post.CommentItem
 import ru.slartus.boostbuddy.components.post.PostComponent
+import ru.slartus.boostbuddy.components.post.PostViewItem
 import ru.slartus.boostbuddy.components.post.PostViewState
 import ru.slartus.boostbuddy.data.repositories.comments.models.Comment
+import ru.slartus.boostbuddy.data.repositories.models.Content
+import ru.slartus.boostbuddy.data.repositories.models.Poll
+import ru.slartus.boostbuddy.data.repositories.models.PollOption
+import ru.slartus.boostbuddy.data.repositories.models.Post
 import ru.slartus.boostbuddy.ui.common.HorizontalSpacer
 import ru.slartus.boostbuddy.ui.common.VerticalSpacer
+import ru.slartus.boostbuddy.ui.screens.PostView
 import ru.slartus.boostbuddy.ui.screens.blog.ContentView
 import ru.slartus.boostbuddy.ui.screens.blog.FocusableBox
 import ru.slartus.boostbuddy.ui.widgets.ErrorView
@@ -53,7 +59,7 @@ internal fun PostScreen(component: PostComponent) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { },
+                title = { Text(state.post.title) },
                 navigationIcon = {
                     IconButton(onClick = {
                         component.onBackClicked()
@@ -83,31 +89,110 @@ internal fun PostScreen(component: PostComponent) {
                 PostViewState.ProgressState.Loading -> LoaderView()
 
                 is PostViewState.ProgressState.Loaded ->
-                    CommentsView(
-                        comments = state.comments,
-                        hasMore = state.hasMoreComments,
-                        onMoreClick = {
-                            component.onMoreCommentsClicked()
-                        },
-                        onMoreRepliesClick = {
-                            component.onMoreRepliesClicked(it)
-                        }
-                    )
+                    if (state.items.isEmpty())
+                        EmptyCommentsView()
+                    else
+                        FullPostView(
+                            post = state.post,
+                            items = state.items,
+                            onMoreClick = {
+                                component.onMoreCommentsClicked()
+                            },
+                            onMoreRepliesClick = {
+                                component.onMoreRepliesClicked(it)
+                            },
+                            onVideoClick = {
+                                component.onVideoItemClicked(state.post.id, it)
+                            },
+                            onPollOptionClick = { _, poll, option ->
+                                component.onPollOptionClicked(poll, option)
+                            },
+                            onVoteClick = { _, poll -> component.onVoteClicked(poll) },
+                            onDeleteVoteClick = { _, poll -> component.onDeleteVoteClicked(poll) }
+                        )
             }
         }
     }
 }
 
 @Composable
-private fun CommentsView(
-    comments: ImmutableList<CommentItem>,
-    hasMore: Boolean,
+private fun FullPostView(
+    post: Post,
+    items: ImmutableList<PostViewItem>,
     onMoreClick: () -> Unit,
-    onMoreRepliesClick: (CommentItem) -> Unit
+    onMoreRepliesClick: (PostViewItem.CommentItem) -> Unit,
+    onVideoClick: (okVideoData: Content.OkVideo) -> Unit,
+    onPollOptionClick: (Post, Poll, PollOption) -> Unit,
+    onVoteClick: (Post, poll: Poll) -> Unit,
+    onDeleteVoteClick: (Post, poll: Poll) -> Unit
 ) {
-    Column(Modifier.fillMaxSize()) {
-        if (hasMore) {
-            FocusableBox(Modifier.fillMaxWidth()) {
+    val state = rememberLazyListState(initialFirstVisibleItemIndex = 1)
+    LazyColumn(modifier = Modifier.fillMaxSize(), state = state) {
+        item(contentType = "post", key = "post_${post.id}") {
+            PostView(
+                post = post,
+                showBlogInfo = false,
+                onVideoClick = onVideoClick,
+                onCommentsClick = {},
+                onPollOptionClick = onPollOptionClick,
+                onVoteClick = onVoteClick,
+                onDeleteVoteClick = onDeleteVoteClick,
+                onBlogClick = {}
+            )
+        }
+        commentsView(items, onMoreClick, onMoreRepliesClick)
+    }
+}
+
+@Composable
+private fun EmptyCommentsView() {
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = "Список комментариев пуст",
+            style = MaterialTheme.typography.bodyMedium
+        )
+    }
+}
+
+private fun LazyListScope.commentsView(
+    items: ImmutableList<PostViewItem>,
+    onMoreClick: () -> Unit,
+    onMoreRepliesClick: (PostViewItem.CommentItem) -> Unit
+) {
+    items(
+        items = items,
+        key = { it.id },
+        contentType = {
+            when (it) {
+                is PostViewItem.CommentItem -> "CommentItem"
+                PostViewItem.ErrorMore -> "ErrorMore"
+                PostViewItem.LoadMore -> "LoadMore"
+                PostViewItem.LoadingMore -> "LoadingMore"
+            }
+        }
+    ) { commentItem ->
+        when (commentItem) {
+            is PostViewItem.CommentItem -> {
+                CommentView(
+                    commentItem.comment,
+                    onMoreRepliesClick = { onMoreRepliesClick(commentItem) })
+                VerticalSpacer(8.dp)
+            }
+
+            PostViewItem.ErrorMore -> FocusableBox(Modifier.fillMaxWidth()) {
+                Box(Modifier.clickable { onMoreClick() }.padding(8.dp)) {
+                    Text(
+                        text = "Ошибка загрузки. Нажми для повтора",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.error
+                    )
+                }
+            }
+
+            PostViewItem.LoadMore -> FocusableBox(Modifier.fillMaxWidth()) {
                 Box(Modifier.clickable { onMoreClick() }.padding(8.dp)) {
                     Text(
                         text = "Показать ещё комментарии",
@@ -116,15 +201,15 @@ private fun CommentsView(
                     )
                 }
             }
-        }
-        LazyColumn(
-            modifier = Modifier.fillMaxSize(),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            items(comments, key = { it.comment.id }) { commentItem ->
-                CommentView(
-                    commentItem.comment,
-                    onMoreRepliesClick = { onMoreRepliesClick(commentItem) })
+
+            PostViewItem.LoadingMore -> FocusableBox(Modifier.fillMaxWidth()) {
+                Box(Modifier.padding(8.dp)) {
+                    Text(
+                        text = "Загрузка",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.tertiary
+                    )
+                }
             }
         }
     }

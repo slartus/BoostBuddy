@@ -83,6 +83,9 @@ actual fun WebView(url: String, clickCoors: Offset?, onCookieChange: (String) ->
             }
             settings.apply {
                 javaScriptEnabled = true
+                javaScriptCanOpenWindowsAutomatically = true
+                domStorageEnabled = true
+                setSupportMultipleWindows(true)
                 userAgentString = USER_AGENT
             }
             webViewClient = object : WebViewClient() {

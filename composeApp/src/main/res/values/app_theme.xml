@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:tools="http://schemas.android.com/tools">
 
-    <style name="AppTheme.App" parent="@style/Theme.AppCompat.DayNight.NoActionBar" />
+    <style name="AppTheme.App" parent="@style/Theme.AppCompat.NoActionBar" />
 
     <style name="AppTheme.SplashScreen" parent="@style/Theme.SplashScreen">
         <!-- Set the splash screen background to black -->
