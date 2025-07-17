@@ -1,13 +1,18 @@
 package ru.slartus.boostbuddy.ui.screens.filter
 
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import kotlinx.collections.immutable.persistentListOf
 import ru.slartus.boostbuddy.components.filter.AccessType
@@ -36,7 +41,7 @@ internal fun FilterDialogView(
 @Composable
 private fun FilterView(component: FilterComponent) {
     val state by component.viewStates.subscribeAsState()
-    BottomView("Настройки") {
+    BottomView("Фильтр") {
         Column {
             val accessTypes =
                 remember { persistentListOf(AccessType.Allowed, AccessType.All, AccessType.Bought) }
@@ -48,6 +53,14 @@ private fun FilterView(component: FilterComponent) {
                     onClick = { component.onAccessTypeChange(accessType) }
                 )
             }
+            Divider(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
+                color = MaterialTheme.colorScheme.primaryContainer,
+            )
+            TextBottomViewItem(
+                text = "Теги",
+                onClick = component::onTagsClick,
+            )
         }
     }
 }

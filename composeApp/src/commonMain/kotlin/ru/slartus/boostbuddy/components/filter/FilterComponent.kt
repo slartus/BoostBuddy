@@ -15,6 +15,7 @@ interface FilterComponent {
     val viewStates: Value<FilterViewState>
     val dialogSlot: Value<ChildSlot<*, DialogChild>>
     fun onAccessTypeChange(accessType: AccessType)
+    fun onTagsClick()
 
     sealed class DialogChild {
         data class Period(val from: Clock, val to: Clock) : DialogChild()
@@ -44,6 +45,10 @@ class FilterComponentImpl(
             filter = viewState.filter.copy(accessType = accessType)
         )
         onFilter(viewState.filter)
+    }
+
+    override fun onTagsClick() {
+        TODO("Not yet implemented")
     }
 
     private fun dialogChild(
