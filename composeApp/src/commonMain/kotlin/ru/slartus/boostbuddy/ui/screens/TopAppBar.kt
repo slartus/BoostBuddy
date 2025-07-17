@@ -6,9 +6,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Logout
-import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.Feedback
-import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Refresh
@@ -29,7 +27,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import ru.slartus.boostbuddy.components.top_bar.TopBarComponent
-import ru.slartus.boostbuddy.ui.theme.LocalThemeIsDark
 
 @Composable
 internal fun TopAppBar(
@@ -37,11 +34,9 @@ internal fun TopAppBar(
     component: TopBarComponent,
     onMenuClick: () -> Unit
 ) {
-    val isDarkState by LocalThemeIsDark.current
     TopAppBar(
         title = title,
         onRefreshClick = { component.onRefreshClicked() },
-        onChangeDarkModeClick = { component.onSetDarkModeClicked(!isDarkState) },
         onLogoutClick = { component.onLogoutClicked() },
         onFeedbackClick = { component.onFeedbackClicked() },
         onSettingsClick = { component.onSettingsClicked() },
@@ -55,12 +50,10 @@ private fun TopAppBar(
     title: String,
     onMenuClick: () -> Unit,
     onRefreshClick: () -> Unit,
-    onChangeDarkModeClick: () -> Unit,
     onLogoutClick: () -> Unit,
     onFeedbackClick: () -> Unit,
     onSettingsClick: () -> Unit
 ) {
-    val isDarkState by LocalThemeIsDark.current
     var showDropDownMenu by remember { mutableStateOf(false) }
     androidx.compose.material3.TopAppBar(
         title = { Text(title) },
@@ -78,19 +71,6 @@ private fun TopAppBar(
                     imageVector = Icons.Filled.Refresh,
                     contentDescription = "Обновить"
                 )
-            }
-            IconButton(onClick = { onChangeDarkModeClick() }) {
-                if (!isDarkState) {
-                    Icon(
-                        imageVector = Icons.Filled.DarkMode,
-                        contentDescription = "Тёмная тема"
-                    )
-                } else {
-                    Icon(
-                        imageVector = Icons.Filled.LightMode,
-                        contentDescription = "Светлая тема"
-                    )
-                }
             }
             IconButton(
                 onClick = { showDropDownMenu = true }) {

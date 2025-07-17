@@ -3,10 +3,8 @@ package ru.slartus.boostbuddy.components.top_bar
 import androidx.compose.runtime.Stable
 import com.arkivanov.decompose.ComponentContext
 import io.github.aakira.napier.Napier
-import kotlinx.coroutines.launch
 import ru.slartus.boostbuddy.components.BaseComponent
 import ru.slartus.boostbuddy.data.Inject
-import ru.slartus.boostbuddy.data.repositories.SettingsRepository
 import ru.slartus.boostbuddy.navigation.NavigationRouter
 import ru.slartus.boostbuddy.navigation.NavigationTree
 import ru.slartus.boostbuddy.navigation.navigateTo
@@ -16,7 +14,6 @@ import ru.slartus.boostbuddy.utils.PlatformConfiguration
 @Stable
 interface TopBarComponent {
     fun onLogoutClicked()
-    fun onSetDarkModeClicked(value: Boolean)
     fun onRefreshClicked()
     fun onSettingsClicked()
     fun onFeedbackClicked()
@@ -30,16 +27,9 @@ internal class TopBarComponentImpl(
     Unit
 ), TopBarComponent {
     private val navigationRouter by Inject.lazy<NavigationRouter>()
-    private val settingsRepository by Inject.lazy<SettingsRepository>()
     private val platformConfiguration by Inject.lazy<PlatformConfiguration>()
     override fun onLogoutClicked() {
         navigationRouter.navigateTo(NavigationTree.Logout)
-    }
-
-    override fun onSetDarkModeClicked(value: Boolean) {
-        scope.launch {
-            settingsRepository.setDarkMode(value)
-        }
     }
 
     override fun onRefreshClicked() {

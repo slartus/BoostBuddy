@@ -11,7 +11,9 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AttachMoney
 import androidx.compose.material.icons.filled.Attachment
+import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -26,11 +28,13 @@ import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import ru.slartus.boostbuddy.components.settings.SettingsComponent
 import ru.slartus.boostbuddy.ui.common.BottomView
 import ru.slartus.boostbuddy.ui.common.LocalPlatformConfiguration
+import ru.slartus.boostbuddy.ui.theme.LocalThemeIsDark
 
 @Composable
 internal fun SettingsScreen(component: SettingsComponent) {
     val state by component.viewStates.subscribeAsState()
     val platformConfiguration = LocalPlatformConfiguration.current
+    val isDarkState by LocalThemeIsDark.current
     BottomView("Настройки") {
         Column {
             CheckBoxItem(
@@ -45,6 +49,14 @@ internal fun SettingsScreen(component: SettingsComponent) {
                 text = "Поддержать проект",
                 onClick = {
                     component.onDonateClicked()
+                }
+            )
+
+            TextItem(
+                icon = if (isDarkState) Icons.Filled.LightMode else Icons.Filled.DarkMode,
+                text = if (isDarkState) "Светлая тема" else "Тёмная тема",
+                onClick = {
+                    component.onSetDarkModeClicked(!isDarkState)
                 }
             )
 

@@ -24,6 +24,7 @@ interface SettingsComponent {
     fun onDonateClicked()
     fun onVersionClicked()
     fun onSendLogClicked()
+    fun onSetDarkModeClicked(value: Boolean)
 }
 
 data class SettingsViewState(
@@ -91,6 +92,12 @@ internal class SettingsComponentImpl(
             }.onFailure {
                 Napier.e("onSendLogClicked", it)
             }
+        }
+    }
+
+    override fun onSetDarkModeClicked(value: Boolean) {
+        scope.launch {
+            settingsRepository.setDarkMode(value)
         }
     }
 
