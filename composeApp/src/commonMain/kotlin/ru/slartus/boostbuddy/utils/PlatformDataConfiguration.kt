@@ -1,10 +1,17 @@
 package ru.slartus.boostbuddy.utils
 
 import io.github.aakira.napier.Napier
+import kotlinx.coroutines.CoroutineExceptionHandler
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.IO
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.runBlocking
 import org.kodein.di.DI
+import org.kodein.di.bindProvider
 import org.kodein.di.bindSingleton
 import org.kodein.di.instance
+import org.kodein.di.new
 import ru.slartus.boostbuddy.data.Inject
 import ru.slartus.boostbuddy.data.ktor.buildBoostyHttpClient
 import ru.slartus.boostbuddy.data.ktor.buildGithubHttpClient
@@ -28,12 +35,20 @@ object PlatformDataConfiguration {
     private const val TAG_HTTP_CLIENT_GITHUB = "github"
     fun createDependenciesTree(platformConfiguration: PlatformConfiguration) {
         Inject.createDependenciesTree {
+            bindSingleton {
+                CoroutineScope(
+                    SupervisorJob() + Dispatchers.IO +
+                            CoroutineExceptionHandler { _, exception ->
+                                Napier.e("Main scope error", exception)
+                            }
+                )
+            }
             bindSingleton { GlobalExceptionHandlersChain() }
             bindSingleton { platformConfiguration }
             bindSingleton { NavigationRouterImpl() }
             bindSingleton { Permissions(platformConfiguration = instance()) }
             bindSingleton { SettingsFactory(platformConfiguration = instance()).createDefault() }
-            bindSingleton { SettingsRepository(settings = instance()) }
+            bindProvider { new(::SettingsRepository) }
         }
         val appSettings = getAppSettings()
         val bufferLoggingTracker = addBufferLoggingTracker(appSettings.debugLog)
@@ -49,7 +64,7 @@ object PlatformDataConfiguration {
         return runBlocking { settingsRepository.getSettings() }
     }
 
-    private fun addBufferLoggingTracker(debugLog: Boolean): BufferLoggingTracker{
+    private fun addBufferLoggingTracker(debugLog: Boolean): BufferLoggingTracker {
         val bufferLoggingTracker = BufferLoggingTracker(debugLog)
         Napier.base(bufferLoggingTracker)
         return bufferLoggingTracker
