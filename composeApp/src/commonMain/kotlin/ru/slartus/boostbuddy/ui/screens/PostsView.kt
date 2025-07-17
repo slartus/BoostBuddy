@@ -28,6 +28,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.Alignment.Companion.Center
 import androidx.compose.ui.Alignment.Companion.CenterVertically
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -62,41 +63,50 @@ internal fun PostsView(
     onVoteClick: (Post, poll: Poll) -> Unit,
     onDeleteVoteClick: (Post, poll: Poll) -> Unit
 ) {
-    val listScrollState = rememberLazyListState()
-
-    val endOfListReached = remember {
-        derivedStateOf {
-            listScrollState.isEndOfListReached(visibleThreshold = 3)
+    if (items.isEmpty()) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Center,
+        ) {
+            Text(text = "Нет постов")
         }
-    }
-    LazyColumn(
-        modifier = Modifier.fillMaxSize(),
-        state = listScrollState,
-        verticalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        items(items, key = { it.key }, contentType = { it.contentType }) { item ->
-            when (item) {
-                is FeedPostItem.ErrorItem -> ErrorView(
-                    item.description,
-                    onClick = { onErrorItemClick() })
+    } else {
+        val listScrollState = rememberLazyListState()
 
-                FeedPostItem.LoadingItem -> LoadingView()
-                is FeedPostItem.PostItem -> PostView(
-                    post = item.post,
-                    showBlogInfo = showBlogInfo,
-                    onVideoClick = { onVideoItemClick(item, it) },
-                    onCommentsClick = { onCommentsClick(item.post) },
-                    onPollOptionClick = onPollOptionClick,
-                    onVoteClick = onVoteClick,
-                    onDeleteVoteClick = onDeleteVoteClick,
-                    onBlogClick = { onBlogClick(item.post) }
-                )
+        val endOfListReached = remember {
+            derivedStateOf {
+                listScrollState.isEndOfListReached(visibleThreshold = 3)
             }
         }
-    }
-    LaunchedEffect(endOfListReached.value, items) {
-        if (endOfListReached.value && canLoadMore && items.last() is FeedPostItem.PostItem) {
-            onScrolledToEnd()
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            state = listScrollState,
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            items(items, key = { it.key }, contentType = { it.contentType }) { item ->
+                when (item) {
+                    is FeedPostItem.ErrorItem -> ErrorView(
+                        item.description,
+                        onClick = { onErrorItemClick() })
+
+                    FeedPostItem.LoadingItem -> LoadingView()
+                    is FeedPostItem.PostItem -> PostView(
+                        post = item.post,
+                        showBlogInfo = showBlogInfo,
+                        onVideoClick = { onVideoItemClick(item, it) },
+                        onCommentsClick = { onCommentsClick(item.post) },
+                        onPollOptionClick = onPollOptionClick,
+                        onVoteClick = onVoteClick,
+                        onDeleteVoteClick = onDeleteVoteClick,
+                        onBlogClick = { onBlogClick(item.post) }
+                    )
+                }
+            }
+        }
+        LaunchedEffect(endOfListReached.value, items) {
+            if (endOfListReached.value && canLoadMore && items.last() is FeedPostItem.PostItem) {
+                onScrolledToEnd()
+            }
         }
     }
 }
