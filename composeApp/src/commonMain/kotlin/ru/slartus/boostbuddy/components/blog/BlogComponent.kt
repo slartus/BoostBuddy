@@ -64,7 +64,7 @@ class BlogComponentImpl(
     }
 
     override suspend fun fetch(offset: String?): Result<Posts> =
-        blogRepository.fetchPosts(blog.blogUrl, offset)
+        blogRepository.fetchPosts(url = blog.blogUrl, offset = offset)
 
     override fun onProgressStateChanged(progressState: ProgressState) {
         viewState = viewState.copy(progressState = progressState)

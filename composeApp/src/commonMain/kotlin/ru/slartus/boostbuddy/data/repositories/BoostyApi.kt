@@ -11,6 +11,7 @@ import io.ktor.client.request.put
 import io.ktor.client.request.setBody
 import io.ktor.client.statement.HttpResponse
 import io.ktor.http.Parameters
+import kotlinx.datetime.Clock
 
 internal class BoostyApi(
     private val httpClient: HttpClient
@@ -40,14 +41,29 @@ internal class BoostyApi(
         limit: Int,
         offset: String?,
         commentsLimit: Int,
-        replyLimit: Int
+        replyLimit: Int,
+        isOnlyAllowed: Boolean?,
+        fromDate: Clock?,
+        toDate: Clock?,
+        tagsIds: List<Int>?,
+        onlyBought: Boolean?,
     ): HttpResponse = httpClient.get("v1/blog/$blog/post/") {
         parameter("limit", limit)
-        offset?.let {
-            parameter("offset", offset)
-        }
         parameter("comments_limit", commentsLimit)
         parameter("reply_limit", replyLimit)
+        if (offset != null)
+            parameter("offset", "$offset")
+        if (isOnlyAllowed != null)
+            parameter("is_only_allowed", isOnlyAllowed)
+        if (onlyBought != null)
+            parameter("only_bought", onlyBought)
+        if (fromDate != null)
+            parameter("from_ts", fromDate.now().epochSeconds)
+        if (toDate != null)
+            parameter("to_ts", toDate.now().epochSeconds)
+        if (!tagsIds.isNullOrEmpty()) {
+            parameter("tags_ids", tagsIds.joinToString(","))
+        }
     }
 
     suspend fun blogInfo(

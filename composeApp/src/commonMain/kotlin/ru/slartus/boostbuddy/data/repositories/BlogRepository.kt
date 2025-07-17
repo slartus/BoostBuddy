@@ -1,10 +1,10 @@
 package ru.slartus.boostbuddy.data.repositories
 
 import io.ktor.client.call.body
+import kotlinx.datetime.Clock
 import ru.slartus.boostbuddy.data.repositories.models.BlogInfoResponse
 import ru.slartus.boostbuddy.data.repositories.models.Extra
 import ru.slartus.boostbuddy.data.repositories.models.Poll
-import kotlinx.datetime.Clock
 import ru.slartus.boostbuddy.data.repositories.models.PollOption
 import ru.slartus.boostbuddy.data.repositories.models.Post
 import ru.slartus.boostbuddy.data.repositories.models.PostCount
@@ -33,31 +33,16 @@ internal class BlogRepository(
         fetchOrError {
             val response: PostResponse = boostyApi.blogPosts(
                 blog = url,
-                limit = 20,
+                limit = limit,
                 offset = offset,
-                commentsLimit = 0,
-                replyLimit = 0
+                commentsLimit = commentsLimit,
+                replyLimit = replyLimit,
+                isOnlyAllowed = isOnlyAllowed,
+                fromDate = fromDate,
+                toDate = toDate,
+                tagsIds = tagsIds,
+                onlyBought = onlyBought,
             ).body()
-            val response: PostResponse =
-                httpClient.get("https://api.boosty.to/v1/blog/$url/post/") {
-                    header(HttpHeaders.Authorization, "Bearer $accessToken")
-                    parameter("limit", limit)
-                    parameter("comments_limit", commentsLimit)
-                    parameter("reply_limit", replyLimit)
-                    if (offset != null)
-                        parameter("offset", "${offset.createdAt}:${offset.postId}")
-                    if (isOnlyAllowed != null)
-                        parameter("is_only_allowed", isOnlyAllowed)
-                    if (onlyBought != null)
-                        parameter("only_bought", onlyBought)
-                    if (fromDate != null)
-                        parameter("from_ts", fromDate.now().epochSeconds)
-                    if (toDate != null)
-                        parameter("to_ts", toDate.now().epochSeconds)
-                    if (!tagsIds.isNullOrEmpty()) {
-                        parameter("tags_ids", tagsIds.joinToString(","))
-                    }
-                }.body()
 
             Posts(
                 items = response.data?.mapNotNull { it.mapToPostOrNull() } ?: emptyList(),
