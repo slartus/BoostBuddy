@@ -19,7 +19,6 @@ interface TopBarComponent {
     fun onSettingsClicked()
     fun onFeedbackClicked()
     fun onFilterClicked()
-    fun setFilter(filter: Filter)
 }
 
 internal class TopBarComponentImpl(
@@ -77,11 +76,12 @@ internal class TopBarComponentImpl(
     }
 
     override fun onFilterClicked() {
-        navigationRouter.navigateTo(NavigationTree.Filter(filter, onFilter))
-    }
-
-    override fun setFilter(filter: Filter) {
-        this.filter = filter
+        navigationRouter.navigateTo(
+            NavigationTree.Filter(filter) { newFilter ->
+                filter = newFilter
+                onFilter(newFilter)
+            }
+        )
     }
 
     companion object {
