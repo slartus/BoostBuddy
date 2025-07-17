@@ -74,7 +74,9 @@ internal class BoostyApi(
         limit: Int,
         offset: String?,
         commentsLimit: Int,
-        replyLimit: Int
+        replyLimit: Int,
+        isOnlyAllowed: Boolean?,
+        onlyBought: Boolean?,
     ): HttpResponse = httpClient.get("v1/feed/post/") {
         parameter("limit", limit)
         offset?.let {
@@ -82,7 +84,10 @@ internal class BoostyApi(
         }
         parameter("comments_limit", commentsLimit)
         parameter("reply_limit", replyLimit)
-        parameter("only_allowed", "true")
+        if (isOnlyAllowed != null)
+            parameter("only_allowed", isOnlyAllowed)
+        if (onlyBought != null)
+            parameter("only_bought", onlyBought)
     }
 
     suspend fun post(

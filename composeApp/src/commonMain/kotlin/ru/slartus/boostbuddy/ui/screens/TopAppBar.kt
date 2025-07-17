@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.Feedback
+import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Refresh
@@ -36,10 +37,11 @@ internal fun TopAppBar(
 ) {
     TopAppBar(
         title = title,
-        onRefreshClick = { component.onRefreshClicked() },
-        onLogoutClick = { component.onLogoutClicked() },
-        onFeedbackClick = { component.onFeedbackClicked() },
-        onSettingsClick = { component.onSettingsClicked() },
+        onRefreshClick = component::onRefreshClicked,
+        onLogoutClick = component::onLogoutClicked,
+        onFeedbackClick = component::onFeedbackClicked,
+        onSettingsClick = component::onSettingsClicked,
+        onFilterClick = component::onFilterClicked,
         onMenuClick = onMenuClick
     )
 }
@@ -52,13 +54,14 @@ private fun TopAppBar(
     onRefreshClick: () -> Unit,
     onLogoutClick: () -> Unit,
     onFeedbackClick: () -> Unit,
-    onSettingsClick: () -> Unit
+    onSettingsClick: () -> Unit,
+    onFilterClick: () -> Unit,
 ) {
     var showDropDownMenu by remember { mutableStateOf(false) }
     androidx.compose.material3.TopAppBar(
         title = { Text(title) },
         navigationIcon = {
-            IconButton(onClick = { onMenuClick() }) {
+            IconButton(onClick = onMenuClick) {
                 Icon(
                     imageVector = Icons.Filled.Menu,
                     contentDescription = "Меню"
@@ -66,7 +69,13 @@ private fun TopAppBar(
             }
         },
         actions = {
-            IconButton(onClick = { onRefreshClick() }) {
+            IconButton(onClick = onFilterClick) {
+                Icon(
+                    imageVector = Icons.Filled.FilterList,
+                    contentDescription = "Фильтр"
+                )
+            }
+            IconButton(onClick = onRefreshClick) {
                 Icon(
                     imageVector = Icons.Filled.Refresh,
                     contentDescription = "Обновить"

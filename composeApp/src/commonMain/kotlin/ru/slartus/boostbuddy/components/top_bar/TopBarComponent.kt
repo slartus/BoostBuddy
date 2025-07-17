@@ -4,6 +4,7 @@ import androidx.compose.runtime.Stable
 import com.arkivanov.decompose.ComponentContext
 import io.github.aakira.napier.Napier
 import ru.slartus.boostbuddy.components.BaseComponent
+import ru.slartus.boostbuddy.components.filter.Filter
 import ru.slartus.boostbuddy.data.Inject
 import ru.slartus.boostbuddy.navigation.NavigationRouter
 import ru.slartus.boostbuddy.navigation.NavigationTree
@@ -17,11 +18,15 @@ interface TopBarComponent {
     fun onRefreshClicked()
     fun onSettingsClicked()
     fun onFeedbackClicked()
+    fun onFilterClicked()
+    fun setFilter(filter: Filter)
 }
 
 internal class TopBarComponentImpl(
     componentContext: ComponentContext,
-    private val onRefresh: () -> Unit
+    private var filter: Filter,
+    private val onRefresh: () -> Unit,
+    private val onFilter: (filter: Filter) -> Unit,
 ) : BaseComponent<Unit, Unit>(
     componentContext,
     Unit
@@ -69,6 +74,14 @@ internal class TopBarComponentImpl(
                 )
             )
         }
+    }
+
+    override fun onFilterClicked() {
+        navigationRouter.navigateTo(NavigationTree.Filter(filter, onFilter))
+    }
+
+    override fun setFilter(filter: Filter) {
+        this.filter = filter
     }
 
     companion object {

@@ -27,6 +27,8 @@ import ru.slartus.boostbuddy.components.blog.BlogComponent
 import ru.slartus.boostbuddy.components.blog.BlogComponentImpl
 import ru.slartus.boostbuddy.components.blog.VideoTypeComponent
 import ru.slartus.boostbuddy.components.blog.VideoTypeComponentImpl
+import ru.slartus.boostbuddy.components.filter.FilterComponent
+import ru.slartus.boostbuddy.components.filter.FilterComponentImpl
 import ru.slartus.boostbuddy.components.main.MainComponent
 import ru.slartus.boostbuddy.components.main.MainComponentImpl
 import ru.slartus.boostbuddy.components.post.PostComponent
@@ -96,6 +98,7 @@ interface RootComponent : AppComponent<RootViewAction> {
         data class Logout(val component: LogoutDialogComponent) : DialogChild()
         data class Qr(val title: String, val url: String) : DialogChild()
         data class VideoType(val component: VideoTypeComponent) : DialogChild()
+        data class Filter(val component: FilterComponent) : DialogChild()
     }
 }
 
@@ -204,6 +207,10 @@ class RootComponentImpl(
                     postId = screen.postId,
                     postData = screen.postData
                 )
+            )
+
+            is NavigationTree.Filter -> dialogNavigation.activate(
+                DialogConfig.Filter(screen.filter, screen.onFilter)
             )
         }
     }
@@ -320,6 +327,14 @@ class RootComponentImpl(
                             )
                         )
                     }
+                )
+            )
+
+            is DialogConfig.Filter -> RootComponent.DialogChild.Filter(
+                FilterComponentImpl(
+                    componentContext = componentContext,
+                    filter = config.filter,
+                    onFilter = config.onFilter,
                 )
             )
         }
@@ -503,6 +518,11 @@ class RootComponentImpl(
             val blogUrl: String,
             val postId: String,
             val postData: Content.OkVideo,
+        ) : DialogConfig
+
+        class Filter(
+            val filter: ru.slartus.boostbuddy.components.filter.Filter,
+            val onFilter: (filter: ru.slartus.boostbuddy.components.filter.Filter) -> Unit,
         ) : DialogConfig
     }
 }

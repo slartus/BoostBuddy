@@ -14,6 +14,7 @@ import ru.slartus.boostbuddy.components.BaseComponent
 interface FilterComponent {
     val viewStates: Value<FilterViewState>
     val dialogSlot: Value<ChildSlot<*, DialogChild>>
+    fun onAccessTypeChange(accessType: AccessType)
 
     sealed class DialogChild {
         data class Period(val from: Clock, val to: Clock) : DialogChild()
@@ -23,9 +24,11 @@ interface FilterComponent {
 
 class FilterComponentImpl(
     componentContext: ComponentContext,
+    filter: Filter,
+    private val onFilter: (Filter) -> Unit
 ) : BaseComponent<FilterViewState, FilterViewAction>(
     componentContext,
-    FilterViewState()
+    FilterViewState(filter = filter)
 ), FilterComponent {
     private val dialogNavigation = SlotNavigation<DialogConfig>()
     private val _dialogSlot = childSlot(
@@ -36,6 +39,12 @@ class FilterComponentImpl(
         childFactory = ::dialogChild
     )
     override val dialogSlot: Value<ChildSlot<*, FilterComponent.DialogChild>> = _dialogSlot
+    override fun onAccessTypeChange(accessType: AccessType) {
+        viewState = viewState.copy(
+            filter = viewState.filter.copy(accessType = accessType)
+        )
+        onFilter(viewState.filter)
+    }
 
     private fun dialogChild(
         config: DialogConfig,
