@@ -262,7 +262,7 @@ private fun CountView(icon: ImageVector, text: String) {
 private fun LoadingView() {
     Box(
         modifier = Modifier.fillMaxSize().padding(8.dp),
-        contentAlignment = Alignment.Center
+        contentAlignment = Center
     ) {
         CircularProgressIndicator(Modifier.size(24.dp))
     }
@@ -274,7 +274,7 @@ private fun ErrorView(description: String, onClick: () -> Unit) {
         modifier = Modifier.fillMaxSize()
             .background(MaterialTheme.colorScheme.errorContainer)
             .clickable { onClick() }.padding(8.dp),
-        contentAlignment = Alignment.Center
+        contentAlignment = Center
     ) {
         Text(
             text = description,
