@@ -80,7 +80,9 @@ internal class BoostyApi(
         replyLimit: Int,
         isOnlyAllowed: Boolean?,
         onlyBought: Boolean?,
-        tags: List<String>,
+        fromDate: Clock?,
+        toDate: Clock?,
+        tagsIds: List<String>,
     ): HttpResponse = httpClient.get("v1/feed/post/") {
         parameter("limit", limit)
         offset?.let {
@@ -92,8 +94,12 @@ internal class BoostyApi(
             parameter("only_allowed", isOnlyAllowed)
         if (onlyBought != null)
             parameter("only_bought", onlyBought)
-        if (tags.isNotEmpty())
-            parameter("tags_ids", tags.joinToString(separator = ","))
+        if (tagsIds.isNotEmpty())
+            parameter("tags_ids", tagsIds.joinToString(separator = ","))
+        if (fromDate != null)
+            parameter("from_ts", fromDate.now().epochSeconds)
+        if (toDate != null)
+            parameter("to_ts", toDate.now().epochSeconds)
     }
 
     suspend fun post(

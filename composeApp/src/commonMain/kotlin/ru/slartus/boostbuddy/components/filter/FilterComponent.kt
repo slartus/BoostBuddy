@@ -9,6 +9,11 @@ import com.arkivanov.decompose.router.slot.childSlot
 import com.arkivanov.decompose.router.slot.dismiss
 import com.arkivanov.decompose.value.Value
 import kotlinx.datetime.Clock
+import kotlinx.datetime.Instant
+import kotlinx.datetime.LocalDateTime
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toInstant
+import kotlinx.datetime.toLocalDateTime
 import kotlinx.serialization.Serializable
 import ru.slartus.boostbuddy.components.BaseComponent
 import ru.slartus.boostbuddy.components.filter.tags.FilterTagsComponent
@@ -22,9 +27,12 @@ interface FilterComponent {
     fun onAccessTypeChange(accessType: AccessType)
     fun onTagsClick()
     fun onDialogDismissed()
+    fun onPeriodClick()
+    fun onDateRangeReset()
+    fun onDateRangeSelected(from: Clock, to: Clock)
 
     sealed class DialogChild {
-        class Period(val from: Clock = Clock.System, val to: Clock = Clock.System) : DialogChild()
+        object Period : DialogChild()
         class Tags(val component: FilterTagsComponent) : DialogChild()
     }
 }
@@ -66,11 +74,23 @@ internal class FilterComponentImpl(
         dialogNavigation.dismiss()
     }
 
+    override fun onPeriodClick() {
+        dialogNavigation.activate(DialogConfig.Period)
+    }
+
+    override fun onDateRangeReset() {
+        updateFilter { copy(period = null) }
+    }
+
+    override fun onDateRangeSelected(from: Clock, to: Clock) {
+        updateFilter { copy(period = Period(from.startOfDay(), to.endOfDay())) }
+    }
+
     private fun createDialogChild(
         config: DialogConfig,
         componentContext: ComponentContext
     ): FilterComponent.DialogChild = when (config) {
-        DialogConfig.Period -> FilterComponent.DialogChild.Period()
+        DialogConfig.Period -> FilterComponent.DialogChild.Period
         DialogConfig.Tags -> FilterComponent.DialogChild.Tags(filterTagsComponent)
     }
 
@@ -92,5 +112,25 @@ internal class FilterComponentImpl(
 
         @Serializable
         data object Tags : DialogConfig
+    }
+
+    private companion object{
+        fun Clock.startOfDay(): Clock {
+            val today = this.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
+            val startOfDay = LocalDateTime(today.year, today.monthNumber, today.dayOfMonth, 0, 0)
+                .toInstant(TimeZone.currentSystemDefault())
+            return object : Clock {
+                override fun now(): Instant = startOfDay
+            }
+        }
+
+        fun Clock.endOfDay(): Clock {
+            val today = this.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
+            val endOfDay = LocalDateTime(today.year, today.monthNumber, today.dayOfMonth, 23, 59, 59, 999_999_999)
+                .toInstant(TimeZone.currentSystemDefault())
+            return object : Clock {
+                override fun now(): Instant = endOfDay
+            }
+        }
     }
 }

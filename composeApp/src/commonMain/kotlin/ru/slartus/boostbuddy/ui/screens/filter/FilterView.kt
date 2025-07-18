@@ -7,6 +7,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Label
+import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Public
 import androidx.compose.material.icons.filled.ShoppingCart
@@ -23,11 +24,12 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import kotlinx.collections.immutable.persistentListOf
-import kotlinx.datetime.Clock
 import ru.slartus.boostbuddy.components.filter.AccessType
 import ru.slartus.boostbuddy.components.filter.FilterComponent
+import ru.slartus.boostbuddy.components.filter.FilterViewState
 import ru.slartus.boostbuddy.ui.common.BottomView
 import ru.slartus.boostbuddy.ui.common.IconTextListItem
+import ru.slartus.boostbuddy.ui.widgets.DateRangePickerDialog
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -40,22 +42,28 @@ internal fun FilterDialogView(
         skipPartiallyExpanded = true
     )
 
+    val state by component.viewStates.subscribeAsState()
     ModalBottomSheet(
         modifier = modifier,
         onDismissRequest = onDismissClicked,
         sheetState = sheetState
     ) {
-        FilterContent(component)
+        FilterContent(component, state)
     }
-
     val dialogSlot by component.dialogSlot.subscribeAsState()
     dialogSlot.child?.instance?.let { dialogComponent ->
         when (dialogComponent) {
             is FilterComponent.DialogChild.Period -> DateRangePickerDialog(
-                from = dialogComponent.from,
-                to = dialogComponent.to,
-                onDismiss = component::onDialogDismissed
+                initialFrom = state.filter.period?.from,
+                initialTo = state.filter.period?.to,
+                onDateRangeSelected = { from, to ->
+                    component.onDateRangeSelected(from, to)
+                    component.onDialogDismissed()
+                },
+                onDismiss = component::onDialogDismissed,
+                onReset = component::onDateRangeReset
             )
+
             is FilterComponent.DialogChild.Tags -> FilterTagsDialogView(
                 component = dialogComponent.component,
                 onDismissClicked = component::onDialogDismissed
@@ -67,9 +75,9 @@ internal fun FilterDialogView(
 @Composable
 private fun FilterContent(
     component: FilterComponent,
+    state: FilterViewState,
     modifier: Modifier = Modifier
 ) {
-    val state by component.viewStates.subscribeAsState()
 
     BottomView(
         title = "Фильтр",
@@ -88,6 +96,12 @@ private fun FilterContent(
             TagsSection(
                 tagsText = state.tagsText,
                 onTagsClick = component::onTagsClick
+            )
+
+            IconTextListItem(
+                text = state.dateRangeText,
+                icon = Icons.Default.DateRange,
+                onClick = { component.onPeriodClick() }
             )
         }
     }
@@ -144,13 +158,3 @@ private data class AccessTypeItem(
     val title: String,
     val icon: ImageVector
 )
-
-// Placeholder for DateRangePicker (implement according to your date picker solution)
-@Composable
-private fun DateRangePickerDialog(
-    from: Clock,
-    to: Clock,
-    onDismiss: () -> Unit
-) {
-    // Implement your date range picker UI here
-}

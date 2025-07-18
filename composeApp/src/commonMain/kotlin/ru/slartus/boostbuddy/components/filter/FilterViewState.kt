@@ -2,15 +2,35 @@ package ru.slartus.boostbuddy.components.filter
 
 import androidx.compose.runtime.Immutable
 import kotlinx.datetime.Clock
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 
 @Immutable
 data class FilterViewState(
     val filter: Filter = Filter()
 ) {
+    val dateRangeText: String = when {
+        filter.period == null -> "За всё время"
+        filter.period.to == filter.period.from -> filter.period.to.getCurrentDateFormatted()
+        else -> "${filter.period.from.getCurrentDateFormatted()} - ${filter.period.to.getCurrentDateFormatted()}"
+    }
+
     val tagsText: String = if (filter.tags.isEmpty()) {
         "Теги"
     } else {
         "Теги: ${filter.tags.joinToString { it.title }}"
+    }
+
+    private companion object {
+        fun Clock.getCurrentDateFormatted(): String {
+            val now = this.now()
+            val date = now.toLocalDateTime(TimeZone.currentSystemDefault()).date
+            val day = date.dayOfMonth.toString().padStart(2, '0')
+            val month = date.monthNumber.toString().padStart(2, '0')
+            val year = date.year.toString().takeLast(2)
+
+            return "$day.$month.$year"
+        }
     }
 }
 

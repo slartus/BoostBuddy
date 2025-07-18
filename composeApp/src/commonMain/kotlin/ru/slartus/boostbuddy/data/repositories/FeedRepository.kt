@@ -23,7 +23,9 @@ internal class FeedRepository(
                 replyLimit = 0,
                 onlyBought = filter.accessType == AccessType.Bought,
                 isOnlyAllowed = filter.accessType == AccessType.Allowed,
-                tags = filter.tags.map { it.id },
+                tagsIds = filter.tags.map { it.id },
+                fromDate = filter.period?.from,
+                toDate = filter.period?.to,
             ).body()
 
             Posts(
