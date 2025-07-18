@@ -1,6 +1,5 @@
 package ru.slartus.boostbuddy.ui.common
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -12,6 +11,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -76,13 +77,6 @@ internal fun TextBottomViewItem(
         Modifier
             .fillMaxWidth()
             .clickable { onClick() }
-            .then(
-                if (selected) {
-                    Modifier.background(color = MaterialTheme.colorScheme.secondaryContainer)
-                } else {
-                    Modifier
-                }
-            )
             .padding(12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -97,12 +91,19 @@ internal fun TextBottomViewItem(
         }
         Spacer(Modifier.width(12.dp))
         Text(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.weight(1f),
             text = text,
             style = MaterialTheme.typography.bodyMedium,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
+        if (selected) {
+            Icon(
+                imageVector = Icons.Default.Check,
+                contentDescription = "Выбрано",
+                tint = MaterialTheme.colorScheme.primary
+            )
+        }
     }
 }
 
