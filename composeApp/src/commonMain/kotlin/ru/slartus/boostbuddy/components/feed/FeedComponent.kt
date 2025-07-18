@@ -5,6 +5,7 @@ import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.value.Value
 import kotlinx.collections.immutable.ImmutableList
 import ru.slartus.boostbuddy.components.common.ProgressState
+import ru.slartus.boostbuddy.components.filter.Filter
 import ru.slartus.boostbuddy.data.Inject
 import ru.slartus.boostbuddy.data.repositories.FeedRepository
 import ru.slartus.boostbuddy.data.repositories.models.Content
@@ -17,6 +18,7 @@ import ru.slartus.boostbuddy.data.repositories.models.Posts
 @Stable
 interface FeedComponent {
     val viewStates: Value<FeedViewState>
+    val filter: Filter
     fun refresh()
     fun onVideoItemClicked(post: Post, postData: Content.OkVideo)
     fun onScrolledToEnd()
@@ -27,6 +29,7 @@ interface FeedComponent {
     fun onVoteClicked(post: Post, poll: Poll)
     fun onDeleteVoteClicked(post: Post, poll: Poll)
     fun onBlogClicked(post: Post)
+    fun filter(filter: Filter)
 }
 
 class FeedComponentImpl(
@@ -40,12 +43,15 @@ class FeedComponentImpl(
         get() = viewState.extra
     override val viewStateItems: List<FeedPostItem> get() = viewState.items
 
+    override val filter: Filter
+        get() = viewState.filter
+
     init {
         subscribeToken()
     }
 
     override suspend fun fetch(offset: String?): Result<Posts> =
-        feedRepository.getData(offset)
+        feedRepository.getData(offset, viewState.filter)
 
     override fun onProgressStateChanged(progressState: ProgressState) {
         viewState = viewState.copy(progressState = progressState)
@@ -60,6 +66,14 @@ class FeedComponentImpl(
     }
 
     override fun onRepeatClicked() {
+        refresh()
+    }
+
+    override fun filter(filter: Filter) {
+        viewState = viewState.copy(
+            filter = filter,
+            extra = null,
+        )
         refresh()
     }
 }

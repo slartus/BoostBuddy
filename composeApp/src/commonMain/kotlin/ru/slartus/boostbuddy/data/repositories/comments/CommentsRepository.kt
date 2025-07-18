@@ -1,7 +1,7 @@
 package ru.slartus.boostbuddy.data.repositories.comments
 
 import io.ktor.client.call.body
-import ru.slartus.boostbuddy.data.repositories.BoostyApi
+import ru.slartus.boostbuddy.data.api.BoostyApi
 import ru.slartus.boostbuddy.data.repositories.comments.models.Comments
 import ru.slartus.boostbuddy.data.repositories.comments.models.CommentsResponse
 import ru.slartus.boostbuddy.data.repositories.comments.models.mapToComments

@@ -28,4 +28,10 @@ object NavigationTree {
         val postId: String,
         val postData: Content.OkVideo,
     ) : Screen
+
+
+    class Filter(
+        val filter: ru.slartus.boostbuddy.components.filter.Filter,
+        val onFilter: (filter: ru.slartus.boostbuddy.components.filter.Filter) -> Unit,
+    ) : Screen
 }

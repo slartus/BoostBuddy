@@ -1,6 +1,7 @@
 package ru.slartus.boostbuddy.data.repositories
 
 import io.github.aakira.napier.Napier
+import ru.slartus.boostbuddy.data.api.BoostyApi
 
 internal class VideoRepository(
     private val boostyApi: BoostyApi

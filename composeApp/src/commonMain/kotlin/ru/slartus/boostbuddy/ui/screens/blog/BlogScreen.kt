@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -20,6 +21,7 @@ import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import ru.slartus.boostbuddy.components.blog.BlogComponent
 import ru.slartus.boostbuddy.components.common.ProgressState
 import ru.slartus.boostbuddy.ui.screens.PostsView
+import ru.slartus.boostbuddy.ui.screens.filter.FilterDialogView
 import ru.slartus.boostbuddy.ui.widgets.ErrorView
 import ru.slartus.boostbuddy.ui.widgets.LoaderView
 
@@ -43,6 +45,12 @@ internal fun BlogScreen(component: BlogComponent) {
                     }
                 },
                 actions = {
+                    IconButton(onClick = component::onFilterClick) {
+                        Icon(
+                            imageVector = Icons.Filled.FilterList,
+                            contentDescription = "Фильтр"
+                        )
+                    }
                     IconButton(onClick = { component.onRepeatClicked() }) {
                         Icon(
                             imageVector = Icons.Filled.Refresh,
@@ -93,6 +101,16 @@ internal fun BlogScreen(component: BlogComponent) {
                         onBlogClick = {}
                     )
             }
+        }
+    }
+
+    val dialogSlot by component.dialogSlot.subscribeAsState()
+    dialogSlot.child?.instance?.let { dialogComponent ->
+        when (dialogComponent) {
+            is BlogComponent.DialogChild.Filter -> FilterDialogView(
+                component = dialogComponent.component,
+                onDismissClicked = component::onDialogDismissed,
+            )
         }
     }
 }

@@ -40,6 +40,7 @@ import ru.slartus.boostbuddy.components.settings.SettingsComponent
 import ru.slartus.boostbuddy.ui.common.QrDialog
 import ru.slartus.boostbuddy.ui.screens.blog.BlogScreen
 import ru.slartus.boostbuddy.ui.screens.blog.VideoTypeDialogView
+import ru.slartus.boostbuddy.ui.screens.filter.FilterDialogView
 import ru.slartus.boostbuddy.ui.screens.main.MainScreen
 import ru.slartus.boostbuddy.ui.screens.post.PostScreen
 import ru.slartus.boostbuddy.ui.theme.AppTheme
@@ -80,45 +81,44 @@ fun RootScreen(component: RootComponent, modifier: Modifier = Modifier) {
                             onAcceptClicked = {
                                 component.onDialogVersionAcceptClicked(dialogComponent)
                             },
-                            onCancelClicked = {
-                                component.onDialogVersionCancelClicked()
-                            },
-                            onDismissClicked = {
-                                component.onDialogDismissed()
-                            },
+                            onCancelClicked = component::onDialogVersionCancelClicked,
+                            onDismissClicked = component::onDialogDismissed,
                         )
 
                     is RootComponent.DialogChild.Error -> ErrorDialogView(
                         error = dialogComponent.message,
-                        onDismissClicked = {
-                            component.onDialogDismissed()
-                        },
+                        onDismissClicked = component::onDialogDismissed,
                     )
 
                     is RootComponent.DialogChild.AppSettings -> SettingsDialogView(
                         component = dialogComponent.component,
-                        onDismissClicked = {
-                            component.onDialogDismissed()
-                        },
+                        onDismissClicked = component::onDialogDismissed,
                     )
 
                     is RootComponent.DialogChild.Logout -> LogoutDialogView(
                         modifier = Modifier,
-                        onDismissClicked = { component.onDialogDismissed() },
-                        onAcceptClicked = { dialogComponent.component.onAcceptClicked() },
-                        onCancelClicked = { dialogComponent.component.onCancelClicked() },
+                        onDismissClicked = component::onDialogDismissed,
+                        onAcceptClicked = dialogComponent.component::onAcceptClicked,
+                        onCancelClicked = dialogComponent.component::onCancelClicked,
                     )
 
                     is RootComponent.DialogChild.Qr -> QrDialog(
                         title = dialogComponent.title,
                         url = dialogComponent.url,
-                        onDismiss = { component.onDialogDismissed() }
+                        onDismiss = component::onDialogDismissed,
                     )
 
                     is RootComponent.DialogChild.VideoType -> {
                         VideoTypeDialogView(
                             modifier = Modifier,
                             component = dialogComponent.component
+                        )
+                    }
+
+                    is RootComponent.DialogChild.Filter -> {
+                        FilterDialogView(
+                            component = dialogComponent.component,
+                            onDismissClicked = component::onDialogDismissed,
                         )
                     }
                 }

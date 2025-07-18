@@ -1,7 +1,10 @@
 package ru.slartus.boostbuddy.data.repositories
 
 import io.ktor.client.call.body
-import ru.slartus.boostbuddy.data.repositories.models.BlogInfoResponse
+import ru.slartus.boostbuddy.components.filter.AccessType
+import ru.slartus.boostbuddy.components.filter.Filter
+import ru.slartus.boostbuddy.data.api.BoostyApi
+import ru.slartus.boostbuddy.data.api.model.RemoteBlogInfoResponse
 import ru.slartus.boostbuddy.data.repositories.models.Extra
 import ru.slartus.boostbuddy.data.repositories.models.Poll
 import ru.slartus.boostbuddy.data.repositories.models.PollOption
@@ -17,14 +20,27 @@ import ru.slartus.boostbuddy.utils.fetchOrError
 internal class BlogRepository(
     private val boostyApi: BoostyApi,
 ) {
-    suspend fun fetchPosts(url: String, offset: String?): Result<Posts> =
+    suspend fun fetchPosts(
+        url: String,
+        filter: Filter,
+        limit: Int = 20,
+        offset: String? = null,
+        commentsLimit: Int = 0,
+        replyLimit: Int = 0,
+    ): Result<Posts> =
         fetchOrError {
             val response: PostResponse = boostyApi.blogPosts(
                 blog = url,
-                limit = 20,
+                limit = limit,
                 offset = offset,
-                commentsLimit = 0,
-                replyLimit = 0
+                commentsLimit = commentsLimit,
+                replyLimit = replyLimit,
+                isOnlyAllowed = filter.accessType == AccessType.Allowed,
+                fromDate = filter.period?.from,
+                toDate = filter.period?.to,
+                tagsIds = filter.tags.map { it.id },
+                onlyBought = filter.accessType == AccessType.Bought
+                ,
             ).body()
 
             Posts(
@@ -35,7 +51,7 @@ internal class BlogRepository(
 
     suspend fun fetchInfo(blogUrl: String): Result<Blog> =
         fetchOrError {
-            val response: BlogInfoResponse = boostyApi.blogInfo(blogUrl).body()
+            val response: RemoteBlogInfoResponse = boostyApi.blogInfo(blogUrl)
 
             Blog(
                 title = response.title.orEmpty(),

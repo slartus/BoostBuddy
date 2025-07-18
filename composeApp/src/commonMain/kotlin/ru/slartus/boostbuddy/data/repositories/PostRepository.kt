@@ -1,6 +1,7 @@
 package ru.slartus.boostbuddy.data.repositories
 
 import io.ktor.client.call.body
+import ru.slartus.boostbuddy.data.api.BoostyApi
 import ru.slartus.boostbuddy.data.repositories.models.Poll
 import ru.slartus.boostbuddy.data.repositories.models.PollResponse
 import ru.slartus.boostbuddy.data.repositories.models.Post
