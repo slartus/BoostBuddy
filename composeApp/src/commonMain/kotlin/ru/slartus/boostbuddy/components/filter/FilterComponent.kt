@@ -18,83 +18,79 @@ import ru.slartus.boostbuddy.components.filter.tags.FilterTagsComponentImpl
 interface FilterComponent {
     val viewStates: Value<FilterViewState>
     val dialogSlot: Value<ChildSlot<*, DialogChild>>
+
     fun onAccessTypeChange(accessType: AccessType)
     fun onTagsClick()
     fun onDialogDismissed()
 
     sealed class DialogChild {
-        data class Period(val from: Clock, val to: Clock) : DialogChild()
-        data class Tags(val component: FilterTagsComponent) : DialogChild()
+        class Period(val from: Clock = Clock.System, val to: Clock = Clock.System) : DialogChild()
+        class Tags(val component: FilterTagsComponent) : DialogChild()
     }
 }
 
-class FilterComponentImpl(
+internal class FilterComponentImpl(
     componentContext: ComponentContext,
-    private val params: FilterParams,
+    private val params: FilterParams
 ) : BaseComponent<FilterViewState, FilterViewAction>(
     componentContext,
     FilterViewState(filter = params.filter)
 ), FilterComponent {
 
+    private val dialogNavigation = SlotNavigation<DialogConfig>()
+
     private val filterTagsComponent = FilterTagsComponentImpl(
         componentContext = componentContext,
         entryPoint = params.entryPoint,
         selectedTags = params.filter.tags,
-        onTagsChange = ::onTagsChange,
+        onTagsChange = ::onTagsChange
     )
-    private val dialogNavigation = SlotNavigation<DialogConfig>()
-    private val _dialogSlot = childSlot(
+
+    override val dialogSlot: Value<ChildSlot<*, FilterComponent.DialogChild>> = childSlot(
         key = "dialogSlot",
         source = dialogNavigation,
         serializer = DialogConfig.serializer(),
         handleBackButton = true,
-        childFactory = ::dialogChild
+        childFactory = ::createDialogChild
     )
-    override val dialogSlot: Value<ChildSlot<*, FilterComponent.DialogChild>> = _dialogSlot
 
     override fun onAccessTypeChange(accessType: AccessType) {
-        viewState = viewState.copy(
-            filter = viewState.filter.copy(accessType = accessType)
-        )
-        params.onFilter(viewState.filter)
+        updateFilter { copy(accessType = accessType) }
     }
 
     override fun onTagsClick() {
-        dialogNavigation.activate(
-            DialogConfig.Tags
-        )
+        dialogNavigation.activate(DialogConfig.Tags)
     }
 
     override fun onDialogDismissed() {
         dialogNavigation.dismiss()
     }
 
-    private fun dialogChild(
+    private fun createDialogChild(
         config: DialogConfig,
         componentContext: ComponentContext
-    ): FilterComponent.DialogChild =
-        when (config) {
-            DialogConfig.Period -> FilterComponent.DialogChild.Period(
-                from = Clock.System, to = Clock.System
-            )
-
-            DialogConfig.Tags -> FilterComponent.DialogChild.Tags(filterTagsComponent)
-        }
+    ): FilterComponent.DialogChild = when (config) {
+        DialogConfig.Period -> FilterComponent.DialogChild.Period()
+        DialogConfig.Tags -> FilterComponent.DialogChild.Tags(filterTagsComponent)
+    }
 
     private fun onTagsChange(tags: List<Tag>) {
-        viewState = viewState.copy(
-            filter = viewState.filter.copy(tags = tags)
-        )
+        updateFilter { copy(tags = tags) }
+    }
 
+    private fun updateFilter(transform: Filter.() -> Filter) {
+        viewState = viewState.copy(
+            filter = viewState.filter.transform()
+        )
         params.onFilter(viewState.filter)
     }
 
     @Serializable
-    private sealed class DialogConfig {
+    private sealed interface DialogConfig {
         @Serializable
-        data object Period : DialogConfig()
+        data object Period : DialogConfig
 
         @Serializable
-        data object Tags : DialogConfig()
+        data object Tags : DialogConfig
     }
 }
