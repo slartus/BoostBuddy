@@ -27,7 +27,7 @@ import kotlinx.datetime.Clock
 import ru.slartus.boostbuddy.components.filter.AccessType
 import ru.slartus.boostbuddy.components.filter.FilterComponent
 import ru.slartus.boostbuddy.ui.common.BottomView
-import ru.slartus.boostbuddy.ui.common.TextBottomViewItem
+import ru.slartus.boostbuddy.ui.common.IconTextListItem
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -107,7 +107,7 @@ private fun AccessTypeSection(
     }
 
     accessTypes.forEach { item ->
-        TextBottomViewItem(
+        IconTextListItem(
             text = item.title,
             icon = item.icon,
             selected = currentAccessType == item.type,
@@ -132,7 +132,7 @@ private fun TagsSection(
     tagsText: String,
     onTagsClick: () -> Unit
 ) {
-    TextBottomViewItem(
+    IconTextListItem(
         text = tagsText,
         icon = Icons.AutoMirrored.Filled.Label,
         onClick = onTagsClick

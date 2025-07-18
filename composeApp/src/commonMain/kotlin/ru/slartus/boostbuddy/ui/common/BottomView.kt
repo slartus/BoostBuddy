@@ -1,11 +1,10 @@
 package ru.slartus.boostbuddy.ui.common
 
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -25,98 +24,132 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 
+object BottomViewDefaults {
+    val horizontalPadding = 16.dp
+    val verticalPadding = 12.dp
+    val iconSize = 24.dp
+    val spacing = 12.dp
+    val titleBottomMargin = 16.dp
+}
+
 @Composable
-internal fun BottomView(
+fun BottomView(
     title: String,
     modifier: Modifier = Modifier,
-    content: @Composable () -> Unit
+    content: @Composable ColumnScope.() -> Unit
 ) {
-    Column(modifier) {
+    Column(
+        modifier = modifier.padding(horizontal = BottomViewDefaults.horizontalPadding)
+    ) {
         Text(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
             text = title,
-            style = MaterialTheme.typography.titleLarge
+            style = MaterialTheme.typography.titleLarge,
+            modifier = Modifier.fillMaxWidth()
         )
-        Spacer(Modifier.height(16.dp))
+        Spacer(Modifier.height(BottomViewDefaults.titleBottomMargin))
         content()
-        Spacer(Modifier.height(16.dp))
     }
 }
 
 @Composable
-internal fun CheckboxBottomViewItem(
+fun CheckboxListItem(
     text: String,
     checked: Boolean,
-    onCheckedChange: (Boolean) -> Unit,
+    modifier: Modifier = Modifier,
+    onCheckedChange: (Boolean) -> Unit
 ) {
     Row(
-        modifier = Modifier.fillMaxWidth().clickable { onCheckedChange(!checked) },
+        modifier = modifier
+            .fillMaxWidth()
+            .clickable { onCheckedChange(!checked) }
+            .padding(BottomViewDefaults.verticalPadding),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Checkbox(
             checked = checked,
-            onCheckedChange = { newCheckedState ->
-                onCheckedChange(newCheckedState)
-            },
+            onCheckedChange = null, // handled by row click
+            modifier = Modifier.size(BottomViewDefaults.iconSize)
         )
+        Spacer(Modifier.width(BottomViewDefaults.spacing))
         Text(
             text = text,
-            style = MaterialTheme.typography.bodyMedium
+            style = MaterialTheme.typography.bodyMedium,
+            modifier = Modifier.weight(1f)
         )
     }
 }
 
 @Composable
-internal fun TextBottomViewItem(
+fun IconTextListItem(
     text: String,
     icon: ImageVector? = null,
     selected: Boolean = false,
+    modifier: Modifier = Modifier,
     onClick: () -> Unit = {}
 ) {
     Row(
-        Modifier
+        modifier = modifier
             .fillMaxWidth()
-            .clickable { onClick() }
-            .padding(12.dp),
-        verticalAlignment = Alignment.CenterVertically,
+            .clickable(onClick = onClick)
+            .padding(BottomViewDefaults.verticalPadding),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Box(Modifier.size(24.dp)) {
-            if (icon != null) {
-                Icon(
-                    modifier = Modifier.fillMaxSize(),
-                    imageVector = icon,
-                    contentDescription = "Icon"
-                )
-            }
-        }
-        Spacer(Modifier.width(12.dp))
-        Text(
-            modifier = Modifier.weight(1f),
-            text = text,
-            style = MaterialTheme.typography.bodyMedium,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
-        if (selected) {
-            Icon(
-                imageVector = Icons.Default.Check,
-                contentDescription = "Выбрано",
-                tint = MaterialTheme.colorScheme.primary
-            )
-        }
+        IconContent(icon = icon)
+        Spacer(Modifier.width(BottomViewDefaults.spacing))
+        TextContent(modifier = Modifier.weight(1f), text = text, selected = selected)
+        SelectionIndicator(selected = selected)
     }
 }
 
 @Composable
-internal fun LoadingViewItem() {
+private fun IconContent(icon: ImageVector?) {
+    if (icon != null) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            modifier = Modifier.size(BottomViewDefaults.iconSize),
+            tint = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    } else {
+        Spacer(Modifier.size(BottomViewDefaults.iconSize))
+    }
+}
+
+@Composable
+private fun TextContent(text: String, selected: Boolean, modifier: Modifier = Modifier) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.bodyMedium,
+        color = if (selected) MaterialTheme.colorScheme.primary
+        else MaterialTheme.colorScheme.onSurface,
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis,
+        modifier = modifier
+    )
+}
+
+@Composable
+private fun SelectionIndicator(selected: Boolean) {
+    if (selected) {
+        Icon(
+            imageVector = Icons.Default.Check,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.primary
+        )
+    }
+}
+
+@Composable
+fun LoadingListItem(modifier: Modifier = Modifier) {
     Row(
-        Modifier
+        modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 36.dp),
-        verticalAlignment = Alignment.CenterVertically,
+        verticalAlignment = Alignment.CenterVertically
     ) {
         CircularProgressIndicator(
-            modifier = Modifier.size(24.dp)
+            modifier = Modifier.size(BottomViewDefaults.iconSize),
+            strokeWidth = 2.dp
         )
     }
 }

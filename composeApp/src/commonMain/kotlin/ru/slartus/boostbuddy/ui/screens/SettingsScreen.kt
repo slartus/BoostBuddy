@@ -12,9 +12,9 @@ import androidx.compose.runtime.getValue
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import ru.slartus.boostbuddy.components.settings.SettingsComponent
 import ru.slartus.boostbuddy.ui.common.BottomView
-import ru.slartus.boostbuddy.ui.common.CheckboxBottomViewItem
+import ru.slartus.boostbuddy.ui.common.CheckboxListItem
+import ru.slartus.boostbuddy.ui.common.IconTextListItem
 import ru.slartus.boostbuddy.ui.common.LocalPlatformConfiguration
-import ru.slartus.boostbuddy.ui.common.TextBottomViewItem
 import ru.slartus.boostbuddy.ui.theme.LocalThemeIsDark
 
 @Composable
@@ -24,14 +24,14 @@ internal fun SettingsScreen(component: SettingsComponent) {
     val isDarkState by LocalThemeIsDark.current
     BottomView("Настройки") {
         Column {
-            CheckboxBottomViewItem(
+            CheckboxListItem(
                 text = "Системный видео-плеер",
                 checked = state.appSettings.useSystemVideoPlayer,
                 onCheckedChange = { newCheckedState ->
                     component.onUseSystemPlayerClicked(newCheckedState)
                 }
             )
-            TextBottomViewItem(
+            IconTextListItem(
                 icon = Icons.Default.AttachMoney,
                 text = "Поддержать проект",
                 onClick = {
@@ -39,7 +39,7 @@ internal fun SettingsScreen(component: SettingsComponent) {
                 }
             )
 
-            TextBottomViewItem(
+            IconTextListItem(
                 icon = if (isDarkState) Icons.Filled.LightMode else Icons.Filled.DarkMode,
                 text = if (isDarkState) "Светлая тема" else "Тёмная тема",
                 onClick = {
@@ -47,7 +47,7 @@ internal fun SettingsScreen(component: SettingsComponent) {
                 }
             )
 
-            CheckboxBottomViewItem(
+            CheckboxListItem(
                 text = "Собирать логи",
                 checked = state.appSettings.debugLog,
                 onCheckedChange = { newCheckedState ->
@@ -56,7 +56,7 @@ internal fun SettingsScreen(component: SettingsComponent) {
             )
 
             if (state.appSettings.debugLog) {
-                TextBottomViewItem(
+                IconTextListItem(
                     icon = Icons.Default.Attachment,
                     text = "Отправить лог",
                     onClick = {
@@ -65,7 +65,7 @@ internal fun SettingsScreen(component: SettingsComponent) {
                 )
             }
 
-            TextBottomViewItem(
+            IconTextListItem(
                 icon = Icons.Default.Info,
                 text = "Версия программы: ${platformConfiguration.appVersion}",
                 onClick = {

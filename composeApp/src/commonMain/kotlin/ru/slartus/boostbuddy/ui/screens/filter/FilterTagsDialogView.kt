@@ -17,9 +17,9 @@ import kotlinx.coroutines.flow.map
 import ru.slartus.boostbuddy.components.filter.tags.FilterTagsComponent
 import ru.slartus.boostbuddy.components.filter.tags.TagItem
 import ru.slartus.boostbuddy.ui.common.BottomView
-import ru.slartus.boostbuddy.ui.common.CheckboxBottomViewItem
-import ru.slartus.boostbuddy.ui.common.LoadingViewItem
-import ru.slartus.boostbuddy.ui.common.TextBottomViewItem
+import ru.slartus.boostbuddy.ui.common.CheckboxListItem
+import ru.slartus.boostbuddy.ui.common.IconTextListItem
+import ru.slartus.boostbuddy.ui.common.LoadingListItem
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -105,7 +105,7 @@ private fun TagsList(
             contentType = { it.contentType }
         ) { tagItem ->
             when (tagItem) {
-                TagItem.Loading -> LoadingViewItem()
+                TagItem.Loading -> LoadingListItem()
                 is TagItem.TagModel -> TagItemView(tagItem, onTagSelect)
                 TagItem.Error -> RetryView(onRetryClick)
             }
@@ -118,7 +118,7 @@ private fun TagItemView(
     tagItem: TagItem.TagModel,
     onTagSelect: (TagItem.TagModel) -> Unit
 ) {
-    CheckboxBottomViewItem(
+    CheckboxListItem(
         text = tagItem.tag.title,
         checked = tagItem.selected,
         onCheckedChange = { onTagSelect(tagItem) }
@@ -129,7 +129,7 @@ private fun TagItemView(
 private fun RetryView(
     onRetryClick: () -> Unit
 ) {
-    TextBottomViewItem(
+    IconTextListItem(
         text = "Повторить загрузку",
         onClick = onRetryClick
     )
