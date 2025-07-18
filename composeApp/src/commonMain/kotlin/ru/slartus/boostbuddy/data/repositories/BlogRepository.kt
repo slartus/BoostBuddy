@@ -2,7 +2,8 @@ package ru.slartus.boostbuddy.data.repositories
 
 import io.ktor.client.call.body
 import kotlinx.datetime.Clock
-import ru.slartus.boostbuddy.data.repositories.models.BlogInfoResponse
+import ru.slartus.boostbuddy.data.api.BoostyApi
+import ru.slartus.boostbuddy.data.api.model.RemoteBlogInfoResponse
 import ru.slartus.boostbuddy.data.repositories.models.Extra
 import ru.slartus.boostbuddy.data.repositories.models.Poll
 import ru.slartus.boostbuddy.data.repositories.models.PollOption
@@ -52,7 +53,7 @@ internal class BlogRepository(
 
     suspend fun fetchInfo(blogUrl: String): Result<Blog> =
         fetchOrError {
-            val response: BlogInfoResponse = boostyApi.blogInfo(blogUrl).body()
+            val response: RemoteBlogInfoResponse = boostyApi.blogInfo(blogUrl)
 
             Blog(
                 title = response.title.orEmpty(),

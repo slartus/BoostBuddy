@@ -2,6 +2,7 @@ package ru.slartus.boostbuddy.data.repositories
 
 import io.ktor.client.call.body
 import kotlinx.serialization.Serializable
+import ru.slartus.boostbuddy.data.api.BoostyApi
 import ru.slartus.boostbuddy.utils.fetchOrError
 
 internal class SubscribesRepository(

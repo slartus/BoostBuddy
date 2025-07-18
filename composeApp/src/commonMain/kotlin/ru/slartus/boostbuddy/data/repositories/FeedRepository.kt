@@ -3,6 +3,7 @@ package ru.slartus.boostbuddy.data.repositories
 import io.ktor.client.call.body
 import ru.slartus.boostbuddy.components.filter.AccessType
 import ru.slartus.boostbuddy.components.filter.Filter
+import ru.slartus.boostbuddy.data.api.BoostyApi
 import ru.slartus.boostbuddy.data.repositories.models.FeedResponse
 import ru.slartus.boostbuddy.data.repositories.models.Posts
 import ru.slartus.boostbuddy.utils.fetchOrError
@@ -22,6 +23,7 @@ internal class FeedRepository(
                 replyLimit = 0,
                 onlyBought = filter.accessType == AccessType.Bought,
                 isOnlyAllowed = filter.accessType == AccessType.Allowed,
+                tags = filter.tags.map { it.id },
             ).body()
 
             Posts(

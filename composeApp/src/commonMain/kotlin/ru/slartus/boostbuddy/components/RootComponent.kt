@@ -29,6 +29,8 @@ import ru.slartus.boostbuddy.components.blog.VideoTypeComponent
 import ru.slartus.boostbuddy.components.blog.VideoTypeComponentImpl
 import ru.slartus.boostbuddy.components.filter.FilterComponent
 import ru.slartus.boostbuddy.components.filter.FilterComponentImpl
+import ru.slartus.boostbuddy.components.filter.FilterParams
+import ru.slartus.boostbuddy.components.filter.FilterScreenEntryPoint
 import ru.slartus.boostbuddy.components.main.MainComponent
 import ru.slartus.boostbuddy.components.main.MainComponentImpl
 import ru.slartus.boostbuddy.components.post.PostComponent
@@ -70,7 +72,6 @@ interface RootComponent : AppComponent<RootViewAction> {
     val dialogSlot: Value<ChildSlot<*, DialogChild>>
     val viewStates: Value<RootViewState>
 
-    // It's possible to pop multiple screens at a time on iOS
     fun onBackClicked(toIndex: Int)
     fun showAuthorizeComponent()
     fun onDialogVersionAcceptClicked(child: DialogChild.NewVersion)
@@ -78,7 +79,6 @@ interface RootComponent : AppComponent<RootViewAction> {
     fun onErrorReceived(ex: Throwable)
     fun onDialogDismissed()
 
-    // Defines all possible child components
     sealed class Child {
         class AuthChild(val component: AuthComponent) : Child()
         class MainChild(val component: MainComponent) : Child()
@@ -333,8 +333,11 @@ class RootComponentImpl(
             is DialogConfig.Filter -> RootComponent.DialogChild.Filter(
                 FilterComponentImpl(
                     componentContext = componentContext,
-                    filter = config.filter,
-                    onFilter = config.onFilter,
+                    params = FilterParams(
+                        filter = config.filter,
+                        onFilter = config.onFilter,
+                        entryPoint = FilterScreenEntryPoint.Feed,
+                    ),
                 )
             )
         }

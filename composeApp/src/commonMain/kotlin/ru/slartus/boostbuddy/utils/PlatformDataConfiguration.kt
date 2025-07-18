@@ -13,11 +13,11 @@ import org.kodein.di.bindSingleton
 import org.kodein.di.instance
 import org.kodein.di.new
 import ru.slartus.boostbuddy.data.Inject
+import ru.slartus.boostbuddy.data.api.BoostyApi
 import ru.slartus.boostbuddy.data.ktor.buildBoostyHttpClient
 import ru.slartus.boostbuddy.data.ktor.buildGithubHttpClient
 import ru.slartus.boostbuddy.data.repositories.AppSettings
 import ru.slartus.boostbuddy.data.repositories.BlogRepository
-import ru.slartus.boostbuddy.data.repositories.BoostyApi
 import ru.slartus.boostbuddy.data.repositories.EventsRepository
 import ru.slartus.boostbuddy.data.repositories.FeedRepository
 import ru.slartus.boostbuddy.data.repositories.GithubRepository
@@ -25,6 +25,7 @@ import ru.slartus.boostbuddy.data.repositories.PostRepository
 import ru.slartus.boostbuddy.data.repositories.ProfileRepository
 import ru.slartus.boostbuddy.data.repositories.SettingsRepository
 import ru.slartus.boostbuddy.data.repositories.SubscribesRepository
+import ru.slartus.boostbuddy.data.repositories.TagRepository
 import ru.slartus.boostbuddy.data.repositories.VideoRepository
 import ru.slartus.boostbuddy.data.repositories.comments.CommentsRepository
 import ru.slartus.boostbuddy.data.settings.SettingsFactory
@@ -84,12 +85,13 @@ object PlatformDataConfiguration {
         }
         bindSingleton { BoostyApi(httpClient = instance(TAG_HTTP_CLIENT_BOOSTY)) }
         bindSingleton { SubscribesRepository(boostyApi = instance()) }
-        bindSingleton { BlogRepository(boostyApi = instance()) }
+        bindProvider { new(::BlogRepository) }
         bindSingleton { CommentsRepository(boostyApi = instance()) }
         bindSingleton { PostRepository(boostyApi = instance()) }
         bindSingleton { VideoRepository(boostyApi = instance()) }
         bindSingleton { ProfileRepository(boostyApi = instance()) }
         bindSingleton { EventsRepository(boostyApi = instance()) }
         bindSingleton { FeedRepository(boostyApi = instance()) }
+        bindProvider { new(::TagRepository) }
     }
 }

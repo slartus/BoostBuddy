@@ -36,6 +36,19 @@ internal fun FilterDialogView(
     ) {
         FilterView(component)
     }
+
+
+    val dialogSlot by component.dialogSlot.subscribeAsState()
+    dialogSlot.child?.instance?.also { dialogComponent ->
+        when (dialogComponent) {
+            is FilterComponent.DialogChild.Period -> TODO()
+            is FilterComponent.DialogChild.Tags -> FilterTagsDialogView(
+                component = dialogComponent.component,
+                onDismissClicked = component::onDialogDismissed,
+            )
+        }
+    }
+
 }
 
 @Composable
@@ -58,7 +71,7 @@ private fun FilterView(component: FilterComponent) {
                 color = MaterialTheme.colorScheme.primaryContainer,
             )
             TextBottomViewItem(
-                text = "Теги",
+                text = state.tagsText,
                 onClick = component::onTagsClick,
             )
         }

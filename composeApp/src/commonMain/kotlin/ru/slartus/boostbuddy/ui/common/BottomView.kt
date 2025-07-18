@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -20,6 +21,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 
 @Composable
@@ -62,7 +64,6 @@ internal fun CheckboxBottomViewItem(
     }
 }
 
-
 @Composable
 internal fun TextBottomViewItem(
     text: String,
@@ -95,8 +96,25 @@ internal fun TextBottomViewItem(
         }
         Spacer(Modifier.width(12.dp))
         Text(
+            modifier = Modifier.fillMaxWidth(),
             text = text,
-            style = MaterialTheme.typography.bodyMedium
+            style = MaterialTheme.typography.bodyMedium,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+    }
+}
+
+@Composable
+internal fun LoadingViewItem() {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 36.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        CircularProgressIndicator(
+            modifier = Modifier.size(24.dp)
         )
     }
 }

@@ -1,4 +1,4 @@
-package ru.slartus.boostbuddy.data.repositories
+package ru.slartus.boostbuddy.data.api
 
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
@@ -12,10 +12,13 @@ import io.ktor.client.request.setBody
 import io.ktor.client.statement.HttpResponse
 import io.ktor.http.Parameters
 import kotlinx.datetime.Clock
+import ru.slartus.boostbuddy.data.api.model.RemoteBlogInfoResponse
+import ru.slartus.boostbuddy.data.api.model.RemoteTagResponse
 
 internal class BoostyApi(
     private val httpClient: HttpClient
 ) {
+    @Suppress("unused")
     suspend fun refreshToken(deviceId: String, refreshToken: String): HttpResponse =
         httpClient
             .post("oauth/token/") {
@@ -68,7 +71,7 @@ internal class BoostyApi(
 
     suspend fun blogInfo(
         blogUrl: String
-    ): HttpResponse = httpClient.get("v1/blog/$blogUrl")
+    ): RemoteBlogInfoResponse = httpClient.get("v1/blog/$blogUrl").body()
 
     suspend fun feed(
         limit: Int,
@@ -77,6 +80,7 @@ internal class BoostyApi(
         replyLimit: Int,
         isOnlyAllowed: Boolean?,
         onlyBought: Boolean?,
+        tags: List<String>,
     ): HttpResponse = httpClient.get("v1/feed/post/") {
         parameter("limit", limit)
         offset?.let {
@@ -88,6 +92,8 @@ internal class BoostyApi(
             parameter("only_allowed", isOnlyAllowed)
         if (onlyBought != null)
             parameter("only_bought", onlyBought)
+        if (tags.isNotEmpty())
+            parameter("tags_ids", tags.joinToString(separator = ","))
     }
 
     suspend fun post(
@@ -144,4 +150,18 @@ internal class BoostyApi(
 
     suspend fun events(
     ): HttpResponse = httpClient.get("v1/notification/standalone/event/")
+
+    suspend fun feedTag(
+        limit: Int,
+        offset: String?,
+    ): RemoteTagResponse = httpClient.get("v1/search/feed/tag/") {
+        parameter("limit", "$limit")
+        if (offset != null) {
+            parameter("offset", "$offset")
+        }
+    }.body()
+
+    suspend fun blogTag(
+        blog: String,
+    ): RemoteTagResponse = httpClient.get("v1/blog/$blog/post/tag/").body()
 }
