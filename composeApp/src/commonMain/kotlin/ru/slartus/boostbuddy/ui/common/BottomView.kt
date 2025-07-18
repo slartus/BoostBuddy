@@ -27,9 +27,10 @@ import androidx.compose.ui.unit.dp
 @Composable
 internal fun BottomView(
     title: String,
+    modifier: Modifier = Modifier,
     content: @Composable () -> Unit
 ) {
-    Column(Modifier) {
+    Column(modifier) {
         Text(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
             text = title,

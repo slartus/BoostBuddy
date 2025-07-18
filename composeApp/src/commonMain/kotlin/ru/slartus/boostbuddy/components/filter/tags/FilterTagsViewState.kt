@@ -8,7 +8,10 @@ import ru.slartus.boostbuddy.data.repositories.models.Extra
 data class FilterTagsViewState(
     val tags: ImmutableList<TagItem> = persistentListOf(),
     val extra: Extra? = null,
-)
+) {
+    val loadMore: Boolean = extra != null && !extra.isLast
+            && tags.lastOrNull() is TagItem.TagModel
+}
 
 sealed class TagItem {
     data class TagModel(val tag: Tag, val selected: Boolean) : TagItem()
