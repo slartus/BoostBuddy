@@ -3,7 +3,7 @@ package ru.slartus.boostbuddy.data.api.model
 import kotlinx.serialization.Serializable
 
 @Serializable
-class RemoteTagResponse(
+class RemoteFeedTagResponse(
     val data: Data? = null,
     val extra: RemoteExtraResponse? = null
 ) {

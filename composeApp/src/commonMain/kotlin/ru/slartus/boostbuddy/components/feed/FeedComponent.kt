@@ -70,7 +70,10 @@ class FeedComponentImpl(
     }
 
     override fun filter(filter: Filter) {
-        viewState = viewState.copy(filter = filter)
+        viewState = viewState.copy(
+            filter = filter,
+            extra = null,
+        )
         refresh()
     }
 }

@@ -1,7 +1,8 @@
 package ru.slartus.boostbuddy.data.repositories
 
 import io.ktor.client.call.body
-import kotlinx.datetime.Clock
+import ru.slartus.boostbuddy.components.filter.AccessType
+import ru.slartus.boostbuddy.components.filter.Filter
 import ru.slartus.boostbuddy.data.api.BoostyApi
 import ru.slartus.boostbuddy.data.api.model.RemoteBlogInfoResponse
 import ru.slartus.boostbuddy.data.repositories.models.Extra
@@ -21,15 +22,11 @@ internal class BlogRepository(
 ) {
     suspend fun fetchPosts(
         url: String,
+        filter: Filter,
         limit: Int = 20,
         offset: String? = null,
         commentsLimit: Int = 0,
         replyLimit: Int = 0,
-        isOnlyAllowed: Boolean? = false,
-        fromDate: Clock? = null,
-        toDate: Clock? = null,
-        tagsIds: List<Int>? = null,
-        onlyBought: Boolean? = null
     ): Result<Posts> =
         fetchOrError {
             val response: PostResponse = boostyApi.blogPosts(
@@ -38,11 +35,12 @@ internal class BlogRepository(
                 offset = offset,
                 commentsLimit = commentsLimit,
                 replyLimit = replyLimit,
-                isOnlyAllowed = isOnlyAllowed,
-                fromDate = fromDate,
-                toDate = toDate,
-                tagsIds = tagsIds,
-                onlyBought = onlyBought,
+                isOnlyAllowed = filter.accessType == AccessType.Allowed,
+                fromDate = filter.period?.from,
+                toDate = filter.period?.to,
+                tagsIds = filter.tags.map { it.id },
+                onlyBought = filter.accessType == AccessType.Bought
+                ,
             ).body()
 
             Posts(

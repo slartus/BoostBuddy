@@ -13,7 +13,8 @@ import io.ktor.client.statement.HttpResponse
 import io.ktor.http.Parameters
 import kotlinx.datetime.Clock
 import ru.slartus.boostbuddy.data.api.model.RemoteBlogInfoResponse
-import ru.slartus.boostbuddy.data.api.model.RemoteTagResponse
+import ru.slartus.boostbuddy.data.api.model.RemoteBlogTagResponse
+import ru.slartus.boostbuddy.data.api.model.RemoteFeedTagResponse
 
 internal class BoostyApi(
     private val httpClient: HttpClient
@@ -48,7 +49,7 @@ internal class BoostyApi(
         isOnlyAllowed: Boolean?,
         fromDate: Clock?,
         toDate: Clock?,
-        tagsIds: List<Int>?,
+        tagsIds: List<String>?,
         onlyBought: Boolean?,
     ): HttpResponse = httpClient.get("v1/blog/$blog/post/") {
         parameter("limit", limit)
@@ -160,7 +161,7 @@ internal class BoostyApi(
     suspend fun feedTag(
         limit: Int,
         offset: String?,
-    ): RemoteTagResponse = httpClient.get("v1/search/feed/tag/") {
+    ): RemoteFeedTagResponse = httpClient.get("v1/search/feed/tag/") {
         parameter("limit", "$limit")
         if (offset != null) {
             parameter("offset", "$offset")
@@ -169,5 +170,5 @@ internal class BoostyApi(
 
     suspend fun blogTag(
         blog: String,
-    ): RemoteTagResponse = httpClient.get("v1/blog/$blog/post/tag/").body()
+    ): RemoteBlogTagResponse = httpClient.get("v1/blog/$blog/post/tag/").body()
 }
