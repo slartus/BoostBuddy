@@ -36,10 +36,12 @@ data class FilterViewState(
 
 @Immutable
 data class Filter(
-    val accessType: AccessType = AccessType.All,
+    val accessType: AccessType = AccessType.Allowed,
     val period: Period? = null,
     val tags: List<Tag> = emptyList()
-)
+) {
+    val isEmpty: Boolean = accessType == AccessType.Allowed && period == null && tags.isEmpty()
+}
 
 data class Period(val from: Clock, val to: Clock)
 

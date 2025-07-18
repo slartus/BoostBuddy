@@ -11,10 +11,13 @@ import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Public
 import androidx.compose.material.icons.filled.ShoppingCart
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -80,8 +83,20 @@ private fun FilterContent(
 ) {
 
     BottomView(
+        modifier = modifier,
         title = "Фильтр",
-        modifier = modifier
+        trailingContent = {
+            if (!state.filter.isEmpty) {
+                TextButton(
+                    onClick = component::onResetClick,
+                    colors = ButtonDefaults.textButtonColors(
+                        contentColor = MaterialTheme.colorScheme.primary
+                    )
+                ) {
+                    Text("Сбросить")
+                }
+            }
+        }
     ) {
         Column(
             modifier = Modifier.verticalScroll(rememberScrollState())

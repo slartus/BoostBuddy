@@ -30,6 +30,7 @@ interface FilterComponent {
     fun onPeriodClick()
     fun onDateRangeReset()
     fun onDateRangeSelected(from: Clock, to: Clock)
+    fun onResetClick()
 
     sealed class DialogChild {
         object Period : DialogChild()
@@ -84,6 +85,10 @@ internal class FilterComponentImpl(
 
     override fun onDateRangeSelected(from: Clock, to: Clock) {
         updateFilter { copy(period = Period(from.startOfDay(), to.endOfDay())) }
+    }
+
+    override fun onResetClick() {
+        updateFilter { Filter() }
     }
 
     private fun createDialogChild(
