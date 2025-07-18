@@ -10,10 +10,8 @@ plugins {
 
 kotlin {
     androidTarget {
-        compilations.all {
-            kotlinOptions {
-                jvmTarget = "17"
-            }
+        compilerOptions {
+            jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
         }
     }
 
@@ -57,7 +55,8 @@ kotlin {
             implementation(libs.kotlinx.serialization.json)
             implementation(libs.kotlinx.datetime)
             implementation(libs.kotlinx.io.core)
-            implementation(libs.multiplatformSettings)
+            implementation(libs.settings.core)
+            implementation(libs.settings.coroutines)
             implementation(libs.kodein.core)
             implementation(libs.kodein.conf)
             implementation(libs.collections.immutable)
@@ -94,7 +93,7 @@ kotlin {
 
 android {
     namespace = "ru.slartus.boostbuddy"
-    compileSdk = 34
+    compileSdk = 35
 
     defaultConfig {
         minSdk = 24
@@ -102,7 +101,7 @@ android {
 
         applicationId = "ru.slartus.boostbuddy"
         versionCode = 72
-        versionName = "1.6.0"
+        versionName = "1.7.0"
     }
     sourceSets["main"].apply {
         manifest.srcFile("src/androidMain/AndroidManifest.xml")

@@ -1,63 +1,61 @@
 package ru.slartus.boostbuddy.data.repositories
 
-import com.russhwolf.settings.Settings
+import com.russhwolf.settings.ExperimentalSettingsApi
+import com.russhwolf.settings.ObservableSettings
+import com.russhwolf.settings.coroutines.getBooleanFlow
+import com.russhwolf.settings.coroutines.getBooleanOrNullFlow
+import com.russhwolf.settings.coroutines.getStringOrNullStateFlow
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
-import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 
+@OptIn(ExperimentalSettingsApi::class)
 internal class SettingsRepository(
-    private val settings: Settings
+    private val settings: ObservableSettings,
+    private val coroutineScope: CoroutineScope,
 ) {
     private val locker = Mutex()
-    private val tokenBus: MutableStateFlow<String?> = MutableStateFlow(
-        null
-    )
 
     val tokenFlow: StateFlow<String?>
-        get() = tokenBus.asStateFlow()
+        get() = settings.getStringOrNullStateFlow(coroutineScope, ACCESS_TOKEN_KEY)
 
-    private val appSettingsBus: MutableStateFlow<AppSettings> = MutableStateFlow(
-        AppSettings.Default
-    )
+    val appSettingsFlow: Flow<AppSettings>
+        get() = combine(
+            settings.getBooleanOrNullFlow(DARK_MODE_KEY),
+            settings.getBooleanFlow(SYSTEM_PLAYER_KEY, false),
+            settings.getBooleanFlow(DEBUG_LOG, false)
+        ) { darkMode, systemPlayer, debugLog ->
+            AppSettings(
+                isDarkMode = darkMode,
+                useSystemVideoPlayer = systemPlayer,
+                debugLog = debugLog
+            )
+        }
 
-    val appSettingsFlow: StateFlow<AppSettings>
-        get() = appSettingsBus.asStateFlow()
-
-    init {
-        tokenBus.value = settings.getStringOrNull(ACCESS_TOKEN_KEY)
-        refreshAppSettings()
+    suspend fun getSettings(): AppSettings = withContext(Dispatchers.IO) {
+        AppSettings(
+            isDarkMode = settings.getBooleanOrNull(DARK_MODE_KEY),
+            useSystemVideoPlayer = settings.getBoolean(SYSTEM_PLAYER_KEY, false),
+            debugLog = settings.getBoolean(DEBUG_LOG, false)
+        )
     }
-
-    private fun refreshAppSettings() {
-        appSettingsBus.value =  loadAppSettings()
-    }
-
-    private fun loadAppSettings(): AppSettings = AppSettings(
-        isDarkMode = settings.getBooleanOrNull(DARK_MODE_KEY),
-        useSystemVideoPlayer = settings.getBoolean(SYSTEM_PLAYER_KEY, false),
-        debugLog = settings.getBoolean(DEBUG_LOG, false)
-    )
-
-    suspend fun getSettings(): AppSettings = appSettingsBus.value
 
     suspend fun setDarkMode(value: Boolean) = withContext(Dispatchers.IO) {
         putBoolean(DARK_MODE_KEY, value)
-        refreshAppSettings()
     }
 
     suspend fun setUseSystemVideoPlayer(value: Boolean) = withContext(Dispatchers.IO) {
         putBoolean(SYSTEM_PLAYER_KEY, value)
-        refreshAppSettings()
     }
 
     suspend fun setDebugLog(value: Boolean) = withContext(Dispatchers.IO) {
         putBoolean(DEBUG_LOG, value)
-        refreshAppSettings()
     }
 
     suspend fun putAccessToken(value: String?) = withContext(Dispatchers.IO) {
@@ -65,7 +63,6 @@ internal class SettingsRepository(
             remove(ACCESS_TOKEN_KEY)
         else
             putString(ACCESS_TOKEN_KEY, value)
-        tokenBus.value = value
     }
 
     suspend fun getAccessToken(): String? = getString(ACCESS_TOKEN_KEY)

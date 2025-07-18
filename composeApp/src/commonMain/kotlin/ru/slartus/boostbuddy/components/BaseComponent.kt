@@ -2,6 +2,7 @@ package ru.slartus.boostbuddy.components
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.Stable
 import androidx.compose.runtime.State
 import androidx.compose.runtime.collectAsState
 import com.arkivanov.decompose.ComponentContext
@@ -24,6 +25,7 @@ import kotlinx.coroutines.launch
 import kotlin.coroutines.CoroutineContext
 import kotlin.coroutines.EmptyCoroutineContext
 
+@Stable
 interface AppComponent<Action> {
     val scope: CoroutineScope
     fun onActionInvoked()

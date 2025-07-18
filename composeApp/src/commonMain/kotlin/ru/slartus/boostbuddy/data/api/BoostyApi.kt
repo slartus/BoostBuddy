@@ -1,4 +1,4 @@
-package ru.slartus.boostbuddy.data.repositories
+package ru.slartus.boostbuddy.data.api
 
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
@@ -11,10 +11,15 @@ import io.ktor.client.request.put
 import io.ktor.client.request.setBody
 import io.ktor.client.statement.HttpResponse
 import io.ktor.http.Parameters
+import kotlinx.datetime.Clock
+import ru.slartus.boostbuddy.data.api.model.RemoteBlogInfoResponse
+import ru.slartus.boostbuddy.data.api.model.RemoteBlogTagResponse
+import ru.slartus.boostbuddy.data.api.model.RemoteFeedTagResponse
 
 internal class BoostyApi(
     private val httpClient: HttpClient
 ) {
+    @Suppress("unused")
     suspend fun refreshToken(deviceId: String, refreshToken: String): HttpResponse =
         httpClient
             .post("oauth/token/") {
@@ -40,25 +45,45 @@ internal class BoostyApi(
         limit: Int,
         offset: String?,
         commentsLimit: Int,
-        replyLimit: Int
+        replyLimit: Int,
+        isOnlyAllowed: Boolean?,
+        fromDate: Clock?,
+        toDate: Clock?,
+        tagsIds: List<String>?,
+        onlyBought: Boolean?,
     ): HttpResponse = httpClient.get("v1/blog/$blog/post/") {
         parameter("limit", limit)
-        offset?.let {
-            parameter("offset", offset)
-        }
         parameter("comments_limit", commentsLimit)
         parameter("reply_limit", replyLimit)
+        if (offset != null)
+            parameter("offset", "$offset")
+        if (isOnlyAllowed != null)
+            parameter("is_only_allowed", isOnlyAllowed)
+        if (onlyBought != null)
+            parameter("only_bought", onlyBought)
+        if (fromDate != null)
+            parameter("from_ts", fromDate.now().epochSeconds)
+        if (toDate != null)
+            parameter("to_ts", toDate.now().epochSeconds)
+        if (!tagsIds.isNullOrEmpty()) {
+            parameter("tags_ids", tagsIds.joinToString(","))
+        }
     }
 
     suspend fun blogInfo(
         blogUrl: String
-    ): HttpResponse = httpClient.get("v1/blog/$blogUrl")
+    ): RemoteBlogInfoResponse = httpClient.get("v1/blog/$blogUrl").body()
 
     suspend fun feed(
         limit: Int,
         offset: String?,
         commentsLimit: Int,
-        replyLimit: Int
+        replyLimit: Int,
+        isOnlyAllowed: Boolean?,
+        onlyBought: Boolean?,
+        fromDate: Clock?,
+        toDate: Clock?,
+        tagsIds: List<String>,
     ): HttpResponse = httpClient.get("v1/feed/post/") {
         parameter("limit", limit)
         offset?.let {
@@ -66,7 +91,16 @@ internal class BoostyApi(
         }
         parameter("comments_limit", commentsLimit)
         parameter("reply_limit", replyLimit)
-        parameter("only_allowed", "true")
+        if (isOnlyAllowed != null)
+            parameter("only_allowed", isOnlyAllowed)
+        if (onlyBought != null)
+            parameter("only_bought", onlyBought)
+        if (tagsIds.isNotEmpty())
+            parameter("tags_ids", tagsIds.joinToString(separator = ","))
+        if (fromDate != null)
+            parameter("from_ts", fromDate.now().epochSeconds)
+        if (toDate != null)
+            parameter("to_ts", toDate.now().epochSeconds)
     }
 
     suspend fun post(
@@ -123,4 +157,18 @@ internal class BoostyApi(
 
     suspend fun events(
     ): HttpResponse = httpClient.get("v1/notification/standalone/event/")
+
+    suspend fun feedTag(
+        limit: Int,
+        offset: String?,
+    ): RemoteFeedTagResponse = httpClient.get("v1/search/feed/tag/") {
+        parameter("limit", "$limit")
+        if (offset != null) {
+            parameter("offset", "$offset")
+        }
+    }.body()
+
+    suspend fun blogTag(
+        blog: String,
+    ): RemoteBlogTagResponse = httpClient.get("v1/blog/$blog/post/tag/").body()
 }

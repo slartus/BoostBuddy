@@ -1,5 +1,8 @@
 package ru.slartus.boostbuddy.components.subscribes
 
+import androidx.compose.runtime.Stable
+
+@Stable
 interface LogoutDialogComponent {
     fun onDismissed()
     fun onAcceptClicked()

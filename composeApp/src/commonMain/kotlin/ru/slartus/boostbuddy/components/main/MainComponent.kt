@@ -9,6 +9,7 @@ import kotlinx.serialization.Serializable
 import ru.slartus.boostbuddy.components.BaseComponent
 import ru.slartus.boostbuddy.components.feed.FeedComponent
 import ru.slartus.boostbuddy.components.feed.FeedComponentImpl
+import ru.slartus.boostbuddy.components.filter.Filter
 import ru.slartus.boostbuddy.components.subscribes.SubscribesComponent
 import ru.slartus.boostbuddy.components.subscribes.SubscribesComponentImpl
 import ru.slartus.boostbuddy.components.top_bar.TopBarComponent
@@ -40,7 +41,9 @@ internal class MainComponentImpl(
 
     override val topBarComponent: TopBarComponent = TopBarComponentImpl(
         componentContext,
-        onRefresh = { refresh() }
+        filter = feedComponent.filter,
+        onRefresh = ::refresh,
+        onFilter = ::onFilter
     )
 
     init {
@@ -71,6 +74,10 @@ internal class MainComponentImpl(
     private fun refresh() {
         feedComponent.refresh()
         subscribesComponent.refresh()
+    }
+
+    private fun onFilter(filter: Filter) {
+        feedComponent.filter(filter)
     }
 
     @Serializable
