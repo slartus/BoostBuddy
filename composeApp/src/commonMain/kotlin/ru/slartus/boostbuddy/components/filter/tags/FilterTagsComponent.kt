@@ -20,6 +20,7 @@ interface FilterTagsComponent {
     fun onTagSelect(tagModel: TagItem.TagModel)
     fun onRepeatClick()
     fun loadNextPage()
+    fun onResetClick()
 }
 
 class FilterTagsComponentImpl(
@@ -44,7 +45,7 @@ class FilterTagsComponentImpl(
     override fun onTagSelect(tagModel: TagItem.TagModel) {
         val updatedTags = updateTagSelection(tagModel)
         viewState = viewState.copy(tags = updatedTags)
-        notifyTagsChanged(updatedTags)
+        notifyTagsChanged()
     }
 
     override fun onRepeatClick() {
@@ -53,6 +54,16 @@ class FilterTagsComponentImpl(
 
     override fun loadNextPage() {
         fetchTags(viewState.extra?.offset)
+    }
+
+    override fun onResetClick() {
+        viewState = viewState.copy(tags = viewState.tags.map { item->
+            when (item) {
+                is TagItem.TagModel -> item.copy(selected = false)
+                else -> item
+            }
+        }.toImmutableList())
+        notifyTagsChanged()
     }
 
     private fun loadInitialTags() {
@@ -110,9 +121,9 @@ class FilterTagsComponentImpl(
         }.toImmutableList()
     }
 
-    private fun notifyTagsChanged(tags: List<TagItem>) {
+    private fun notifyTagsChanged() {
         onTagsChange(
-            tags.filterIsInstance<TagItem.TagModel>()
+            viewState.tags.filterIsInstance<TagItem.TagModel>()
                 .filter { it.selected }
                 .map { it.tag }
         )
