@@ -14,7 +14,10 @@ import io.ktor.http.Parameters
 import kotlinx.datetime.Clock
 import ru.slartus.boostbuddy.data.api.model.RemoteBlogInfoResponse
 import ru.slartus.boostbuddy.data.api.model.RemoteBlogTagResponse
+import ru.slartus.boostbuddy.data.api.model.RemoteFeedResponse
 import ru.slartus.boostbuddy.data.api.model.RemoteFeedTagResponse
+import ru.slartus.boostbuddy.data.api.model.RemotePostResponse
+import ru.slartus.boostbuddy.data.api.model.RemoteSearchResponse
 
 internal class BoostyApi(
     private val httpClient: HttpClient
@@ -51,7 +54,7 @@ internal class BoostyApi(
         toDate: Clock?,
         tagsIds: List<String>?,
         onlyBought: Boolean?,
-    ): HttpResponse = httpClient.get("v1/blog/$blog/post/") {
+    ): RemotePostResponse = httpClient.get("v1/blog/$blog/post/") {
         parameter("limit", limit)
         parameter("comments_limit", commentsLimit)
         parameter("reply_limit", replyLimit)
@@ -68,7 +71,40 @@ internal class BoostyApi(
         if (!tagsIds.isNullOrEmpty()) {
             parameter("tags_ids", tagsIds.joinToString(","))
         }
-    }
+    }.body()
+
+    suspend fun blogSearchPosts(
+        blog: String,
+        limit: Int,
+        offset: String?,
+        commentsLimit: Int,
+        replyLimit: Int,
+        isOnlyAllowed: Boolean?,
+        fromDate: Clock?,
+        toDate: Clock?,
+        tagsIds: List<String>?,
+        onlyBought: Boolean?,
+        query: String,
+    ): RemoteSearchResponse = httpClient.get("v1/search/blog/post/") {
+        parameter("blog_url", blog)
+        parameter("limit", limit)
+        parameter("comments_limit", commentsLimit)
+        parameter("reply_limit", replyLimit)
+        parameter("search_query", query)
+        if (offset != null)
+            parameter("offset", "$offset")
+        if (isOnlyAllowed != null)
+            parameter("is_only_allowed", isOnlyAllowed)
+        if (onlyBought != null)
+            parameter("only_bought", onlyBought)
+        if (fromDate != null)
+            parameter("from_ts", fromDate.now().epochSeconds)
+        if (toDate != null)
+            parameter("to_ts", toDate.now().epochSeconds)
+        if (!tagsIds.isNullOrEmpty()) {
+            parameter("tags_ids", tagsIds.joinToString(","))
+        }
+    }.body()
 
     suspend fun blogInfo(
         blogUrl: String
@@ -84,7 +120,7 @@ internal class BoostyApi(
         fromDate: Clock?,
         toDate: Clock?,
         tagsIds: List<String>,
-    ): HttpResponse = httpClient.get("v1/feed/post/") {
+    ): RemoteFeedResponse = httpClient.get("v1/feed/post/") {
         parameter("limit", limit)
         offset?.let {
             parameter("offset", offset)
@@ -101,7 +137,38 @@ internal class BoostyApi(
             parameter("from_ts", fromDate.now().epochSeconds)
         if (toDate != null)
             parameter("to_ts", toDate.now().epochSeconds)
-    }
+    }.body()
+
+    suspend fun feedSearch(
+        limit: Int,
+        offset: String?,
+        commentsLimit: Int,
+        replyLimit: Int,
+        isOnlyAllowed: Boolean?,
+        onlyBought: Boolean?,
+        fromDate: Clock?,
+        toDate: Clock?,
+        tagsIds: List<String>,
+        query: String,
+    ): RemoteSearchResponse = httpClient.get("v1/search/feed/post/") {
+        parameter("limit", limit)
+        offset?.let {
+            parameter("offset", offset)
+        }
+        parameter("comments_limit", commentsLimit)
+        parameter("reply_limit", replyLimit)
+        if (isOnlyAllowed != null)
+            parameter("only_allowed", isOnlyAllowed)
+        if (onlyBought != null)
+            parameter("only_bought", onlyBought)
+        if (tagsIds.isNotEmpty())
+            parameter("tags_ids", tagsIds.joinToString(separator = ","))
+        if (fromDate != null)
+            parameter("from_ts", fromDate.now().epochSeconds)
+        if (toDate != null)
+            parameter("to_ts", toDate.now().epochSeconds)
+        parameter("search_query", query)
+    }.body()
 
     suspend fun post(
         blog: String,
