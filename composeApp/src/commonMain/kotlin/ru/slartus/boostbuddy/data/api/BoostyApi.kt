@@ -14,6 +14,8 @@ import io.ktor.http.Parameters
 import kotlinx.datetime.Clock
 import ru.slartus.boostbuddy.data.api.model.RemoteBlogInfoResponse
 import ru.slartus.boostbuddy.data.api.model.RemoteBlogTagResponse
+import ru.slartus.boostbuddy.data.api.model.RemoteFeedResponse
+import ru.slartus.boostbuddy.data.api.model.RemoteFeedSearchResponse
 import ru.slartus.boostbuddy.data.api.model.RemoteFeedTagResponse
 
 internal class BoostyApi(
@@ -84,7 +86,7 @@ internal class BoostyApi(
         fromDate: Clock?,
         toDate: Clock?,
         tagsIds: List<String>,
-    ): HttpResponse = httpClient.get("v1/feed/post/") {
+    ): RemoteFeedResponse = httpClient.get("v1/feed/post/") {
         parameter("limit", limit)
         offset?.let {
             parameter("offset", offset)
@@ -101,7 +103,38 @@ internal class BoostyApi(
             parameter("from_ts", fromDate.now().epochSeconds)
         if (toDate != null)
             parameter("to_ts", toDate.now().epochSeconds)
-    }
+    }.body()
+
+    suspend fun feedSearch(
+        limit: Int,
+        offset: String?,
+        commentsLimit: Int,
+        replyLimit: Int,
+        isOnlyAllowed: Boolean?,
+        onlyBought: Boolean?,
+        fromDate: Clock?,
+        toDate: Clock?,
+        tagsIds: List<String>,
+        query: String,
+    ): RemoteFeedSearchResponse = httpClient.get("v1/search/feed/post/") {
+        parameter("limit", limit)
+        offset?.let {
+            parameter("offset", offset)
+        }
+        parameter("comments_limit", commentsLimit)
+        parameter("reply_limit", replyLimit)
+        if (isOnlyAllowed != null)
+            parameter("only_allowed", isOnlyAllowed)
+        if (onlyBought != null)
+            parameter("only_bought", onlyBought)
+        if (tagsIds.isNotEmpty())
+            parameter("tags_ids", tagsIds.joinToString(separator = ","))
+        if (fromDate != null)
+            parameter("from_ts", fromDate.now().epochSeconds)
+        if (toDate != null)
+            parameter("to_ts", toDate.now().epochSeconds)
+        parameter("search_query", query)
+    }.body()
 
     suspend fun post(
         blog: String,

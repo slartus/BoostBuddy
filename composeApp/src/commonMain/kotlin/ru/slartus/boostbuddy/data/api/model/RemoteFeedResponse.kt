@@ -1,9 +1,10 @@
-package ru.slartus.boostbuddy.data.repositories.models
+package ru.slartus.boostbuddy.data.api.model
 
 import kotlinx.serialization.Serializable
+import ru.slartus.boostbuddy.data.repositories.models.PostResponse
 
 @Serializable
-internal data class FeedResponse(
+internal data class RemoteFeedResponse(
     val data: Data? = null,
     val extra: PostResponse.Extra? = null
 ){

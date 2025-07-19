@@ -43,7 +43,8 @@ internal class MainComponentImpl(
         componentContext,
         filter = feedComponent.filter,
         onRefresh = ::refresh,
-        onFilter = ::onFilter
+        onFilter = ::onFilter,
+        onSearchQuery = ::onSearchQuery,
     )
 
     init {
@@ -78,6 +79,10 @@ internal class MainComponentImpl(
 
     private fun onFilter(filter: Filter) {
         feedComponent.filter(filter)
+    }
+
+    private fun onSearchQuery(query: String) {
+        feedComponent.search(query)
     }
 
     @Serializable

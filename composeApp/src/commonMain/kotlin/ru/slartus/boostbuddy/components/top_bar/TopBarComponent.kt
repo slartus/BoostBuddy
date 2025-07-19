@@ -19,6 +19,7 @@ interface TopBarComponent {
     fun onSettingsClicked()
     fun onFeedbackClicked()
     fun onFilterClicked()
+    fun onSearchQueryChange(query: String)
 }
 
 internal class TopBarComponentImpl(
@@ -26,6 +27,7 @@ internal class TopBarComponentImpl(
     private var filter: Filter,
     private val onRefresh: () -> Unit,
     private val onFilter: (filter: Filter) -> Unit,
+    private val onSearchQuery: (query: String) -> Unit,
 ) : BaseComponent<Unit, Unit>(
     componentContext,
     Unit
@@ -82,6 +84,10 @@ internal class TopBarComponentImpl(
                 onFilter(newFilter)
             }
         )
+    }
+
+    override fun onSearchQueryChange(query: String) {
+        onSearchQuery(query)
     }
 
     companion object {
