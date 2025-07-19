@@ -24,7 +24,6 @@ import ru.slartus.boostbuddy.ui.common.BackHandlerEffect
 import ru.slartus.boostbuddy.ui.common.onAppKeyEvent
 import ru.slartus.boostbuddy.ui.screens.FeedScreen
 import ru.slartus.boostbuddy.ui.screens.SubscribesScreen
-import ru.slartus.boostbuddy.ui.screens.TopAppBar
 
 @Composable
 internal fun MainScreen(component: MainComponent) {
@@ -65,8 +64,7 @@ internal fun MainScreen(component: MainComponent) {
             return@onAppKeyEvent false
         },
         topBar = {
-            TopAppBar(
-                title = "Лента",
+            MainTopAppBar(
                 component = component.topBarComponent,
                 onMenuClick = {
                     scope.launch {
