@@ -28,6 +28,7 @@ import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import ru.slartus.boostbuddy.ui.common.BackHandlerEffect
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -42,6 +43,9 @@ internal fun TopAppBar(
     var searchState by remember { mutableStateOf(SearchState()) }
     val focusRequester = remember { FocusRequester() }
 
+    BackHandlerEffect(searchState.isActive){
+        searchState = searchState.copy(query = "", isActive = false)
+    }
     HandleSearchStateChanges(
         searchState = searchState,
         onSearchStateChange = { searchState = it },
@@ -75,17 +79,17 @@ internal fun TopAppBar(
             }
         },
         actions = {
-            if (searchState.isActive) return@TopAppBar
+            if (!searchState.isActive) {
+                SearchAction { searchState = SearchState(isActive = true) }
+                IconButton(onClick = onFilterClick) {
+                    Icon(Icons.Filled.FilterList, "Фильтр")
+                }
+                IconButton(onClick = onRefreshClick) {
+                    Icon(Icons.Filled.Refresh, "Обновить")
+                }
 
-            SearchAction { searchState = SearchState(isActive = true) }
-            IconButton(onClick = onFilterClick) {
-                Icon(Icons.Filled.FilterList, "Фильтр")
+                actions()
             }
-            IconButton(onClick = onRefreshClick) {
-                Icon(Icons.Filled.Refresh, "Обновить")
-            }
-
-            actions()
         }
     )
 }
