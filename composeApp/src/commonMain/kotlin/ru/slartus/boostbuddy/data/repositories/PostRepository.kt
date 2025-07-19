@@ -2,10 +2,10 @@ package ru.slartus.boostbuddy.data.repositories
 
 import io.ktor.client.call.body
 import ru.slartus.boostbuddy.data.api.BoostyApi
+import ru.slartus.boostbuddy.data.api.model.RemotePostResponse
 import ru.slartus.boostbuddy.data.repositories.models.Poll
 import ru.slartus.boostbuddy.data.repositories.models.PollResponse
 import ru.slartus.boostbuddy.data.repositories.models.Post
-import ru.slartus.boostbuddy.data.repositories.models.PostResponse
 import ru.slartus.boostbuddy.utils.fetchOrError
 
 internal class PostRepository(
@@ -13,7 +13,7 @@ internal class PostRepository(
 ) {
     suspend fun getPost(blog: String, id: String): Result<Post> =
         fetchOrError {
-            val response: PostResponse.Post = boostyApi.post(
+            val response: RemotePostResponse.Post = boostyApi.post(
                 blog = blog,
                 postId = id,
                 commentsLimit = 20,

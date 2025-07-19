@@ -1,12 +1,11 @@
 package ru.slartus.boostbuddy.data.api.model
 
 import kotlinx.serialization.Serializable
-import ru.slartus.boostbuddy.data.repositories.models.PostResponse
 
 @Serializable
-internal class RemoteFeedSearchResponse(
+internal class RemoteSearchResponse(
     val data: Data? = null,
-    val extra: PostResponse.Extra? = null
+    val extra: RemotePostResponse.Extra? = null
 ){
     @Serializable
     class Data(
@@ -15,6 +14,6 @@ internal class RemoteFeedSearchResponse(
 
     @Serializable
     class SearchPost(
-        val post: PostResponse.Post? = null
+        val post: RemotePostResponse.Post? = null
     )
 }

@@ -1,16 +1,15 @@
 package ru.slartus.boostbuddy.data.repositories
 
-import io.ktor.client.call.body
 import ru.slartus.boostbuddy.components.filter.AccessType
 import ru.slartus.boostbuddy.components.filter.Filter
 import ru.slartus.boostbuddy.data.api.BoostyApi
 import ru.slartus.boostbuddy.data.api.model.RemoteBlogInfoResponse
+import ru.slartus.boostbuddy.data.api.model.RemotePostResponse
 import ru.slartus.boostbuddy.data.repositories.models.Extra
 import ru.slartus.boostbuddy.data.repositories.models.Poll
 import ru.slartus.boostbuddy.data.repositories.models.PollOption
 import ru.slartus.boostbuddy.data.repositories.models.Post
 import ru.slartus.boostbuddy.data.repositories.models.PostCount
-import ru.slartus.boostbuddy.data.repositories.models.PostResponse
 import ru.slartus.boostbuddy.data.repositories.models.Posts
 import ru.slartus.boostbuddy.data.repositories.models.mapToContentOrNull
 import ru.slartus.boostbuddy.data.repositories.models.mapToUserOrNull
@@ -29,7 +28,7 @@ internal class BlogRepository(
         replyLimit: Int = 0,
     ): Result<Posts> =
         fetchOrError {
-            val response: PostResponse = boostyApi.blogPosts(
+            val response = boostyApi.blogPosts(
                 blog = url,
                 limit = limit,
                 offset = offset,
@@ -39,12 +38,42 @@ internal class BlogRepository(
                 fromDate = filter.period?.from,
                 toDate = filter.period?.to,
                 tagsIds = filter.tags.map { it.id },
-                onlyBought = filter.accessType == AccessType.Bought
-                ,
-            ).body()
+                onlyBought = filter.accessType == AccessType.Bought,
+            )
 
             Posts(
                 items = response.data?.mapNotNull { it.mapToPostOrNull() } ?: emptyList(),
+                extra = response.extra?.mapToExtraOrNull(),
+            )
+        }
+
+    suspend fun searchPosts(
+        url: String,
+        filter: Filter,
+        query: String,
+        limit: Int = 20,
+        offset: String? = null,
+        commentsLimit: Int = 0,
+        replyLimit: Int = 0,
+    ): Result<Posts> =
+        fetchOrError {
+            val response = boostyApi.blogSearchPosts(
+                blog = url,
+                limit = limit,
+                offset = offset,
+                commentsLimit = commentsLimit,
+                replyLimit = replyLimit,
+                isOnlyAllowed = filter.accessType == AccessType.Allowed,
+                fromDate = filter.period?.from,
+                toDate = filter.period?.to,
+                tagsIds = filter.tags.map { it.id },
+                onlyBought = filter.accessType == AccessType.Bought,
+                query = query,
+            )
+
+            Posts(
+                items = response.data?.searchPosts?.mapNotNull { it.post?.mapToPostOrNull() }
+                    ?: emptyList(),
                 extra = response.extra?.mapToExtraOrNull(),
             )
         }
@@ -66,14 +95,14 @@ internal class BlogRepository(
         }
 }
 
-internal fun PostResponse.Extra.mapToExtraOrNull(): Extra? {
+internal fun RemotePostResponse.Extra.mapToExtraOrNull(): Extra? {
     return Extra(
         offset = offset ?: return null,
         isLast = isLast ?: true
     )
 }
 
-internal fun PostResponse.Post.mapToPostOrNull(): Post? {
+internal fun RemotePostResponse.Post.mapToPostOrNull(): Post? {
     return Post(
         id = id ?: return null,
         createdAt = createdAt ?: return null,
@@ -89,7 +118,7 @@ internal fun PostResponse.Post.mapToPostOrNull(): Post? {
     )
 }
 
-internal fun PostResponse.Poll.mapToPostPollOrNull(): Poll? {
+internal fun RemotePostResponse.Poll.mapToPostPollOrNull(): Poll? {
     return Poll(
         id = id ?: return null,
         title = title.orEmpty(),
@@ -102,7 +131,7 @@ internal fun PostResponse.Poll.mapToPostPollOrNull(): Poll? {
     )
 }
 
-private fun PostResponse.PollOption.mapToPostPollOptionOrNull(): PollOption? {
+private fun RemotePostResponse.PollOption.mapToPostPollOptionOrNull(): PollOption? {
     return PollOption(
         id = id ?: return null,
         text = text.orEmpty(),

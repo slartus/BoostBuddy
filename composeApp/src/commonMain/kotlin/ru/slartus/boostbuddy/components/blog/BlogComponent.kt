@@ -44,6 +44,7 @@ interface BlogComponent {
     fun onDeleteVoteClicked(post: Post, poll: Poll)
     fun onFilterClick()
     fun onDialogDismissed()
+    fun onSearchQueryChange(query: String)
 
     sealed class DialogChild {
         data class Filter(val component: FilterComponent) : DialogChild()
@@ -116,7 +117,21 @@ class BlogComponentImpl(
     }
 
     override suspend fun fetch(offset: String?): Result<Posts> =
-        blogRepository.fetchPosts(url = blog.blogUrl, offset = offset, filter = viewState.filter)
+        if (viewState.searchQuery.isEmpty()) {
+            blogRepository.fetchPosts(
+                url = blog.blogUrl,
+                offset = offset,
+                filter = viewState.filter
+            )
+        } else {
+            blogRepository.searchPosts(
+                url = blog.blogUrl,
+                offset = offset,
+                filter = viewState.filter,
+                query = viewState.searchQuery
+            )
+        }
+
 
     override fun onProgressStateChanged(progressState: ProgressState) {
         viewState = viewState.copy(progressState = progressState)
@@ -144,6 +159,11 @@ class BlogComponentImpl(
 
     override fun onDialogDismissed() {
         dialogNavigation.dismiss()
+    }
+
+    override fun onSearchQueryChange(query: String) {
+        viewState = viewState.copy(searchQuery = query)
+        refresh()
     }
 
     @Serializable
