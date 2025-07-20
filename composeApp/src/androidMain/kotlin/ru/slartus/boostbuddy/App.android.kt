@@ -15,6 +15,7 @@ import androidx.lifecycle.LifecycleOwner
 import com.arkivanov.decompose.defaultComponentContext
 import ru.slartus.boostbuddy.components.RootComponentImpl
 import ru.slartus.boostbuddy.data.Inject
+import ru.slartus.boostbuddy.data.analytic.AppMetricaAnalyticsTracker
 import ru.slartus.boostbuddy.data.log.debugLogBuild
 import ru.slartus.boostbuddy.ui.common.LocalPlatformConfiguration
 import ru.slartus.boostbuddy.ui.screens.RootScreen
@@ -25,7 +26,6 @@ import ru.slartus.boostbuddy.utils.PlatformConfiguration
 import ru.slartus.boostbuddy.utils.PlatformDataConfiguration
 import ru.slartus.boostbuddy.utils.UnauthorizedException
 
-
 class AndroidApp : Application() {
     companion object {
         lateinit var INSTANCE: AndroidApp
@@ -35,11 +35,18 @@ class AndroidApp : Application() {
         super.onCreate()
         INSTANCE = this
         debugLogBuild()
-        PlatformDataConfiguration.createDependenciesTree(PlatformConfiguration(this, getPlatform()))
+        PlatformDataConfiguration.createDependenciesTree(
+            PlatformConfiguration(this, getPlatform()),
+            buildList {
+                if (!BuildConfig.DEBUG) {
+                    add(AppMetricaAnalyticsTracker(this@AndroidApp))
+                }
+            }
+        )
     }
 
     private fun getPlatform(): Platform {
-        return if(isDirectToTV()) Platform.AndroidTV else Platform.Android
+        return if (isDirectToTV()) Platform.AndroidTV else Platform.Android
     }
 
     private fun isDirectToTV(): Boolean {

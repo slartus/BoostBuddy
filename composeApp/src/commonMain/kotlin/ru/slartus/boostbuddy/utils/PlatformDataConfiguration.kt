@@ -13,6 +13,9 @@ import org.kodein.di.bindSingleton
 import org.kodein.di.instance
 import org.kodein.di.new
 import ru.slartus.boostbuddy.data.Inject
+import ru.slartus.boostbuddy.data.analytic.AnalyticsTracker
+import ru.slartus.boostbuddy.data.analytic.CompositeAnalytics
+import ru.slartus.boostbuddy.data.analytic.LogAnalytics
 import ru.slartus.boostbuddy.data.api.BoostyApi
 import ru.slartus.boostbuddy.data.ktor.buildBoostyHttpClient
 import ru.slartus.boostbuddy.data.ktor.buildGithubHttpClient
@@ -38,9 +41,22 @@ import ru.slartus.boostbuddy.navigation.NavigationRouterImpl
 object PlatformDataConfiguration {
     private const val TAG_HTTP_CLIENT_BOOSTY = "boosty"
     private const val TAG_HTTP_CLIENT_GITHUB = "github"
-    fun createDependenciesTree(platformConfiguration: PlatformConfiguration) {
+    fun createDependenciesTree(
+        platformConfiguration: PlatformConfiguration,
+        analyticsTrackers: List<AnalyticsTracker>
+    ) {
         Inject.createDependenciesTree {
             bindSingleton<Logger> { CompositeLogger(listOf(NapierProxy())) }
+            bindSingleton<AnalyticsTracker> {
+                CompositeAnalytics(
+                    buildList {
+                        addAll(analyticsTrackers)
+                        if (platformConfiguration.isDebug) {
+                            add(LogAnalytics())
+                        }
+                    }
+                )
+            }
             bindSingleton {
                 CoroutineScope(
                     SupervisorJob() + Dispatchers.IO +

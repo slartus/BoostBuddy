@@ -74,6 +74,7 @@ kotlin {
             implementation(libs.compose.uitooling)
             implementation(libs.kotlinx.coroutines.android)
             implementation(libs.ktor.okhttp)
+            implementation(libs.appmetrica)
 
             implementation(libs.exoplayer.core)
             implementation(libs.exoplayer.dash)

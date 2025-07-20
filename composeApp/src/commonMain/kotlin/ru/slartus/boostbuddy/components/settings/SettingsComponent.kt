@@ -6,6 +6,7 @@ import com.arkivanov.decompose.value.Value
 import kotlinx.coroutines.launch
 import ru.slartus.boostbuddy.components.BaseComponent
 import ru.slartus.boostbuddy.data.Inject
+import ru.slartus.boostbuddy.data.analytic.analytics
 import ru.slartus.boostbuddy.data.log.logger
 import ru.slartus.boostbuddy.data.repositories.AppSettings
 import ru.slartus.boostbuddy.data.repositories.SettingsRepository
@@ -66,6 +67,7 @@ internal class SettingsComponentImpl(
     }
 
     override fun onDonateClicked() {
+        analytics.trackEvent("Donate", mapOf("action" to "click"))
         when (platformConfiguration.platform) {
             Platform.Android,
             Platform.iOS -> platformConfiguration.openBrowser(
