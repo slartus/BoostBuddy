@@ -16,6 +16,10 @@ import ru.slartus.boostbuddy.data.Inject
 import ru.slartus.boostbuddy.data.api.BoostyApi
 import ru.slartus.boostbuddy.data.ktor.buildBoostyHttpClient
 import ru.slartus.boostbuddy.data.ktor.buildGithubHttpClient
+import ru.slartus.boostbuddy.data.log.CompositeLogger
+import ru.slartus.boostbuddy.data.log.Logger
+import ru.slartus.boostbuddy.data.log.NapierProxy
+import ru.slartus.boostbuddy.data.log.logger
 import ru.slartus.boostbuddy.data.repositories.AppSettings
 import ru.slartus.boostbuddy.data.repositories.BlogRepository
 import ru.slartus.boostbuddy.data.repositories.EventsRepository
@@ -36,11 +40,12 @@ object PlatformDataConfiguration {
     private const val TAG_HTTP_CLIENT_GITHUB = "github"
     fun createDependenciesTree(platformConfiguration: PlatformConfiguration) {
         Inject.createDependenciesTree {
+            bindSingleton<Logger> { CompositeLogger(listOf(NapierProxy())) }
             bindSingleton {
                 CoroutineScope(
                     SupervisorJob() + Dispatchers.IO +
                             CoroutineExceptionHandler { _, exception ->
-                                Napier.e("Main scope error", exception)
+                                logger.e(exception, "Main scope error")
                             }
                 )
             }

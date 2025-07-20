@@ -3,10 +3,10 @@ package ru.slartus.boostbuddy.components.settings
 import androidx.compose.runtime.Stable
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.value.Value
-import io.github.aakira.napier.Napier
 import kotlinx.coroutines.launch
 import ru.slartus.boostbuddy.components.BaseComponent
 import ru.slartus.boostbuddy.data.Inject
+import ru.slartus.boostbuddy.data.log.logger
 import ru.slartus.boostbuddy.data.repositories.AppSettings
 import ru.slartus.boostbuddy.data.repositories.SettingsRepository
 import ru.slartus.boostbuddy.navigation.NavigationRouter
@@ -90,7 +90,7 @@ internal class SettingsComponentImpl(
             runCatching {
                 platformConfiguration.shareFile(bufferLoggingTracker.getLogPath())
             }.onFailure {
-                Napier.e("onSendLogClicked", it)
+                logger.e("onSendLogClicked", it)
             }
         }
     }
