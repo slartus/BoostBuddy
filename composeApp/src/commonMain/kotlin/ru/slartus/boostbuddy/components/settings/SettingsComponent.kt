@@ -67,7 +67,7 @@ internal class SettingsComponentImpl(
     }
 
     override fun onDonateClicked() {
-        analytics.trackEvent("Donate", mapOf("action" to "click"))
+        analytics.trackEvent("settings_menu", mapOf("action" to "donate"))
         when (platformConfiguration.platform) {
             Platform.Android,
             Platform.iOS -> platformConfiguration.openBrowser(
