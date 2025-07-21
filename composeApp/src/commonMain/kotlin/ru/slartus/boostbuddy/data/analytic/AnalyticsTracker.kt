@@ -1,15 +1,18 @@
 package ru.slartus.boostbuddy.data.analytic
 
 import ru.slartus.boostbuddy.data.Inject
+import ru.slartus.boostbuddy.data.log.Logger
 
 val analytics: AnalyticsTracker
     get() = Inject.instance()
 
-interface AnalyticsTracker {
+interface AnalyticsTracker : Logger {
     fun trackEvent(event: AnalyticsEvent)
 
     fun trackEvent(name: String, params: Map<String, Any> = emptyMap()) =
         trackEvent(BaseAnalyticsEvent(name, params))
+
+    fun reportUnhandledException(exception: Throwable)
 }
 
 interface AnalyticsEvent {

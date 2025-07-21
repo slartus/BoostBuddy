@@ -16,6 +16,7 @@ import com.arkivanov.decompose.defaultComponentContext
 import ru.slartus.boostbuddy.components.RootComponentImpl
 import ru.slartus.boostbuddy.data.Inject
 import ru.slartus.boostbuddy.data.analytic.AppMetricaAnalyticsTracker
+import ru.slartus.boostbuddy.data.analytic.analytics
 import ru.slartus.boostbuddy.data.log.debugLogBuild
 import ru.slartus.boostbuddy.ui.common.LocalPlatformConfiguration
 import ru.slartus.boostbuddy.ui.screens.RootScreen
@@ -74,8 +75,8 @@ open class BaseComponentActivity : ComponentActivity() {
                 }
 
                 else -> {
+                    analytics.reportUnhandledException(error)
                     root.onErrorReceived(error)
-                    // some bug in android:
                     true
                 }
             }
