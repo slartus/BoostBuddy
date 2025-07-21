@@ -28,7 +28,7 @@ import androidx.compose.ui.Alignment.Companion.Center
 import androidx.compose.ui.Alignment.Companion.CenterVertically
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import io.github.aakira.napier.Napier
+import ru.slartus.boostbuddy.data.log.logger
 import ru.slartus.boostbuddy.data.repositories.models.Content
 import ru.slartus.boostbuddy.data.repositories.models.linkColor
 import ru.slartus.boostbuddy.ui.common.HorizontalSpacer
@@ -113,7 +113,7 @@ internal fun PostDataAudioFileView(
 
                     }
                 }.onFailure {
-                    Napier.e("audioPlayer.play", it)
+                    logger.e("audioPlayer.play", it)
                 }
             },
             verticalAlignment = CenterVertically

@@ -6,11 +6,10 @@ import android.content.Intent
 import android.net.Uri
 import android.widget.Toast
 import androidx.core.content.FileProvider
-import io.github.aakira.napier.Napier
 import kotlinx.io.files.Path
 import ru.slartus.boostbuddy.BuildConfig
+import ru.slartus.boostbuddy.data.log.logger
 import java.io.File
-
 
 actual class PlatformConfiguration(var androidContext: Context, actual val platform: Platform) {
     actual val appVersion: String = BuildConfig.VERSION_NAME
@@ -69,7 +68,7 @@ actual class PlatformConfiguration(var androidContext: Context, actual val platf
             runCatching {
                 startActivity(intent)
             }.onFailure { error ->
-                Napier.e("tryStartActivity", error)
+                logger.e(error,"tryStartActivity")
                 if (onError != null) {
                     onError.invoke()
                 } else {

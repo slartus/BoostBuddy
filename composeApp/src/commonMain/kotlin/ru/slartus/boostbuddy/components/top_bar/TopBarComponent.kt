@@ -2,10 +2,11 @@ package ru.slartus.boostbuddy.components.top_bar
 
 import androidx.compose.runtime.Stable
 import com.arkivanov.decompose.ComponentContext
-import io.github.aakira.napier.Napier
 import ru.slartus.boostbuddy.components.BaseComponent
 import ru.slartus.boostbuddy.components.filter.Filter
 import ru.slartus.boostbuddy.data.Inject
+import ru.slartus.boostbuddy.data.analytic.analytics
+import ru.slartus.boostbuddy.data.log.logger
 import ru.slartus.boostbuddy.navigation.NavigationRouter
 import ru.slartus.boostbuddy.navigation.NavigationTree
 import ru.slartus.boostbuddy.navigation.navigateTo
@@ -43,10 +44,12 @@ internal class TopBarComponentImpl(
     }
 
     override fun onSettingsClicked() {
+        analytics.trackEvent("main_menu", mapOf("action" to "open"))
         navigationRouter.navigateTo(NavigationTree.AppSettings)
     }
 
     override fun onFeedbackClicked() {
+        analytics.trackEvent("main_menu", mapOf("action" to "feedback"))
         runCatching {
             when (platformConfiguration.platform) {
                 Platform.Android,
@@ -67,7 +70,7 @@ internal class TopBarComponentImpl(
                 )
             }
         }.onFailure { error ->
-            Napier.e("onFeedbackClicked", error)
+            logger.e("onFeedbackClicked", error)
             navigationRouter.navigateTo(
                 NavigationTree.Qr(
                     title = "Обсудить на форуме",
