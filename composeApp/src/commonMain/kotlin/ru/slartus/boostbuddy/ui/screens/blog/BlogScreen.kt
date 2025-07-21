@@ -5,14 +5,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.FilterList
-import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -21,11 +17,11 @@ import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import ru.slartus.boostbuddy.components.blog.BlogComponent
 import ru.slartus.boostbuddy.components.common.ProgressState
 import ru.slartus.boostbuddy.ui.screens.PostsView
+import ru.slartus.boostbuddy.ui.screens.TopAppBar
 import ru.slartus.boostbuddy.ui.screens.filter.FilterDialogView
 import ru.slartus.boostbuddy.ui.widgets.ErrorView
 import ru.slartus.boostbuddy.ui.widgets.LoaderView
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun BlogScreen(component: BlogComponent) {
     val state by component.viewStates.subscribeAsState()
@@ -44,20 +40,10 @@ internal fun BlogScreen(component: BlogComponent) {
                         )
                     }
                 },
-                actions = {
-                    IconButton(onClick = component::onFilterClick) {
-                        Icon(
-                            imageVector = Icons.Filled.FilterList,
-                            contentDescription = "Фильтр"
-                        )
-                    }
-                    IconButton(onClick = { component.onRepeatClicked() }) {
-                        Icon(
-                            imageVector = Icons.Filled.Refresh,
-                            contentDescription = "Обновить"
-                        )
-                    }
-                }
+                actions = {},
+                onRefreshClick = component::onRepeatClicked,
+                onFilterClick = component::onFilterClick,
+                onSearchQueryChange = component::onSearchQueryChange,
             )
         },
     ) { innerPadding ->

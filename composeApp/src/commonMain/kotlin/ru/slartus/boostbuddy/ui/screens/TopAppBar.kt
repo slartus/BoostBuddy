@@ -1,167 +1,171 @@
 package ru.slartus.boostbuddy.ui.screens
 
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Logout
-import androidx.compose.material.icons.filled.Feedback
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.FilterList
-import androidx.compose.material.icons.filled.Menu
-import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
-import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import ru.slartus.boostbuddy.components.top_bar.TopBarComponent
-
-@Composable
-internal fun TopAppBar(
-    title: String,
-    component: TopBarComponent,
-    onMenuClick: () -> Unit
-) {
-    TopAppBar(
-        title = title,
-        onRefreshClick = component::onRefreshClicked,
-        onLogoutClick = component::onLogoutClicked,
-        onFeedbackClick = component::onFeedbackClicked,
-        onSettingsClick = component::onSettingsClicked,
-        onFilterClick = component::onFilterClicked,
-        onMenuClick = onMenuClick
-    )
-}
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import ru.slartus.boostbuddy.ui.common.BackHandlerEffect
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun TopAppBar(
-    title: String,
-    onMenuClick: () -> Unit,
+internal fun TopAppBar(
+    title: @Composable () -> Unit,
+    navigationIcon: @Composable () -> Unit,
+    actions: @Composable () -> Unit,
     onRefreshClick: () -> Unit,
-    onLogoutClick: () -> Unit,
-    onFeedbackClick: () -> Unit,
-    onSettingsClick: () -> Unit,
     onFilterClick: () -> Unit,
+    onSearchQueryChange: (String) -> Unit,
 ) {
-    var showDropDownMenu by remember { mutableStateOf(false) }
+    var searchState by remember { mutableStateOf(SearchState()) }
+    val focusRequester = remember { FocusRequester() }
+
+    BackHandlerEffect(searchState.isActive){
+        searchState = searchState.copy(query = "", isActive = false)
+    }
+    HandleSearchStateChanges(
+        searchState = searchState,
+        onSearchStateChange = { searchState = it },
+        focusRequester = focusRequester,
+        onSearchQueryChange = onSearchQueryChange
+    )
+
     androidx.compose.material3.TopAppBar(
-        title = { Text(title) },
-        navigationIcon = {
-            IconButton(onClick = onMenuClick) {
-                Icon(
-                    imageVector = Icons.Filled.Menu,
-                    contentDescription = "Меню"
+        title = {
+            if (searchState.isActive) {
+                SearchTextField(
+                    query = searchState.query,
+                    onQueryChange = { searchState = searchState.copy(query = it) },
+                    focusRequester = focusRequester,
+                    modifier = Modifier.fillMaxWidth()
                 )
+            } else {
+                title()
+            }
+        },
+        navigationIcon = {
+            if (searchState.isActive) {
+                IconButton(onClick = { searchState = searchState.copy(query = "", isActive = false) }) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "Закрыть поиск"
+                    )
+                }
+            } else {
+                navigationIcon()
             }
         },
         actions = {
-            IconButton(onClick = onFilterClick) {
-                Icon(
-                    imageVector = Icons.Filled.FilterList,
-                    contentDescription = "Фильтр"
-                )
-            }
-            IconButton(onClick = onRefreshClick) {
-                Icon(
-                    imageVector = Icons.Filled.Refresh,
-                    contentDescription = "Обновить"
-                )
-            }
-            IconButton(
-                onClick = { showDropDownMenu = true }) {
-                Icon(Icons.Filled.MoreVert, null)
-            }
+            if (!searchState.isActive) {
+                SearchAction { searchState = SearchState(isActive = true) }
+                IconButton(onClick = onFilterClick) {
+                    Icon(Icons.Filled.FilterList, "Фильтр")
+                }
+                IconButton(onClick = onRefreshClick) {
+                    Icon(Icons.Filled.Refresh, "Обновить")
+                }
 
-            DropdownMenu(
-                showDropDownMenu, { showDropDownMenu = false }
-            ) {
-                DropdownMenuItem(
-                    text = { Text(text = "Настройки") },
-                    leadingIcon = {
-                        Icon(
-                            imageVector = Icons.Filled.Settings,
-                            contentDescription = "Settings"
-                        )
-                    },
-                    onClick = {
-                        showDropDownMenu = false
-                        onSettingsClick()
-                    }
-                )
-                DropdownMenuItem(
-                    text = { Text(text = "Обсудить на форуме") },
-                    leadingIcon = {
-                        Icon(
-                            imageVector = Icons.Filled.Feedback,
-                            contentDescription = "Feedback"
-                        )
-                    },
-                    onClick = {
-                        showDropDownMenu = false
-                        onFeedbackClick()
-                    }
-                )
-                DropdownMenuItem(
-                    text = { Text(text = "Выйти из аккаунта") },
-                    leadingIcon = {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.Logout,
-                            contentDescription = "Logout"
-                        )
-                    },
-                    onClick = {
-                        showDropDownMenu = false
-                        onLogoutClick()
-                    }
-                )
+                actions()
             }
-        },
+        }
     )
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-internal fun LogoutDialogView(
-    onAcceptClicked: () -> Unit,
-    onCancelClicked: () -> Unit,
-    onDismissClicked: () -> Unit,
+private fun SearchAction(onClick: () -> Unit) {
+    IconButton(onClick = onClick) {
+        Icon(Icons.Filled.Search, "Поиск")
+    }
+}
+
+@Composable
+private fun SearchTextField(
+    query: String,
+    onQueryChange: (String) -> Unit,
+    focusRequester: FocusRequester,
     modifier: Modifier = Modifier
 ) {
-    val sheetState = rememberModalBottomSheetState(
-        skipPartiallyExpanded = true
+    TextField(
+        value = query,
+        onValueChange = onQueryChange,
+        modifier = modifier
+            .padding(end = 8.dp)
+            .focusRequester(focusRequester),
+        placeholder = { Text("Поиск...") },
+        colors = TextFieldDefaults.colors(
+            focusedContainerColor = Color.Transparent,
+            unfocusedContainerColor = Color.Transparent,
+            disabledContainerColor = Color.Transparent,
+            focusedIndicatorColor = Color.Transparent,
+            unfocusedIndicatorColor = Color.Transparent
+        ),
+        singleLine = true,
+        trailingIcon = {
+            if (query.isNotEmpty()) {
+                IconButton(onClick = { onQueryChange("") }) {
+                    Icon(Icons.Default.Close, "Очистить")
+                }
+            }
+        }
     )
-    ModalBottomSheet(
-        modifier = modifier,
-        onDismissRequest = { onDismissClicked() },
-        sheetState = sheetState
-    ) {
-        Column {
-            Text(
-                modifier = Modifier.fillMaxWidth()
-                    .clickable { onAcceptClicked() }
-                    .padding(16.dp),
-                text = "Выйти из аккаунта"
-            )
-            Text(
-                modifier = Modifier.fillMaxWidth()
-                    .clickable { onCancelClicked() }
-                    .padding(16.dp),
-                text = "Отмена"
-            )
+}
+
+@Composable
+private fun HandleSearchStateChanges(
+    searchState: SearchState,
+    onSearchStateChange: (SearchState) -> Unit,
+    focusRequester: FocusRequester,
+    onSearchQueryChange: (String) -> Unit
+) {
+    var searchJob by remember { mutableStateOf<Job?>(null) }
+
+    LaunchedEffect(searchState.query) {
+        searchJob?.cancel()
+
+        if (searchState.query.isNotEmpty()) {
+            searchJob = launch {
+                delay(1000)
+                onSearchQueryChange(searchState.query)
+                onSearchStateChange(searchState.copy(lastQuery = searchState.query))
+            }
+        } else if (searchState.lastQuery.isNotEmpty()) {
+            onSearchQueryChange("")
+            onSearchStateChange(searchState.copy(lastQuery = ""))
+        }
+    }
+
+    LaunchedEffect(searchState.isActive) {
+        if (searchState.isActive) {
+            focusRequester.requestFocus()
         }
     }
 }
+
+private data class SearchState(
+    val isActive: Boolean = false,
+    val query: String = "",
+    val lastQuery: String = ""
+)

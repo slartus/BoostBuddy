@@ -1,6 +1,5 @@
 package ru.slartus.boostbuddy.utils
 
-
 import io.github.aakira.napier.Antilog
 import io.github.aakira.napier.LogLevel
 import kotlinx.coroutines.CoroutineScope

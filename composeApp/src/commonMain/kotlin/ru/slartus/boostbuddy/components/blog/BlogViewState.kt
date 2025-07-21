@@ -15,6 +15,7 @@ data class BlogViewState(
     val extra: Extra? = null,
     val filter: Filter = Filter(),
     val progressState: ProgressState = ProgressState.Init,
+    val searchQuery: String = "",
 ) {
     val hasMore: Boolean = extra?.isLast == false
 }

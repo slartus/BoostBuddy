@@ -1,6 +1,5 @@
 package ru.slartus.boostbuddy.data.ktor
 
-import io.github.aakira.napier.Napier
 import io.ktor.client.HttpClient
 import io.ktor.client.HttpClientConfig
 import io.ktor.client.engine.HttpClientEngineConfig
@@ -80,7 +79,7 @@ internal fun buildHttpClient(
         install(Logging) {
             logger = object : Logger {
                 override fun log(message: String) {
-                    Napier.d(
+                    ru.slartus.boostbuddy.data.log.logger.d(
                         message.replace(
                             Regex("Bearer\\s+[^\\s-]+", RegexOption.IGNORE_CASE),
                             "Bearer secret"

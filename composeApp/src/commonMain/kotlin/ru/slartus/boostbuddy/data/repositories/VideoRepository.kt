@@ -1,7 +1,7 @@
 package ru.slartus.boostbuddy.data.repositories
 
-import io.github.aakira.napier.Napier
 import ru.slartus.boostbuddy.data.api.BoostyApi
+import ru.slartus.boostbuddy.data.log.logger
 
 internal class VideoRepository(
     private val boostyApi: BoostyApi
@@ -9,6 +9,6 @@ internal class VideoRepository(
     suspend fun putTimeCode(videoId: String, timeCode: Long) = runCatching {
         boostyApi.putVideoTimeCode(videoId, timeCode)
     }.onFailure {
-        Napier.e(it.toString())
+        logger.e(it.toString())
     }
 }

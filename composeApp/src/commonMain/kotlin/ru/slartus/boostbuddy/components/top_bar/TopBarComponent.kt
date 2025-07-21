@@ -2,10 +2,11 @@ package ru.slartus.boostbuddy.components.top_bar
 
 import androidx.compose.runtime.Stable
 import com.arkivanov.decompose.ComponentContext
-import io.github.aakira.napier.Napier
 import ru.slartus.boostbuddy.components.BaseComponent
 import ru.slartus.boostbuddy.components.filter.Filter
 import ru.slartus.boostbuddy.data.Inject
+import ru.slartus.boostbuddy.data.analytic.analytics
+import ru.slartus.boostbuddy.data.log.logger
 import ru.slartus.boostbuddy.navigation.NavigationRouter
 import ru.slartus.boostbuddy.navigation.NavigationTree
 import ru.slartus.boostbuddy.navigation.navigateTo
@@ -19,6 +20,7 @@ interface TopBarComponent {
     fun onSettingsClicked()
     fun onFeedbackClicked()
     fun onFilterClicked()
+    fun onSearchQueryChange(query: String)
 }
 
 internal class TopBarComponentImpl(
@@ -26,6 +28,7 @@ internal class TopBarComponentImpl(
     private var filter: Filter,
     private val onRefresh: () -> Unit,
     private val onFilter: (filter: Filter) -> Unit,
+    private val onSearchQuery: (query: String) -> Unit,
 ) : BaseComponent<Unit, Unit>(
     componentContext,
     Unit
@@ -41,10 +44,12 @@ internal class TopBarComponentImpl(
     }
 
     override fun onSettingsClicked() {
+        analytics.trackEvent("main_menu", mapOf("action" to "open"))
         navigationRouter.navigateTo(NavigationTree.AppSettings)
     }
 
     override fun onFeedbackClicked() {
+        analytics.trackEvent("main_menu", mapOf("action" to "feedback"))
         runCatching {
             when (platformConfiguration.platform) {
                 Platform.Android,
@@ -65,7 +70,7 @@ internal class TopBarComponentImpl(
                 )
             }
         }.onFailure { error ->
-            Napier.e("onFeedbackClicked", error)
+            logger.e("onFeedbackClicked", error)
             navigationRouter.navigateTo(
                 NavigationTree.Qr(
                     title = "Обсудить на форуме",
@@ -82,6 +87,10 @@ internal class TopBarComponentImpl(
                 onFilter(newFilter)
             }
         )
+    }
+
+    override fun onSearchQueryChange(query: String) {
+        onSearchQuery(query)
     }
 
     companion object {

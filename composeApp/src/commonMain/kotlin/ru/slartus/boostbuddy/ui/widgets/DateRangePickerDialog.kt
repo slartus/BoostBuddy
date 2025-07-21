@@ -100,15 +100,17 @@ fun DateRangePickerDialog(
                 }
 
                 DateRangePicker(
-                    state = state,
                     modifier = Modifier.weight(1f),
+                    state = state,
+                    showModeToggle = false,
                     title = {
                         Text(
                             "Выберите диапазон",
                             modifier = Modifier.padding(16.dp),
                             style = MaterialTheme.typography.titleMedium
                         )
-                    }
+                    },
+                    headline = {}
                 )
             }
 
@@ -122,12 +124,8 @@ fun DateRangePickerDialog(
     }
 }
 
-// Extensions for Clock <-> milliseconds conversion
-fun Clock.toEpochMilliseconds(): Long = this.now().toEpochMilliseconds()
+private fun Clock.toEpochMilliseconds(): Long = this.now().toEpochMilliseconds()
 
-fun Clock.Companion.fromEpochMilliseconds(millis: Long): Clock = object : Clock {
+private fun Clock.Companion.fromEpochMilliseconds(millis: Long): Clock = object : Clock {
     override fun now(): Instant = Instant.fromEpochMilliseconds(millis)
 }
-
-// Null-safe extensions
-fun Clock?.toEpochMilliseconds(): Long? = this?.toEpochMilliseconds()

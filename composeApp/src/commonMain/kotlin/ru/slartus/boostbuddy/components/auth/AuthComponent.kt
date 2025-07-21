@@ -2,7 +2,6 @@ package ru.slartus.boostbuddy.components.auth
 
 import androidx.compose.runtime.Stable
 import com.arkivanov.decompose.ComponentContext
-import io.github.aakira.napier.Napier
 import io.ktor.http.decodeURLQueryComponent
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
@@ -10,6 +9,7 @@ import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
 import ru.slartus.boostbuddy.components.BaseComponent
 import ru.slartus.boostbuddy.data.Inject
+import ru.slartus.boostbuddy.data.log.logger
 import ru.slartus.boostbuddy.data.repositories.ProfileRepository
 import ru.slartus.boostbuddy.data.repositories.SettingsRepository
 import ru.slartus.boostbuddy.data.repositories.models.AuthResponse
@@ -52,7 +52,7 @@ class AuthComponentImpl(
                         }
                     }
                 }
-            }.onFailure { Napier.e("onCookiesChanged", it) }
+            }.onFailure { logger.e(it, "onCookiesChanged") }
         }
     }
 

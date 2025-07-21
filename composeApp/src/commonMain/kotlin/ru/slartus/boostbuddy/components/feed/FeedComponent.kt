@@ -30,6 +30,7 @@ interface FeedComponent {
     fun onDeleteVoteClicked(post: Post, poll: Poll)
     fun onBlogClicked(post: Post)
     fun filter(filter: Filter)
+    fun search(query: String)
 }
 
 class FeedComponentImpl(
@@ -51,7 +52,19 @@ class FeedComponentImpl(
     }
 
     override suspend fun fetch(offset: String?): Result<Posts> =
-        feedRepository.getData(offset, viewState.filter)
+        if (viewState.searchQuery.isEmpty()) {
+            feedRepository.getData(
+                offset = offset,
+                filter = viewState.filter,
+            )
+        } else {
+            feedRepository.searchData(
+                offset = offset,
+                filter = viewState.filter,
+                query = viewState.searchQuery
+            )
+        }
+
 
     override fun onProgressStateChanged(progressState: ProgressState) {
         viewState = viewState.copy(progressState = progressState)
@@ -73,6 +86,13 @@ class FeedComponentImpl(
         viewState = viewState.copy(
             filter = filter,
             extra = null,
+        )
+        refresh()
+    }
+
+    override fun search(query: String) {
+        viewState = viewState.copy(
+            searchQuery = query,
         )
         refresh()
     }

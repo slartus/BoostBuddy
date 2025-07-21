@@ -74,6 +74,7 @@ kotlin {
             implementation(libs.compose.uitooling)
             implementation(libs.kotlinx.coroutines.android)
             implementation(libs.ktor.okhttp)
+            implementation(libs.appmetrica)
 
             implementation(libs.exoplayer.core)
             implementation(libs.exoplayer.dash)
@@ -100,8 +101,8 @@ android {
         targetSdk = 34
 
         applicationId = "ru.slartus.boostbuddy"
-        versionCode = 72
-        versionName = "1.7.0"
+        versionCode = 75
+        versionName = "1.8.0"
     }
     sourceSets["main"].apply {
         manifest.srcFile("src/androidMain/AndroidManifest.xml")
