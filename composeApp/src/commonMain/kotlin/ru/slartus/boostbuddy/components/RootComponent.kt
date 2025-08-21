@@ -65,6 +65,8 @@ import ru.slartus.boostbuddy.utils.VersionsComparer.greaterThan
 import ru.slartus.boostbuddy.utils.VideoPlayer
 import ru.slartus.boostbuddy.utils.WebManager
 import ru.slartus.boostbuddy.utils.unauthorizedError
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
 @Stable
 interface RootComponent : AppComponent<RootViewAction> {
@@ -472,6 +474,7 @@ class RootComponentImpl(
     }
 
     @Serializable
+    @OptIn(ExperimentalUuidApi::class)
     private sealed interface Config {
         @Serializable
         data object Auth : Config
@@ -483,14 +486,18 @@ class RootComponentImpl(
         data object Subscribes : Config
 
         @Serializable
-        data class BlogConfig(val blog: Blog) : Config
+        data class BlogConfig(
+            val blog: Blog,
+            val id: String = Uuid.random().toString()
+        ) : Config
 
         @Serializable
         data class VideoConfig(
             val blogUrl: String,
             val postId: String,
             val postData: Content.OkVideo,
-            val playerUrl: PlayerUrl
+            val playerUrl: PlayerUrl,
+            val id: String = Uuid.random().toString()
         ) : Config
 
         @Serializable
