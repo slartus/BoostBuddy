@@ -22,13 +22,14 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDateRangePickerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
-import kotlinx.coroutines.launch
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
 
@@ -42,13 +43,28 @@ fun DateRangePickerDialog(
     onDismiss: () -> Unit
 ) {
     val snackState = remember { SnackbarHostState() }
-    val snackScope = rememberCoroutineScope()
 
     val state = rememberDateRangePickerState(
         initialSelectedStartDateMillis = initialFrom?.toEpochMilliseconds(),
         initialSelectedEndDateMillis = initialTo?.toEpochMilliseconds()
     )
 
+    val endDateSelected by remember {
+        derivedStateOf {
+            state.selectedEndDateMillis != null
+        }
+    }
+    LaunchedEffect(endDateSelected) {
+        if (endDateSelected) {
+            val start = state.selectedStartDateMillis ?: state.selectedEndDateMillis
+            val end = state.selectedEndDateMillis ?: state.selectedStartDateMillis
+            if (start != null && end != null) {
+                val from = Clock.fromEpochMilliseconds(start)
+                val to = Clock.fromEpochMilliseconds(end)
+                onDateRangeSelected(from, to)
+            }
+        }
+    }
     Dialog(onDismissRequest = onDismiss) {
         Surface(
             shape = MaterialTheme.shapes.extraLarge,
@@ -69,26 +85,9 @@ fun DateRangePickerDialog(
                         Icon(Icons.Default.Close, contentDescription = "Закрыть")
                     }
                     Spacer(Modifier.weight(1f))
-                    TextButton(
-                        onClick = {
-                            val start = state.selectedStartDateMillis ?: state.selectedEndDateMillis
-                            val end = state.selectedEndDateMillis ?: state.selectedStartDateMillis
-                            if (start != null && end != null) {
-                                val from = Clock.fromEpochMilliseconds(start)
-                                val to = Clock.fromEpochMilliseconds(end)
-                                onDateRangeSelected(from, to)
-                            } else {
-                                snackScope.launch {
-                                    snackState.showSnackbar("Выберите хотя бы одну дату")
-                                }
-                            }
-                        },
-                        enabled = state.selectedEndDateMillis != null
-                    ) {
-                        Text("Применить")
-                    }
-                    if (initialTo != null || initialFrom != null) {
+                    if (state.selectedEndDateMillis != null || state.selectedStartDateMillis != null) {
                         TextButton(
+                            modifier = Modifier,
                             onClick = {
                                 onReset()
                             },
@@ -100,7 +99,8 @@ fun DateRangePickerDialog(
                 }
 
                 DateRangePicker(
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier
+                        .weight(1f),
                     state = state,
                     showModeToggle = false,
                     title = {
