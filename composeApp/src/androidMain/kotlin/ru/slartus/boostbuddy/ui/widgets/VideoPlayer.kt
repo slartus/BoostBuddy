@@ -318,6 +318,7 @@ private fun PlayerControllerView(
     onChangePosition: (Long) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    if (playingDuration < 0f) return
     Column(modifier = modifier.fillMaxWidth()) {
         Text(
             text = title,
