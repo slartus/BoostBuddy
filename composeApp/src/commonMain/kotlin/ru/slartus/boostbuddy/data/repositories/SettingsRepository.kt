@@ -67,6 +67,12 @@ internal class SettingsRepository(
 
     suspend fun getAccessToken(): String? = getString(ACCESS_TOKEN_KEY)
 
+    suspend fun setLastDonateNotifyVersion(version: String) =
+        putString(LAST_DONATE_NOTIFY_VERSION_KEY, version)
+
+    suspend fun getLastDonateNotifyVersion(): String? =
+        getString(LAST_DONATE_NOTIFY_VERSION_KEY)
+
     private suspend fun getString(key: String): String? = withContext(Dispatchers.IO) {
         locker.withLock {
             settings.getStringOrNull(key)
@@ -121,6 +127,7 @@ internal class SettingsRepository(
         const val DARK_MODE_KEY = "dark_mode"
         const val SYSTEM_PLAYER_KEY = "system_player"
         const val DEBUG_LOG = "debug_log"
+        const val LAST_DONATE_NOTIFY_VERSION_KEY = "LAST_DONATE_NOTIFY_VERSION_KEY"
     }
 }
 

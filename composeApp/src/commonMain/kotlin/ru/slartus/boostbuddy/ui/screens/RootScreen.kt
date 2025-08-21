@@ -16,8 +16,10 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
@@ -45,7 +47,6 @@ import ru.slartus.boostbuddy.ui.screens.main.LogoutDialogView
 import ru.slartus.boostbuddy.ui.screens.main.MainScreen
 import ru.slartus.boostbuddy.ui.screens.post.PostScreen
 import ru.slartus.boostbuddy.ui.theme.AppTheme
-import ru.slartus.boostbuddy.ui.theme.LocalThemeIsDark
 
 
 @Composable
@@ -56,8 +57,6 @@ fun RootScreen(component: RootComponent, modifier: Modifier = Modifier) {
 
     AppTheme(state.appSettings.isDarkMode) {
         WindowInsetsBox {
-            var isDarkState by LocalThemeIsDark.current
-            isDarkState = state.appSettings.isDarkMode ?: isDarkState
             Children(
                 stack = component.stack,
                 modifier = modifier,
@@ -136,6 +135,18 @@ fun RootScreen(component: RootComponent, modifier: Modifier = Modifier) {
                         message = action.message,
                         withDismissAction = true
                     )
+
+                    RootViewAction.ShowDonateSnackBar -> {
+                        val result = snackState.showSnackbar(
+                            message = "Рассмотрите возможность помочь проекту прямо сейчас или позже через настройки. Спасибо!",
+                            actionLabel = "Помочь",
+                            duration = SnackbarDuration.Indefinite,
+                            withDismissAction = true,
+                        )
+                        if (result == SnackbarResult.ActionPerformed) {
+                            component.onDonateClick()
+                        }
+                    }
                 }
             }
         }

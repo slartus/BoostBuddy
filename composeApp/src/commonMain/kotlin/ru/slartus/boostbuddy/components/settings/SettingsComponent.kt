@@ -107,7 +107,7 @@ internal class SettingsComponentImpl(
         navigationRouter.navigateTo(NavigationTree.Qr("Поддержать проект", DONATE_URL))
     }
 
-    private companion object {
+    internal companion object {
         const val DONATE_URL = "https://yoomoney.ru/fundraise/13LKN6UNV5C.240629"
     }
 }

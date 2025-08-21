@@ -37,6 +37,7 @@ import ru.slartus.boostbuddy.components.post.PostComponent
 import ru.slartus.boostbuddy.components.post.PostComponentImpl
 import ru.slartus.boostbuddy.components.settings.SettingsComponent
 import ru.slartus.boostbuddy.components.settings.SettingsComponentImpl
+import ru.slartus.boostbuddy.components.settings.SettingsComponentImpl.Companion.DONATE_URL
 import ru.slartus.boostbuddy.components.subscribes.LogoutDialogComponent
 import ru.slartus.boostbuddy.components.subscribes.LogoutDialogComponentImpl
 import ru.slartus.boostbuddy.components.subscribes.SubscribesComponent
@@ -44,6 +45,7 @@ import ru.slartus.boostbuddy.components.subscribes.SubscribesComponentImpl
 import ru.slartus.boostbuddy.components.video.VideoComponent
 import ru.slartus.boostbuddy.components.video.VideoComponentImpl
 import ru.slartus.boostbuddy.data.Inject
+import ru.slartus.boostbuddy.data.analytic.analytics
 import ru.slartus.boostbuddy.data.repositories.AppSettings
 import ru.slartus.boostbuddy.data.repositories.Blog
 import ru.slartus.boostbuddy.data.repositories.GithubRepository
@@ -80,6 +82,7 @@ interface RootComponent : AppComponent<RootViewAction> {
     fun onDialogVersionCancelClicked()
     fun onErrorReceived(ex: Throwable)
     fun onDialogDismissed()
+    fun onDonateClick()
 
     sealed class Child {
         class AuthChild(val component: AuthComponent) : Child()
@@ -110,6 +113,7 @@ data class RootViewState(
 
 sealed class RootViewAction {
     data class ShowSnackBar(val message: String) : RootViewAction()
+    object ShowDonateSnackBar : RootViewAction()
 }
 
 class RootComponentImpl(
@@ -225,7 +229,10 @@ class RootComponentImpl(
                     githubRepository.getLastReleaseInfo().getOrNull() ?: return@launch
                 val lastReleaseVersion = lastReleaseInfo.version
 
-                if (!lastReleaseVersion.greaterThan(platformConfiguration.appVersion)) return@launch
+                if (!lastReleaseVersion.greaterThan(platformConfiguration.appVersion)) {
+                    donateNotify()
+                    return@launch
+                }
 
                 ensureActive()
                 dialogNavigation.activate(
@@ -233,6 +240,17 @@ class RootComponentImpl(
                 )
             }
         }
+    }
+
+    private suspend fun donateNotify() {
+        val lastDonateNotifyVersion = settingsRepository.getLastDonateNotifyVersion()
+        if (lastDonateNotifyVersion != null &&
+            !lastDonateNotifyVersion.greaterThan(platformConfiguration.appVersion)
+        ) return
+
+        analytics.trackEvent("root", mapOf("action" to "donate_info"))
+        settingsRepository.setLastDonateNotifyVersion(platformConfiguration.appVersion)
+        viewAction = RootViewAction.ShowDonateSnackBar
     }
 
     private fun downloadAndInstallNewVersion(releaseInfo: ReleaseInfo) {
@@ -471,6 +489,27 @@ class RootComponentImpl(
 
     override fun onDialogDismissed() {
         dialogNavigation.dismiss()
+    }
+
+    override fun onDonateClick() {
+        analytics.trackEvent("root", mapOf("action" to "donate"))
+        when (platformConfiguration.platform) {
+            Platform.Android,
+            Platform.iOS -> platformConfiguration.openBrowser(
+                url = DONATE_URL,
+                onError = {
+                    activateDonateQr()
+                }
+            )
+
+            Platform.AndroidTV -> {
+                activateDonateQr()
+            }
+        }
+    }
+
+    private fun activateDonateQr() {
+        navigationRouter.navigateTo(NavigationTree.Qr("Поддержать проект", DONATE_URL))
     }
 
     @Serializable
