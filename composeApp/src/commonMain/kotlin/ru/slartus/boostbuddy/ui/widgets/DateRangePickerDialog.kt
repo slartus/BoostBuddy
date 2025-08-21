@@ -1,6 +1,8 @@
 package ru.slartus.boostbuddy.ui.widgets
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.focusGroup
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -8,6 +10,8 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.DateRangePicker
@@ -22,17 +26,22 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDateRangePickerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import kotlinx.coroutines.launch
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun DateRangePickerDialog(
     initialFrom: Clock?,
@@ -48,7 +57,23 @@ fun DateRangePickerDialog(
         initialSelectedStartDateMillis = initialFrom?.toEpochMilliseconds(),
         initialSelectedEndDateMillis = initialTo?.toEpochMilliseconds()
     )
+    val applyButtonFocusRequester = remember { FocusRequester() }
+    val bringIntoViewRequester = remember { BringIntoViewRequester() }
+    LaunchedEffect(applyButtonFocusRequester) {
+        applyButtonFocusRequester.requestFocus()
+        bringIntoViewRequester.bringIntoView()
+    }
+    val bothSelected by remember {
+        derivedStateOf {
+            state.selectedStartDateMillis != null && state.selectedEndDateMillis != null
+        }
+    }
 
+    LaunchedEffect(bothSelected) {
+        if (bothSelected) {
+            applyButtonFocusRequester.requestFocus()
+        }
+    }
     Dialog(onDismissRequest = onDismiss) {
         Surface(
             shape = MaterialTheme.shapes.extraLarge,
@@ -70,6 +95,9 @@ fun DateRangePickerDialog(
                     }
                     Spacer(Modifier.weight(1f))
                     TextButton(
+                        modifier = Modifier
+                            .focusRequester(applyButtonFocusRequester)
+                            .bringIntoViewRequester(bringIntoViewRequester),
                         onClick = {
                             val start = state.selectedStartDateMillis ?: state.selectedEndDateMillis
                             val end = state.selectedEndDateMillis ?: state.selectedStartDateMillis
@@ -98,20 +126,24 @@ fun DateRangePickerDialog(
                         }
                     }
                 }
-
-                DateRangePicker(
-                    modifier = Modifier.weight(1f),
-                    state = state,
-                    showModeToggle = false,
-                    title = {
-                        Text(
-                            "Выберите диапазон",
-                            modifier = Modifier.padding(16.dp),
-                            style = MaterialTheme.typography.titleMedium
-                        )
-                    },
-                    headline = {}
-                )
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .focusGroup()
+                ) {
+                    DateRangePicker(
+                        state = state,
+                        showModeToggle = false,
+                        title = {
+                            Text(
+                                "Выберите диапазон",
+                                modifier = Modifier.padding(16.dp),
+                                style = MaterialTheme.typography.titleMedium
+                            )
+                        },
+                        headline = {}
+                    )
+                }
             }
 
             Box(modifier = Modifier.fillMaxWidth()) {
