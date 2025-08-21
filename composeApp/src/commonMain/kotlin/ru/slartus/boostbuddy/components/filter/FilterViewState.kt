@@ -4,6 +4,7 @@ import androidx.compose.runtime.Immutable
 import kotlinx.datetime.Clock
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
+import kotlinx.serialization.Serializable
 
 @Immutable
 data class FilterViewState(
@@ -34,6 +35,7 @@ data class FilterViewState(
     }
 }
 
+@Serializable
 @Immutable
 data class Filter(
     val accessType: AccessType = AccessType.Allowed,
@@ -43,8 +45,10 @@ data class Filter(
     val isEmpty: Boolean = accessType == AccessType.Allowed && period == null && tags.isEmpty()
 }
 
+@Serializable
 data class Period(val from: Clock, val to: Clock)
 
+@Serializable
 data class Tag(val id: String, val title: String)
 
 enum class AccessType {

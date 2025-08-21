@@ -524,12 +524,14 @@ class RootComponentImpl(
         @Serializable
         data class Qr(val title: String, val url: String) : DialogConfig
 
+        @Serializable
         data class VideoType(
             val blogUrl: String,
             val postId: String,
             val postData: Content.OkVideo,
         ) : DialogConfig
 
+        @Serializable
         class Filter(
             val filter: ru.slartus.boostbuddy.components.filter.Filter,
             val onFilter: (filter: ru.slartus.boostbuddy.components.filter.Filter) -> Unit,
