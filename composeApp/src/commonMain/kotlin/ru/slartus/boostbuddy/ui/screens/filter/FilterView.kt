@@ -61,7 +61,6 @@ internal fun FilterDialogView(
                 initialTo = state.filter.period?.to,
                 onDateRangeSelected = { from, to ->
                     component.onDateRangeSelected(from, to)
-                    component.onDialogDismissed()
                 },
                 onDismiss = component::onDialogDismissed,
                 onReset = component::onDateRangeReset
