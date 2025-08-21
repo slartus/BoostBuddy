@@ -1,6 +1,5 @@
 package ru.slartus.boostbuddy.ui.screens
 
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -10,6 +9,7 @@ import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import ru.slartus.boostbuddy.components.common.ProgressState
 import ru.slartus.boostbuddy.components.feed.FeedComponent
 import ru.slartus.boostbuddy.ui.widgets.ErrorView
+import ru.slartus.boostbuddy.ui.widgets.FeedBox
 import ru.slartus.boostbuddy.ui.widgets.LoaderView
 
 @Composable
@@ -19,7 +19,7 @@ internal fun FeedScreen(
 ) {
     val state by component.viewStates.subscribeAsState()
 
-    Box(
+    FeedBox(
         modifier = modifier.fillMaxSize(),
         contentAlignment = Alignment.Center
     ) {

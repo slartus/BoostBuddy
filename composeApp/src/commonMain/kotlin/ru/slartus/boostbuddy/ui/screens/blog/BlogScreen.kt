@@ -1,6 +1,5 @@
 package ru.slartus.boostbuddy.ui.screens.blog
 
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
@@ -20,6 +19,7 @@ import ru.slartus.boostbuddy.ui.screens.PostsView
 import ru.slartus.boostbuddy.ui.screens.TopAppBar
 import ru.slartus.boostbuddy.ui.screens.filter.FilterDialogView
 import ru.slartus.boostbuddy.ui.widgets.ErrorView
+import ru.slartus.boostbuddy.ui.widgets.FeedBox
 import ru.slartus.boostbuddy.ui.widgets.LoaderView
 
 @Composable
@@ -47,7 +47,7 @@ internal fun BlogScreen(component: BlogComponent) {
             )
         },
     ) { innerPadding ->
-        Box(
+        FeedBox (
             modifier = Modifier.fillMaxSize().padding(innerPadding),
             contentAlignment = Alignment.Center
         ) {
