@@ -47,6 +47,7 @@ import ru.slartus.boostbuddy.ui.common.isEndOfListReached
 import ru.slartus.boostbuddy.ui.screens.blog.ContentView
 import ru.slartus.boostbuddy.ui.screens.blog.FocusableBox
 import ru.slartus.boostbuddy.ui.screens.blog.PollView
+import ru.slartus.boostbuddy.ui.widgets.FeedBox
 
 
 @Composable
@@ -63,49 +64,51 @@ internal fun PostsView(
     onVoteClick: (Post, poll: Poll) -> Unit,
     onDeleteVoteClick: (Post, poll: Poll) -> Unit
 ) {
-    if (items.isEmpty()) {
-        Box(
-            modifier = Modifier.fillMaxSize(),
-            contentAlignment = Center,
-        ) {
-            Text(text = "Нет постов")
-        }
-    } else {
-        val listScrollState = rememberLazyListState()
-
-        val endOfListReached = remember {
-            derivedStateOf {
-                listScrollState.isEndOfListReached(visibleThreshold = 3)
+    FeedBox {
+        if (items.isEmpty()) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Center,
+            ) {
+                Text(text = "Нет постов")
             }
-        }
-        LazyColumn(
-            modifier = Modifier.fillMaxSize(),
-            state = listScrollState,
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            items(items, key = { it.key }, contentType = { it.contentType }) { item ->
-                when (item) {
-                    is FeedPostItem.ErrorItem -> ErrorView(
-                        item.description,
-                        onClick = { onErrorItemClick() })
+        } else {
+            val listScrollState = rememberLazyListState()
 
-                    FeedPostItem.LoadingItem -> LoadingView()
-                    is FeedPostItem.PostItem -> PostView(
-                        post = item.post,
-                        showBlogInfo = showBlogInfo,
-                        onVideoClick = { onVideoItemClick(item, it) },
-                        onCommentsClick = { onCommentsClick(item.post) },
-                        onPollOptionClick = onPollOptionClick,
-                        onVoteClick = onVoteClick,
-                        onDeleteVoteClick = onDeleteVoteClick,
-                        onBlogClick = { onBlogClick(item.post) }
-                    )
+            val endOfListReached = remember {
+                derivedStateOf {
+                    listScrollState.isEndOfListReached(visibleThreshold = 3)
                 }
             }
-        }
-        LaunchedEffect(endOfListReached.value, items) {
-            if (endOfListReached.value && canLoadMore && items.last() is FeedPostItem.PostItem) {
-                onScrolledToEnd()
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                state = listScrollState,
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                items(items, key = { it.key }, contentType = { it.contentType }) { item ->
+                    when (item) {
+                        is FeedPostItem.ErrorItem -> ErrorView(
+                            item.description,
+                            onClick = { onErrorItemClick() })
+
+                        FeedPostItem.LoadingItem -> LoadingView()
+                        is FeedPostItem.PostItem -> PostView(
+                            post = item.post,
+                            showBlogInfo = showBlogInfo,
+                            onVideoClick = { onVideoItemClick(item, it) },
+                            onCommentsClick = { onCommentsClick(item.post) },
+                            onPollOptionClick = onPollOptionClick,
+                            onVoteClick = onVoteClick,
+                            onDeleteVoteClick = onDeleteVoteClick,
+                            onBlogClick = { onBlogClick(item.post) }
+                        )
+                    }
+                }
+            }
+            LaunchedEffect(endOfListReached.value, items) {
+                if (endOfListReached.value && canLoadMore && items.last() is FeedPostItem.PostItem) {
+                    onScrolledToEnd()
+                }
             }
         }
     }
