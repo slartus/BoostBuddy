@@ -7,12 +7,12 @@ import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.jsonPrimitive
 import ru.slartus.boostbuddy.utils.dateTimeFromUnix
 import ru.slartus.boostbuddy.utils.toHumanString
-
+@Serializable
 data class Posts(
     val items: List<Post>,
     val extra: Extra?,
 )
-
+@Serializable
 data class Extra(
     val offset: String,
     val isLast: Boolean
@@ -64,7 +64,7 @@ data class PollOption(
 
 @Serializable
 data class PostCount(val likes: Int, val comments: Int)
-
+@Serializable
 data class PostDataTextContent(
     val text: String,
     val styleData: List<StyleData>?,
@@ -85,7 +85,7 @@ data class PostDataTextContent(
             return PostDataTextContent(text, styleData, null)
         }.getOrDefault(PostDataTextContent(rawContent, null, null))
     }
-
+    @Serializable
     data class StyleData(val style: Style, val from: Int, val length: Int) {
         companion object {
             fun ofRaw(styleRaw: List<String>?): StyleData? {
@@ -103,7 +103,7 @@ data class PostDataTextContent(
             }
         }
     }
-
+    @Serializable
     data class UrlData(val url: String, val from: Int, val length: Int)
     enum class Style {
         Normal, Italic, Bold, Underline

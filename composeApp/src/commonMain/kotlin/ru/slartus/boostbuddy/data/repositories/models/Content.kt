@@ -8,6 +8,7 @@ import kotlinx.serialization.Serializable
 @Serializable
 @Immutable
 sealed class Content {
+    @Serializable
     data class Text(
         val content: PostDataTextContent?,
         val modificator: String?
@@ -28,10 +29,12 @@ sealed class Content {
         val timeCode: Long
     ) : Content()
 
+    @Serializable
     data class Image(
         val url: String
     ) : Content()
 
+    @Serializable
     data class Link(
         val content: PostDataTextContent?,
         val url: String,
@@ -40,6 +43,7 @@ sealed class Content {
         val text: String = content?.text.orEmpty()
     }
 
+    @Serializable
     data class Video(
         val url: String
     ) : Content() {
@@ -55,12 +59,14 @@ sealed class Content {
         }
     }
 
+    @Serializable
     data class AudioFile(
         val title: String,
         val url: String,
         val duration: Long
     ) : Content()
 
+    @Serializable
     data class Smile(
         val name: String,
         val largeUrl: String?,
@@ -68,6 +74,7 @@ sealed class Content {
         val mediumUrl: String?
     ) : Content()
 
+    @Serializable
     data class File(
         val title: String,
         val url: String,
