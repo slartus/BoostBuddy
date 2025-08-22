@@ -36,7 +36,10 @@ import ru.slartus.boostbuddy.data.repositories.TagRepository
 import ru.slartus.boostbuddy.data.repositories.VideoRepository
 import ru.slartus.boostbuddy.data.repositories.comments.CommentsRepository
 import ru.slartus.boostbuddy.data.settings.SettingsFactory
+import ru.slartus.boostbuddy.navigation.NavigationRouter
 import ru.slartus.boostbuddy.navigation.NavigationRouterImpl
+import ru.slartus.boostbuddy.utils.BufferLoggingTracker
+import ru.slartus.boostbuddy.utils.GlobalExceptionHandlersChain
 
 object PlatformDataConfiguration {
     private const val TAG_HTTP_CLIENT_BOOSTY = "boosty"
@@ -67,17 +70,29 @@ object PlatformDataConfiguration {
             }
             bindSingleton { GlobalExceptionHandlersChain() }
             bindSingleton { platformConfiguration }
-            bindSingleton { NavigationRouterImpl() }
+            bindSingleton<NavigationRouter> { NavigationRouterImpl() }
             bindSingleton { Permissions(platformConfiguration = instance()) }
             bindSingleton { SettingsFactory(platformConfiguration = instance()).createDefault() }
-            bindProvider { new(::SettingsRepository) }
+            bindSingleton { SettingsRepository(settings = instance(), coroutineScope = instance()) }
+            
+            githubDependencies(platformConfiguration.isDebug)
+            boostyDependencies(platformConfiguration.isDebug)
         }
-        val appSettings = getAppSettings()
-        val bufferLoggingTracker = addBufferLoggingTracker(appSettings.debugLog)
+        
+        val bufferLoggingTracker = addBufferLoggingTracker(platformConfiguration.isDebug)
         Inject.addConfig {
             bindSingleton { bufferLoggingTracker }
-            githubDependencies(appSettings.debugLog)
-            boostyDependencies(appSettings.debugLog)
+        }
+        
+        try {
+            val appSettings = getAppSettings()
+            if (appSettings.debugLog != platformConfiguration.isDebug) {
+                val updatedBufferLoggingTracker = addBufferLoggingTracker(appSettings.debugLog)
+                Inject.addConfig {
+                    bindSingleton { updatedBufferLoggingTracker }
+                }
+            }
+        } catch (e: Exception) {
         }
     }
 

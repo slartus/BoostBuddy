@@ -94,15 +94,15 @@ class WKNavigationDelegate(
         }
     }
 
-    @Suppress("PARAMETER_NAME_CHANGED_ON_OVERRIDE")
-    override fun webView(webView: WKWebView, didCommitNavigation: WKNavigation?) {
-        webView.URL?.absoluteString?.let { onPageStarted(it, webView.title) }
-    }
-
-    @Suppress("PARAMETER_NAME_CHANGED_ON_OVERRIDE")
-    override fun webView(webView: WKWebView, didFinishNavigation: WKNavigation?) {
-        webView.URL?.absoluteString?.let { onPageLoaded(it, webView.title) }
-    }
+//    @Suppress("PARAMETER_NAME_CHANGED_ON_OVERRIDE")
+//    override fun webView(webView: WKWebView, didCommitNavigation: WKNavigation?) {
+//        webView.URL?.absoluteString?.let { onPageStarted(it, webView.title) }
+//    }
+//
+//    @Suppress("PARAMETER_NAME_CHANGED_ON_OVERRIDE")
+//    override fun webView(webView: WKWebView, didFinishNavigation: WKNavigation?) {
+//        webView.URL?.absoluteString?.let { onPageLoaded(it, webView.title) }
+//    }
 
     companion object {
         @OptIn(ExperimentalForeignApi::class)

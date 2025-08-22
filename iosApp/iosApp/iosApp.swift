@@ -6,24 +6,25 @@ import BoostBuddyShared
 struct iOSApp: App {
     init() {
         NapierProxyKt.debugLogBuild()
-        PlatformDataConfiguration.shared.createDependenciesTree(
-            platformConfiguration: PlatformConfiguration.companion.shared
+        PlatformDataConfiguration().createDependenciesTree(
+          platformConfiguration: PlatformConfiguration.companion.shared,
+          analyticsTrackers: []
         )
     }
 
     var body: some Scene {
-            WindowGroup {
-                ContentView()
-            }
+        WindowGroup {
+            ContentView()
         }
-
+    }
 }
 
 struct ComposeView: UIViewControllerRepresentable {
-    @UIApplicationDelegateAdaptor(AppDelegate.self)
-    var appDelegate: AppDelegate
     func makeUIViewController(context: Context) -> UIViewController {
-        MainKt.MainViewController(rootComponent: appDelegate.root)
+        let root = RootComponentImpl(
+            componentContext: DefaultComponentContext(lifecycle: ApplicationLifecycle())
+        )
+        return MainKt.MainViewController(rootComponent: root)
     }
 
     func updateUIViewController(_ uiViewController: UIViewController, context: Context) {}
