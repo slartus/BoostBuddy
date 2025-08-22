@@ -6,7 +6,6 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.runBlocking
 import org.kodein.di.DI
 import org.kodein.di.bindProvider
 import org.kodein.di.bindSingleton
@@ -23,7 +22,6 @@ import ru.slartus.boostbuddy.data.log.CompositeLogger
 import ru.slartus.boostbuddy.data.log.Logger
 import ru.slartus.boostbuddy.data.log.NapierProxy
 import ru.slartus.boostbuddy.data.log.logger
-import ru.slartus.boostbuddy.data.repositories.AppSettings
 import ru.slartus.boostbuddy.data.repositories.BlogRepository
 import ru.slartus.boostbuddy.data.repositories.EventsRepository
 import ru.slartus.boostbuddy.data.repositories.FeedRepository
@@ -83,23 +81,9 @@ object PlatformDataConfiguration {
         Inject.addConfig {
             bindSingleton { bufferLoggingTracker }
         }
-        
-        try {
-            val appSettings = getAppSettings()
-            if (appSettings.debugLog != platformConfiguration.isDebug) {
-                val updatedBufferLoggingTracker = addBufferLoggingTracker(appSettings.debugLog)
-                Inject.addConfig {
-                    bindSingleton { updatedBufferLoggingTracker }
-                }
-            }
-        } catch (e: Exception) {
-        }
     }
 
-    private fun getAppSettings(): AppSettings {
-        val settingsRepository = Inject.instance<SettingsRepository>()
-        return runBlocking { settingsRepository.getSettings() }
-    }
+
 
     private fun addBufferLoggingTracker(debugLog: Boolean): BufferLoggingTracker {
         val bufferLoggingTracker = BufferLoggingTracker(debugLog)
