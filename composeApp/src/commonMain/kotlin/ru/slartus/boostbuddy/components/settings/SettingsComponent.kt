@@ -84,10 +84,12 @@ internal class SettingsComponentImpl(
     }
 
     override fun onVersionClicked() {
+        analytics.trackEvent("settings_menu", mapOf("action" to "version"))
         onVersionClickedHandler()
     }
 
     override fun onSendLogClicked() {
+        analytics.trackEvent("settings_menu", mapOf("action" to "send_log"))
         scope.launch {
             runCatching {
                 platformConfiguration.shareFile(bufferLoggingTracker.getLogPath())

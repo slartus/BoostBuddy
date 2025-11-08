@@ -11,6 +11,7 @@ import kotlinx.datetime.Clock
 import kotlinx.serialization.json.Json
 import ru.slartus.boostbuddy.components.BaseComponent
 import ru.slartus.boostbuddy.data.Inject
+import ru.slartus.boostbuddy.data.analytic.analytics
 import ru.slartus.boostbuddy.data.log.logger
 import ru.slartus.boostbuddy.data.repositories.ProfileRepository
 import ru.slartus.boostbuddy.data.repositories.SettingsRepository
@@ -67,7 +68,10 @@ internal class AuthComponentImpl(
 
     private suspend fun checkToken(token: String) {
         settingsRepository.putAccessToken(token)
-        if (profileRepository.getProfile().isSuccess) onLogined()
+        if (profileRepository.getProfile().isSuccess) {
+            analytics.trackEvent("auth", mapOf("action" to "login"))
+            onLogined()
+        }
         else badTokens.add(token)
     }
 
