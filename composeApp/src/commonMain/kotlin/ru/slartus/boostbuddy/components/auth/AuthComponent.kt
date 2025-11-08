@@ -2,10 +2,12 @@ package ru.slartus.boostbuddy.components.auth
 
 import androidx.compose.runtime.Stable
 import com.arkivanov.decompose.ComponentContext
+import com.arkivanov.decompose.value.Value
 import io.ktor.http.decodeURLQueryComponent
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
+import kotlinx.datetime.Clock
 import kotlinx.serialization.json.Json
 import ru.slartus.boostbuddy.components.BaseComponent
 import ru.slartus.boostbuddy.data.Inject
@@ -16,13 +18,15 @@ import ru.slartus.boostbuddy.data.repositories.models.AuthResponse
 
 @Stable
 interface AuthComponent {
+    val viewStates: Value<AuthViewState>
     fun onCookiesChanged(cookies: String)
+    fun onReloadClick()
 }
 
-class AuthComponentImpl(
+internal class AuthComponentImpl(
     componentContext: ComponentContext,
     private val onLogined: () -> Unit,
-) : BaseComponent<Unit, Any>(componentContext, Unit), AuthComponent {
+) : BaseComponent<AuthViewState, Any>(componentContext, AuthViewState()), AuthComponent {
     private val settingsRepository by Inject.lazy<SettingsRepository>()
     private val profileRepository by Inject.lazy<ProfileRepository>()
     private val badTokens = mutableSetOf<String>()
@@ -54,6 +58,11 @@ class AuthComponentImpl(
                 }
             }.onFailure { logger.e(it, "onCookiesChanged") }
         }
+    }
+
+    override fun onReloadClick() {
+        viewState =
+            viewState.copy(url = "${AuthViewState.AUTH_URL}?${Clock.System.now().epochSeconds}")
     }
 
     private suspend fun checkToken(token: String) {

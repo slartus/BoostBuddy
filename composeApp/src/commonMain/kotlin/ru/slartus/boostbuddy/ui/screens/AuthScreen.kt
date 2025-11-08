@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.NorthWest
+import androidx.compose.material.icons.filled.Repeat
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -49,6 +50,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.max
+import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import ru.slartus.boostbuddy.components.auth.AuthComponent
@@ -65,6 +67,7 @@ internal fun AuthScreen(component: AuthComponent) {
     val platformConfiguration = LocalPlatformConfiguration.current
     var useCursor by remember { mutableStateOf(false) }
     val isKeyboardOpen by keyboardAsState()
+    val state by component.viewStates.subscribeAsState()
     Scaffold(
         topBar = {
             TopAppBar(
@@ -86,6 +89,12 @@ internal fun AuthScreen(component: AuthComponent) {
                                 contentDescription = "Программный курсор"
                             )
                         }
+                    IconButton(onClick = component::onReloadClick) {
+                        Icon(
+                            imageVector = Icons.Filled.Repeat,
+                            contentDescription = "Повторить"
+                        )
+                    }
                 }
 
             )
@@ -183,13 +192,12 @@ internal fun AuthScreen(component: AuthComponent) {
                             } else {
                                 true
                             }
-
                         }
                 )
 
         ) {
             WebView(
-                "https://boosty.to",
+                state.url,
                 clickOffset,
                 onCookieChange = component::onCookiesChanged
             )
