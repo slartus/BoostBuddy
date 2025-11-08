@@ -24,6 +24,7 @@ android-splashscreen = "1.0.1"
 kotlinx-io = "0.6.0" # https://github.com/Kotlin/kotlinx-io
 qrose = "1.0.1" # https://github.com/alexzhirkevich/qrose
 appmetrica = "7.10.0" # https://appmetrica.yandex.com/docs/en/sdk/android/analytics/quick-start
+atomicfu = "0.29.0" # https://github.com/Kotlin/kotlinx-atomicfu
 
 [libraries]
 androidx-appcompat = { module = "androidx.appcompat:appcompat", version.ref = "androidx-appcompat" }
@@ -51,6 +52,7 @@ ktor-negotiation = { module = "io.ktor:ktor-client-content-negotiation", version
 ktor-logging = { module = "io.ktor:ktor-client-logging", version.ref = "ktor" }
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinx-serialization" }
 kotlinx-datetime = { module = "org.jetbrains.kotlinx:kotlinx-datetime", version.ref = "kotlinx-datetime" }
+kotlinx-atomicfu = { module = "org.jetbrains.kotlinx:atomicfu", version.ref = "atomicfu" }
 settings-core = { module = "com.russhwolf:multiplatform-settings", version.ref = "multiplatformSettings" }
 settings-coroutines = { module = "com.russhwolf:multiplatform-settings-coroutines", version.ref = "multiplatformSettings" }
 

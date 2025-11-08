@@ -55,6 +55,7 @@ kotlin {
             implementation(libs.kotlinx.serialization.json)
             implementation(libs.kotlinx.datetime)
             implementation(libs.kotlinx.io.core)
+            implementation(libs.kotlinx.atomicfu)
             implementation(libs.settings.core)
             implementation(libs.settings.coroutines)
             implementation(libs.kodein.core)

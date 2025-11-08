@@ -3,7 +3,6 @@ package ru.slartus.boostbuddy.components.video
 import androidx.compose.runtime.Stable
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.value.Value
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import ru.slartus.boostbuddy.components.BaseComponent
 import ru.slartus.boostbuddy.components.video.VideoState.Buffering
@@ -48,16 +47,17 @@ internal class VideoComponentImpl(
 
     private val videoRepository by Inject.lazy<VideoRepository>()
     private val postRepository by Inject.lazy<PostRepository>()
-    private var timeCodeJob: Job = Job()
+    private val timeCodeManager = TimeCodeManager(
+        scope = scope,
+        videoRepository = videoRepository,
+    )
 
     init {
-        scope.launch {
-            val postResult = postRepository.getPost(blogUrl, postId)
-            val refreshData = postResult.getOrNull()?.let { post ->
-                post.data.filterIsInstance<Content.OkVideo>().find { it.id == postData.id }
-            } ?: postData
-            viewState = viewState.copy(postData = refreshData, loading = false)
-        }
+        refreshData(
+            blogUrl = blogUrl,
+            postId = postId,
+            postData = postData
+        )
     }
 
     override fun onVideoStateChanged(videoState: VideoState) {
@@ -70,16 +70,26 @@ internal class VideoComponentImpl(
     }
 
     override fun onContentPositionChange(position: Long) {
-        timeCodeJob.cancel()
-        timeCodeJob = scope.launch {
-            val id = viewState.postData?.id ?: return@launch
-            runCatching {
-                videoRepository.putTimeCode(id, position / 1000)
-            }
-        }
+        timeCodeManager.onPositionChanged(position)
     }
 
     override fun onStopClicked() {
+        timeCodeManager.putLastPosition()
         onStopClicked.invoke()
+    }
+
+    private fun refreshData(
+        blogUrl: String,
+        postId: String,
+        postData: Content.OkVideo,
+    ) {
+        scope.launch {
+            val postResult = postRepository.getPost(blogUrl, postId)
+            val refreshData = postResult.getOrNull()?.let { post ->
+                post.data.filterIsInstance<Content.OkVideo>().find { it.id == postData.id }
+            } ?: postData
+            timeCodeManager.setContentId(refreshData.id)
+            viewState = viewState.copy(postData = refreshData, loading = false)
+        }
     }
 }
