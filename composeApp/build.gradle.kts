@@ -102,7 +102,7 @@ android {
         targetSdk = 34
 
         applicationId = "ru.slartus.boostbuddy"
-        versionCode = 77
+        versionCode = 78
         versionName = "1.8.2"
     }
     sourceSets["main"].apply {
