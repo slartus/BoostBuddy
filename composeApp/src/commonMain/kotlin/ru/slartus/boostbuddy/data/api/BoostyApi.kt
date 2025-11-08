@@ -198,7 +198,7 @@ internal class BoostyApi(
     suspend fun putVideoTimeCode(
         videoId: String,
         timeCode: Long
-    ): HttpResponse = httpClient.put("v1/video/$videoId/timecode/") {
+    ): HttpResponse = httpClient.put("v1/viewstat/video/$videoId/timecode/") {
         setBody(FormDataContent(Parameters.build {
             append("time_code", timeCode.toString())
         }))
