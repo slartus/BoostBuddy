@@ -263,8 +263,8 @@ class RootComponentImpl(
             } ?: return@launch
 
             viewAction = RootViewAction.ShowSnackBar("Загрузка файла началась")
-            val path = githubRepository.downloadFile(url).getOrThrow()
             runCatching {
+                val path = githubRepository.downloadFile(url).getOrThrow()
                 platformConfiguration.installApp(path)
             }.onFailure {
                 viewAction = RootViewAction.ShowSnackBar("Ошибка загрузки файла")
