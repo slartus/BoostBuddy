@@ -7,12 +7,14 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.runBlocking
+import kotlinx.serialization.json.Json
 import org.kodein.di.DI
 import org.kodein.di.bindProvider
 import org.kodein.di.bindSingleton
 import org.kodein.di.instance
 import org.kodein.di.new
 import ru.slartus.boostbuddy.data.Inject
+import ru.slartus.boostbuddy.data.Inject.instance
 import ru.slartus.boostbuddy.data.analytic.AnalyticsTracker
 import ru.slartus.boostbuddy.data.analytic.CompositeAnalytics
 import ru.slartus.boostbuddy.data.analytic.LogAnalytics
@@ -46,6 +48,12 @@ object PlatformDataConfiguration {
         analyticsTrackers: List<AnalyticsTracker>
     ) {
         Inject.createDependenciesTree {
+            bindSingleton<Json> {
+                Json {
+                    ignoreUnknownKeys = true
+                    isLenient = true
+                }
+            }
             bindSingleton<Logger> { CompositeLogger(listOf(NapierProxy())) }
             bindSingleton<AnalyticsTracker> {
                 CompositeAnalytics(
@@ -82,7 +90,7 @@ object PlatformDataConfiguration {
     }
 
     private fun getAppSettings(): AppSettings {
-        val settingsRepository = Inject.instance<SettingsRepository>()
+        val settingsRepository = instance<SettingsRepository>()
         return runBlocking { settingsRepository.getSettings() }
     }
 
@@ -93,7 +101,7 @@ object PlatformDataConfiguration {
     }
 
     private fun DI.MainBuilder.githubDependencies(debugLog: Boolean) {
-        bindSingleton(TAG_HTTP_CLIENT_GITHUB) { buildGithubHttpClient(debugLog) }
+        bindSingleton(TAG_HTTP_CLIENT_GITHUB) { buildGithubHttpClient(instance(), debugLog) }
         bindSingleton { GithubRepository(httpClient = instance(TAG_HTTP_CLIENT_GITHUB)) }
     }
 
@@ -101,7 +109,8 @@ object PlatformDataConfiguration {
         bindSingleton(TAG_HTTP_CLIENT_BOOSTY) {
             buildBoostyHttpClient(
                 debugLog = debugLog,
-                settingsRepository = instance()
+                settingsRepository = instance(),
+                json = instance(),
             )
         }
         bindSingleton { BoostyApi(httpClient = instance(TAG_HTTP_CLIENT_BOOSTY)) }

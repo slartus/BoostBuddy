@@ -21,8 +21,12 @@ import ru.slartus.boostbuddy.data.repositories.SettingsRepository
 internal const val USER_AGENT =
     "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36"
 
-internal fun buildBoostyHttpClient(debugLog: Boolean, settingsRepository: SettingsRepository) =
-    buildHttpClient(debugLog) {
+internal fun buildBoostyHttpClient(
+    debugLog: Boolean,
+    settingsRepository: SettingsRepository,
+    json: Json
+) =
+    buildHttpClient(debugLog, json) {
         install(Auth) {
             bearer {
                 loadTokens {
@@ -41,8 +45,8 @@ internal fun buildBoostyHttpClient(debugLog: Boolean, settingsRepository: Settin
         }
     }
 
-internal fun buildGithubHttpClient(debugLog: Boolean) =
-    buildHttpClient(debugLog) {
+internal fun buildGithubHttpClient(json: Json, debugLog: Boolean) =
+    buildHttpClient(debugLog, json) {
         defaultRequest {
             url {
                 protocol = URLProtocol.HTTPS
@@ -53,6 +57,7 @@ internal fun buildGithubHttpClient(debugLog: Boolean) =
 
 internal fun buildHttpClient(
     isDebug: Boolean,
+    json: Json,
     block: HttpClientConfig<HttpClientEngineConfig>.() -> Unit = {}
 ): HttpClient =
     HttpClient(HttpEngineFactory().createEngine(isDebug)) {
@@ -70,10 +75,7 @@ internal fun buildHttpClient(
         }
 
         install(ContentNegotiation) {
-            json(Json {
-                ignoreUnknownKeys = true
-                isLenient = true
-            })
+            json(json)
         }
 
         install(Logging) {

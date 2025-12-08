@@ -29,6 +29,7 @@ internal class AuthComponentImpl(
 ) : BaseComponent<AuthViewState, Any>(componentContext, AuthViewState()), AuthComponent {
     private val settingsRepository by Inject.lazy<SettingsRepository>()
     private val profileRepository by Inject.lazy<ProfileRepository>()
+    private val json by Inject.lazy<Json>()
     private val badTokens = mutableSetOf<String>()
     private var checkTokenJob: Job = Job()
 
@@ -47,8 +48,8 @@ internal class AuthComponentImpl(
             runCatching {
                 val authCookie =
                     parseCookies(cookies).entries.firstOrNull { it.key == "auth" } ?: return@launch
-                val json = authCookie.value.decodeURLQueryComponent()
-                Json.decodeFromString<AuthResponse>(json).accessToken?.let { accessToken ->
+                val jsonObject = authCookie.value.decodeURLQueryComponent()
+                json.decodeFromString<AuthResponse>(jsonObject).accessToken?.let { accessToken ->
                     if (accessToken != settingsRepository.getAccessToken() && accessToken !in badTokens) {
                         checkTokenJob.cancel()
                         checkTokenJob = launch(SupervisorJob()) {
