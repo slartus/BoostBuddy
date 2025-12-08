@@ -122,7 +122,15 @@ internal class SettingsRepository(
         }
     }
 
+    suspend fun getDonationPromptVersion(): String? =
+        settings.getString(KEY_DONATION_PROMPT_VERSION, "")
+
+    suspend fun setDonationPromptVersion(version: String) {
+        settings.putString(KEY_DONATION_PROMPT_VERSION, version)
+    }
+
     private companion object {
+        const val KEY_DONATION_PROMPT_VERSION = "KEY_DONATION_PROMPT_VERSION"
         const val ACCESS_TOKEN_KEY = "access_token"
         const val DARK_MODE_KEY = "dark_mode"
         const val SYSTEM_PLAYER_KEY = "system_player"

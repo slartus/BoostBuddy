@@ -153,6 +153,7 @@ class RootComponentImpl(
 
     init {
         subscribeSettings()
+        scope.launch { donateNotify() }
         fetchLastReleaseInfo()
         subscribeToRouter()
     }
@@ -230,7 +231,6 @@ class RootComponentImpl(
                 val lastReleaseVersion = lastReleaseInfo.version
 
                 if (!lastReleaseVersion.greaterThan(platformConfiguration.appVersion)) {
-                    donateNotify()
                     return@launch
                 }
 
@@ -245,7 +245,7 @@ class RootComponentImpl(
     private suspend fun donateNotify() {
         val lastDonateNotifyVersion = settingsRepository.getLastDonateNotifyVersion()
         if (lastDonateNotifyVersion != null &&
-            !lastDonateNotifyVersion.greaterThan(platformConfiguration.appVersion)
+            !platformConfiguration.appVersion.greaterThan(lastDonateNotifyVersion)
         ) return
 
         analytics.trackEvent("root", mapOf("action" to "donate_info"))
