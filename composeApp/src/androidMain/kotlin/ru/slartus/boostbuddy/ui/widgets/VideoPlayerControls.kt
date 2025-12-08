@@ -67,6 +67,7 @@ internal fun VideoPlayerChrome(
     exoPlayer: ExoPlayer,
     title: String,
     playingPosition: Long,
+    isEnded: Boolean,
     onStopClick: () -> Unit,
 ) {
     val coroutineScope = rememberCoroutineScope()
@@ -76,6 +77,11 @@ internal fun VideoPlayerChrome(
     var changePositionJob by remember { mutableStateOf<Job?>(null) }
     val seekState = remember { SeekState() }
 
+    LaunchedEffect(isEnded) {
+        if (isEnded) {
+            controllerState.show()
+        }
+    }
     Box {
         AndroidView(
             modifier = Modifier

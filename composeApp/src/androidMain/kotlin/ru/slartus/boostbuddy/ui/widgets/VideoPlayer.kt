@@ -7,6 +7,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
@@ -43,8 +44,13 @@ actual fun VideoPlayer(
 ) {
     var playingPosition by remember { mutableLongStateOf(0L) }
 
+    var isEnded by remember { mutableStateOf(false) }
+
     val exoPlayer = rememberPlayer(
-        onVideoStateChange = onVideoStateChange,
+        onVideoStateChange = { state ->
+            onVideoStateChange(state)
+            isEnded = state == VideoState.Ended
+        },
         onContentPositionChange = {
             playingPosition = it
             onContentPositionChange(it)
@@ -76,6 +82,7 @@ actual fun VideoPlayer(
         exoPlayer = exoPlayer,
         title = title,
         playingPosition = playingPosition,
+        isEnded = isEnded,
         onStopClick = onStopClick
     )
 }
