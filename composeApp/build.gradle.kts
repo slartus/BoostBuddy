@@ -102,8 +102,8 @@ android {
         targetSdk = 34
 
         applicationId = "ru.slartus.boostbuddy"
-        versionCode = 80
-        versionName = "1.9.0"
+        versionCode = 81
+        versionName = "1.9.1"
     }
     sourceSets["main"].apply {
         manifest.srcFile("src/androidMain/AndroidManifest.xml")
