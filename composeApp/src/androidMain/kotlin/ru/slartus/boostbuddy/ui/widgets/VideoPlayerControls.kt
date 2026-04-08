@@ -42,7 +42,13 @@ import androidx.compose.ui.composed
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.input.key.onKeyEvent
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.gestures.detectTapGestures
+import ru.slartus.boostbuddy.ui.common.LocalPlatformConfiguration
+import ru.slartus.boostbuddy.utils.Platform
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
@@ -60,6 +66,7 @@ import kotlin.time.DurationUnit
 
 private val HIDE_CONTROLLER_DELAY = 5.seconds
 private val SEEK_INCREMENT = 5.seconds
+private val DOUBLE_TAP_SEEK = 10.seconds
 
 @OptIn(UnstableApi::class)
 @Composable
@@ -73,6 +80,8 @@ internal fun VideoPlayerChrome(
     val coroutineScope = rememberCoroutineScope()
     val controllerState = rememberVideoControllerState()
     val focusRequester = remember { FocusRequester() }
+    val isAtv = LocalPlatformConfiguration.current.platform == Platform.AndroidTV
+    var playerSize by remember { mutableStateOf(IntSize.Zero) }
 
     var changePositionJob by remember { mutableStateOf<Job?>(null) }
     val seekState = remember { SeekState() }
@@ -128,15 +137,45 @@ internal fun VideoPlayerChrome(
                     },
                     onStopClick = { onStopClick() }
                 )
-                .noRippleClickable {
-                    if (exoPlayer.isPlaying) {
-                        controllerState.show()
-                        exoPlayer.pausePlayer()
+                .then(
+                    if (isAtv) {
+                        Modifier.noRippleClickable {
+                            if (exoPlayer.isPlaying) {
+                                controllerState.show()
+                                exoPlayer.pausePlayer()
+                            } else {
+                                controllerState.showWithAutoHide()
+                                exoPlayer.startPlayer()
+                            }
+                        }
                     } else {
-                        controllerState.showWithAutoHide()
-                        exoPlayer.startPlayer()
+                        Modifier
+                            .onSizeChanged { playerSize = it }
+                            .pointerInput(Unit) {
+                                detectTapGestures(
+                                    onTap = {
+                                        if (controllerState.isVisible) {
+                                            controllerState.hide()
+                                        } else {
+                                            controllerState.showWithAutoHide()
+                                        }
+                                    },
+                                    onDoubleTap = { offset ->
+                                        val seekMs = DOUBLE_TAP_SEEK
+                                            .toLong(DurationUnit.MILLISECONDS)
+                                        val width = playerSize.width
+                                        val target = if (width > 0 && offset.x > width / 2f) {
+                                            exoPlayer.currentPosition + seekMs
+                                        } else {
+                                            exoPlayer.currentPosition - seekMs
+                                        }
+                                        exoPlayer.seekTo(target.coerceAtLeast(0L))
+                                        controllerState.hide()
+                                    }
+                                )
+                            }
                     }
-                },
+                ),
             factory = { context ->
                 PlayerView(context).apply {
                     layoutParams = FrameLayout.LayoutParams(
@@ -163,7 +202,23 @@ internal fun VideoPlayerChrome(
         ) {
             Box(Modifier.fillMaxSize()) {
                 PlayerPlayStateIcon(
-                    modifier = Modifier.align(Alignment.Center),
+                    modifier = Modifier
+                        .align(Alignment.Center)
+                        .then(
+                            if (!isAtv) {
+                                Modifier.noRippleClickable {
+                                    if (exoPlayer.isPlaying) {
+                                        exoPlayer.pausePlayer()
+                                        controllerState.show()
+                                    } else {
+                                        exoPlayer.startPlayer()
+                                        controllerState.showWithAutoHide()
+                                    }
+                                }
+                            } else {
+                                Modifier
+                            }
+                        ),
                     playing = exoPlayer.isPlaying,
                 )
 
@@ -372,6 +427,11 @@ private class VideoControllerState(
     fun show() {
         hideJob?.cancel()
         isVisible = true
+    }
+
+    fun hide() {
+        hideJob?.cancel()
+        isVisible = false
     }
 
     fun showWithAutoHide() {
