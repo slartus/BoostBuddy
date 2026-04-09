@@ -1,6 +1,6 @@
 # Compose Multiplatform Application
 
-BoostBuddy - simple client for Boosty
+BoostBuddy - simple client for Boosty.
 
 [Обсуждение на 4pda](https://4pda.to/forum/index.php?showtopic=1085976)
 
