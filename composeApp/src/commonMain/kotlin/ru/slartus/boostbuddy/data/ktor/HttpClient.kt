@@ -13,6 +13,8 @@ import io.ktor.client.plugins.defaultRequest
 import io.ktor.client.plugins.logging.LogLevel
 import io.ktor.client.plugins.logging.Logger
 import io.ktor.client.plugins.logging.Logging
+import io.ktor.client.request.header
+import io.ktor.http.HttpHeaders
 import io.ktor.http.URLProtocol
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
@@ -20,6 +22,9 @@ import ru.slartus.boostbuddy.data.repositories.SettingsRepository
 
 internal const val USER_AGENT =
     "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36"
+
+internal const val DESKTOP_USER_AGENT =
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
 
 internal fun buildBoostyHttpClient(
     debugLog: Boolean,
@@ -45,6 +50,28 @@ internal fun buildBoostyHttpClient(
         }
     }
 
+/**
+ * Клиент для phone-auth эндпоинтов Boosty: без Auth-плагина (чтобы не уходил пустой
+ * `Authorization: Bearer`), с десктопным User-Agent и web-специфичными заголовками
+ * (`X-App`, `X-Locale`, `Referer`, `Origin`, `Accept`), как шлёт браузер.
+ * `X-From-Id` выставляется на уровне каждого запроса отдельно (это deviceId).
+ */
+internal fun buildBoostyAuthHttpClient(debugLog: Boolean, json: Json) =
+    buildHttpClient(debugLog, json, userAgent = DESKTOP_USER_AGENT) {
+        defaultRequest {
+            url {
+                protocol = URLProtocol.HTTPS
+                host = "api.boosty.to"
+            }
+            header("X-App", "web")
+            header("X-Locale", "ru_RU")
+            header(HttpHeaders.Referrer, "https://boosty.to/")
+            header(HttpHeaders.Origin, "https://boosty.to")
+            header(HttpHeaders.Accept, "application/json, text/plain, */*")
+            headers.remove(HttpHeaders.AcceptCharset)
+        }
+    }
+
 internal fun buildGithubHttpClient(json: Json, debugLog: Boolean) =
     buildHttpClient(debugLog, json) {
         defaultRequest {
@@ -58,6 +85,7 @@ internal fun buildGithubHttpClient(json: Json, debugLog: Boolean) =
 internal fun buildHttpClient(
     isDebug: Boolean,
     json: Json,
+    userAgent: String = USER_AGENT,
     block: HttpClientConfig<HttpClientEngineConfig>.() -> Unit = {}
 ): HttpClient =
     HttpClient(HttpEngineFactory().createEngine(isDebug)) {
@@ -71,7 +99,7 @@ internal fun buildHttpClient(
         }
 
         install(UserAgent) {
-            agent = USER_AGENT
+            agent = userAgent
         }
 
         install(ContentNegotiation) {

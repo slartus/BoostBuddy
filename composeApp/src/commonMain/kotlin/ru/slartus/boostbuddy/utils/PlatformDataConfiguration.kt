@@ -19,6 +19,8 @@ import ru.slartus.boostbuddy.data.analytic.AnalyticsTracker
 import ru.slartus.boostbuddy.data.analytic.CompositeAnalytics
 import ru.slartus.boostbuddy.data.analytic.LogAnalytics
 import ru.slartus.boostbuddy.data.api.BoostyApi
+import ru.slartus.boostbuddy.data.api.PhoneAuthApi
+import ru.slartus.boostbuddy.data.ktor.buildBoostyAuthHttpClient
 import ru.slartus.boostbuddy.data.ktor.buildBoostyHttpClient
 import ru.slartus.boostbuddy.data.ktor.buildGithubHttpClient
 import ru.slartus.boostbuddy.data.log.CompositeLogger
@@ -30,6 +32,7 @@ import ru.slartus.boostbuddy.data.repositories.BlogRepository
 import ru.slartus.boostbuddy.data.repositories.EventsRepository
 import ru.slartus.boostbuddy.data.repositories.FeedRepository
 import ru.slartus.boostbuddy.data.repositories.GithubRepository
+import ru.slartus.boostbuddy.data.repositories.PhoneAuthRepository
 import ru.slartus.boostbuddy.data.repositories.PostRepository
 import ru.slartus.boostbuddy.data.repositories.ProfileRepository
 import ru.slartus.boostbuddy.data.repositories.SettingsRepository
@@ -42,6 +45,7 @@ import ru.slartus.boostbuddy.navigation.NavigationRouterImpl
 
 object PlatformDataConfiguration {
     private const val TAG_HTTP_CLIENT_BOOSTY = "boosty"
+    private const val TAG_HTTP_CLIENT_BOOSTY_AUTH = "boosty_auth"
     private const val TAG_HTTP_CLIENT_GITHUB = "github"
     fun createDependenciesTree(
         platformConfiguration: PlatformConfiguration,
@@ -84,8 +88,9 @@ object PlatformDataConfiguration {
         val bufferLoggingTracker = addBufferLoggingTracker(appSettings.debugLog)
         Inject.addConfig {
             bindSingleton { bufferLoggingTracker }
-            githubDependencies(appSettings.debugLog)
-            boostyDependencies(appSettings.debugLog)
+            val debugLog = appSettings.debugLog || platformConfiguration.isDebug
+            githubDependencies(debugLog)
+            boostyDependencies(debugLog)
         }
     }
 
@@ -120,6 +125,11 @@ object PlatformDataConfiguration {
         bindSingleton { PostRepository(boostyApi = instance()) }
         bindSingleton { VideoRepository(boostyApi = instance()) }
         bindSingleton { ProfileRepository(boostyApi = instance()) }
+        bindSingleton(TAG_HTTP_CLIENT_BOOSTY_AUTH) {
+            buildBoostyAuthHttpClient(debugLog = debugLog, json = instance())
+        }
+        bindSingleton { PhoneAuthApi(httpClient = instance(TAG_HTTP_CLIENT_BOOSTY_AUTH)) }
+        bindSingleton { PhoneAuthRepository(phoneAuthApi = instance()) }
         bindSingleton { EventsRepository(boostyApi = instance()) }
         bindSingleton { FeedRepository(boostyApi = instance()) }
         bindProvider { new(::TagRepository) }

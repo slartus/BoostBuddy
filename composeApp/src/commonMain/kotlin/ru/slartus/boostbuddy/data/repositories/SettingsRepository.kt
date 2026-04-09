@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
+import kotlin.random.Random
 
 @OptIn(ExperimentalSettingsApi::class)
 internal class SettingsRepository(
@@ -66,6 +67,35 @@ internal class SettingsRepository(
     }
 
     suspend fun getAccessToken(): String? = getString(ACCESS_TOKEN_KEY)
+
+    suspend fun getOrCreateDeviceId(): String = withContext(Dispatchers.IO) {
+        locker.withLock {
+            val existing = settings.getStringOrNull(DEVICE_ID_KEY)
+            if (existing != null) return@withLock existing
+            val generated = generateDeviceId()
+            settings.putString(DEVICE_ID_KEY, generated)
+            generated
+        }
+    }
+
+    private fun generateDeviceId(): String {
+        val bytes = ByteArray(16).also { Random.nextBytes(it) }
+        bytes[6] = ((bytes[6].toInt() and 0x0f) or 0x40).toByte()
+        bytes[8] = ((bytes[8].toInt() and 0x3f) or 0x80).toByte()
+        fun ByteArray.hex(from: Int, to: Int) = buildString {
+            for (i in from until to) {
+                val v = this@hex[i].toInt() and 0xff
+                append(v.toString(16).padStart(2, '0'))
+            }
+        }
+        return buildString {
+            append(bytes.hex(0, 4)); append('-')
+            append(bytes.hex(4, 6)); append('-')
+            append(bytes.hex(6, 8)); append('-')
+            append(bytes.hex(8, 10)); append('-')
+            append(bytes.hex(10, 16))
+        }
+    }
 
     suspend fun setLastDonateNotifyVersion(version: String) =
         putString(LAST_DONATE_NOTIFY_VERSION_KEY, version)
@@ -132,6 +162,7 @@ internal class SettingsRepository(
     private companion object {
         const val KEY_DONATION_PROMPT_VERSION = "KEY_DONATION_PROMPT_VERSION"
         const val ACCESS_TOKEN_KEY = "access_token"
+        const val DEVICE_ID_KEY = "device_id"
         const val DARK_MODE_KEY = "dark_mode"
         const val SYSTEM_PLAYER_KEY = "system_player"
         const val DEBUG_LOG = "debug_log"
