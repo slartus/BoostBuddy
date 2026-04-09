@@ -1,0 +1,90 @@
+name: Release
+
+on:
+  push:
+    branches: [ master ]
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Extract version info
+        id: version
+        run: |
+          VERSION=$(grep 'versionName' composeApp/build.gradle.kts | head -1 | sed 's/.*"\(.*\)".*/\1/')
+          VERSION_CODE=$(grep 'versionCode' composeApp/build.gradle.kts | head -1 | sed 's/[^0-9]*\([0-9]*\).*/\1/')
+          echo "name=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "code=$VERSION_CODE" >> "$GITHUB_OUTPUT"
+          echo "tag=v$VERSION" >> "$GITHUB_OUTPUT"
+          echo "apk=BoostBuddy_v${VERSION}_c${VERSION_CODE}.apk" >> "$GITHUB_OUTPUT"
+
+      - name: Check if tag already exists
+        id: check_tag
+        run: |
+          if git rev-parse "v${{ steps.version.outputs.name }}" >/dev/null 2>&1; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Generate changelog
+        if: steps.check_tag.outputs.exists == 'false'
+        id: changelog
+        run: |
+          PREVIOUS_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+          if [ -z "$PREVIOUS_TAG" ]; then
+            CHANGELOG=$(git log --pretty=format:"- %s" HEAD)
+          else
+            CHANGELOG=$(git log --pretty=format:"- %s" "${PREVIOUS_TAG}..HEAD")
+          fi
+          {
+            echo "body<<EOF"
+            echo "$CHANGELOG"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Set up JDK 17
+        if: steps.check_tag.outputs.exists == 'false'
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Setup Gradle
+        if: steps.check_tag.outputs.exists == 'false'
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Decode keystore
+        if: steps.check_tag.outputs.exists == 'false'
+        run: echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > /tmp/release.keystore
+
+      - name: Build release APK
+        if: steps.check_tag.outputs.exists == 'false'
+        run: ./gradlew :composeApp:assembleRelease
+        env:
+          KEYSTORE_FILE: /tmp/release.keystore
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+
+      - name: Rename APK
+        if: steps.check_tag.outputs.exists == 'false'
+        run: |
+          APK=$(find composeApp/build/outputs/apk/release -name '*.apk' | head -1)
+          mv "$APK" "composeApp/build/outputs/apk/release/${{ steps.version.outputs.apk }}"
+
+      - name: Create GitHub Release
+        if: steps.check_tag.outputs.exists == 'false'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: ${{ steps.version.outputs.name }}
+          body: ${{ steps.changelog.outputs.body }}
+          files: composeApp/build/outputs/apk/release/${{ steps.version.outputs.apk }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
