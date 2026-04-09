@@ -110,13 +110,16 @@ android {
         create("release") {
             val keystorePropertiesFile = rootProject.file("keystore/keystore.properties")
             if (keystorePropertiesFile.exists()) {
-                val keystoreProperties = java.util.Properties().apply {
-                    load(keystorePropertiesFile.inputStream())
-                }
+                val props = keystorePropertiesFile.readLines()
+                    .filter { it.contains("=") }
+                    .associate { line ->
+                        val (key, value) = line.split("=", limit = 2)
+                        key.trim() to value.trim()
+                    }
                 storeFile = rootProject.file("keystore/release.keystore")
-                storePassword = keystoreProperties["RELEASE_STORE_PASSWORD"] as String
-                keyAlias = keystoreProperties["RELEASE_KEY_ALIAS"] as String
-                keyPassword = keystoreProperties["RELEASE_KEY_PASSWORD"] as String
+                storePassword = props["RELEASE_STORE_PASSWORD"]
+                keyAlias = props["RELEASE_KEY_ALIAS"]
+                keyPassword = props["RELEASE_KEY_PASSWORD"]
             } else {
                 storeFile = file(System.getenv("KEYSTORE_FILE") ?: "/dev/null")
                 storePassword = System.getenv("KEYSTORE_PASSWORD") ?: ""
