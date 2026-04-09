@@ -2,11 +2,11 @@
 
 desugar_jdk_libs = "2.1.5"
 kotlin = "2.2.0" # https://github.com/JetBrains/kotlin
-compose = "1.7.0" # https://github.com/JetBrains/compose-multiplatform
-agp = "8.2.2"
+compose = "1.9.3" # https://github.com/JetBrains/compose-multiplatform
+agp = "8.13.1"
 androidx-appcompat = "1.7.1"
 androidx-activityCompose = "1.10.1"
-compose-uitooling = "1.8.3"
+compose-uitooling = "1.10.0"
 decompose = "3.1.0" # https://github.com/arkivanov/Decompose
 essently = "2.1.0" # https://github.com/arkivanov/Essenty
 composeImageLoader = "1.7.1" # https://github.com/qdsfdhvh/compose-imageloader

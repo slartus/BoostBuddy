@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalTime::class)
+
 package ru.slartus.boostbuddy.data.api
 
 import io.ktor.client.HttpClient
@@ -18,6 +20,7 @@ import ru.slartus.boostbuddy.data.api.model.RemoteFeedResponse
 import ru.slartus.boostbuddy.data.api.model.RemoteFeedTagResponse
 import ru.slartus.boostbuddy.data.api.model.RemotePostResponse
 import ru.slartus.boostbuddy.data.api.model.RemoteSearchResponse
+import kotlin.time.ExperimentalTime
 
 internal class BoostyApi(
     private val httpClient: HttpClient
