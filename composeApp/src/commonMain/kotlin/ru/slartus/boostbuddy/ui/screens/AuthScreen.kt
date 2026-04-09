@@ -296,12 +296,12 @@ private fun PhoneAuthContent(
             }
 
             AuthViewState.Mode.EnterSmsCode -> {
-                Text("Код из SMS отправлен на ${state.phone}")
+                Text("Код отправлен. Проверьте сообщения в приложении Boosty, свои мессенджеры или смс")
                 Spacer(Modifier.height(12.dp))
                 OutlinedTextField(
                     value = state.smsCode,
                     onValueChange = component::onSmsCodeChanged,
-                    label = { Text("Код из SMS") },
+                    label = { Text("Код") },
                     singleLine = true,
                     enabled = !state.isLoading,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
