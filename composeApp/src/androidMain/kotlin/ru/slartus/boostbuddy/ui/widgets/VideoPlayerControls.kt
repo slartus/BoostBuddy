@@ -47,6 +47,8 @@ import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.detectTransformGestures
+import androidx.compose.ui.graphics.graphicsLayer
 import ru.slartus.boostbuddy.ui.common.LocalPlatformConfiguration
 import ru.slartus.boostbuddy.utils.Platform
 import androidx.compose.ui.viewinterop.AndroidView
@@ -85,6 +87,10 @@ internal fun VideoPlayerChrome(
 
     var changePositionJob by remember { mutableStateOf<Job?>(null) }
     val seekState = remember { SeekState() }
+
+    var zoom by remember { mutableFloatStateOf(1f) }
+    var offsetX by remember { mutableFloatStateOf(0f) }
+    var offsetY by remember { mutableFloatStateOf(0f) }
 
     LaunchedEffect(isEnded) {
         if (isEnded) {
@@ -152,6 +158,25 @@ internal fun VideoPlayerChrome(
                         Modifier
                             .onSizeChanged { playerSize = it }
                             .pointerInput(Unit) {
+                                detectTransformGestures { _, pan, gestureZoom, _ ->
+                                    val newZoom = (zoom * gestureZoom).coerceIn(1f, 5f)
+                                    if (newZoom > 1f) {
+                                        val maxOffsetX =
+                                            (playerSize.width * (newZoom - 1f)) / 2f
+                                        val maxOffsetY =
+                                            (playerSize.height * (newZoom - 1f)) / 2f
+                                        offsetX =
+                                            (offsetX + pan.x).coerceIn(-maxOffsetX, maxOffsetX)
+                                        offsetY =
+                                            (offsetY + pan.y).coerceIn(-maxOffsetY, maxOffsetY)
+                                    } else {
+                                        offsetX = 0f
+                                        offsetY = 0f
+                                    }
+                                    zoom = newZoom
+                                }
+                            }
+                            .pointerInput(Unit) {
                                 detectTapGestures(
                                     onTap = {
                                         if (controllerState.isVisible) {
@@ -161,18 +186,31 @@ internal fun VideoPlayerChrome(
                                         }
                                     },
                                     onDoubleTap = { offset ->
-                                        val seekMs = DOUBLE_TAP_SEEK
-                                            .toLong(DurationUnit.MILLISECONDS)
-                                        val width = playerSize.width
-                                        val target = if (width > 0 && offset.x > width / 2f) {
-                                            exoPlayer.currentPosition + seekMs
+                                        if (zoom > 1f) {
+                                            zoom = 1f
+                                            offsetX = 0f
+                                            offsetY = 0f
                                         } else {
-                                            exoPlayer.currentPosition - seekMs
+                                            val seekMs = DOUBLE_TAP_SEEK
+                                                .toLong(DurationUnit.MILLISECONDS)
+                                            val width = playerSize.width
+                                            val target =
+                                                if (width > 0 && offset.x > width / 2f) {
+                                                    exoPlayer.currentPosition + seekMs
+                                                } else {
+                                                    exoPlayer.currentPosition - seekMs
+                                                }
+                                            exoPlayer.seekTo(target.coerceAtLeast(0L))
+                                            controllerState.hide()
                                         }
-                                        exoPlayer.seekTo(target.coerceAtLeast(0L))
-                                        controllerState.hide()
                                     }
                                 )
+                            }
+                            .graphicsLayer {
+                                scaleX = zoom
+                                scaleY = zoom
+                                translationX = offsetX
+                                translationY = offsetY
                             }
                     }
                 ),
