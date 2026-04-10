@@ -365,6 +365,8 @@ class RootComponentImpl(
     private fun logout() {
         scope.launch {
             settingsRepository.putAccessToken(null)
+            settingsRepository.putRefreshToken(null)
+            settingsRepository.putTokenExpiresAt(null)
             WebManager.clearWebViewCookies()
             WebManager.clearWebViewStorage()
             unauthorizedError()

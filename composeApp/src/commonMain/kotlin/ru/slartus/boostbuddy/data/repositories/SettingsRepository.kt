@@ -68,6 +68,24 @@ internal class SettingsRepository(
 
     suspend fun getAccessToken(): String? = getString(ACCESS_TOKEN_KEY)
 
+    suspend fun putRefreshToken(value: String?) = withContext(Dispatchers.IO) {
+        if (value == null)
+            remove(REFRESH_TOKEN_KEY)
+        else
+            putString(REFRESH_TOKEN_KEY, value)
+    }
+
+    suspend fun getRefreshToken(): String? = getString(REFRESH_TOKEN_KEY)
+
+    suspend fun putTokenExpiresAt(value: Long?) = withContext(Dispatchers.IO) {
+        if (value == null)
+            remove(TOKEN_EXPIRES_AT_KEY)
+        else
+            putLong(TOKEN_EXPIRES_AT_KEY, value)
+    }
+
+    suspend fun getTokenExpiresAt(): Long? = getLong(TOKEN_EXPIRES_AT_KEY)
+
     suspend fun getOrCreateDeviceId(): String = withContext(Dispatchers.IO) {
         locker.withLock {
             val existing = settings.getStringOrNull(DEVICE_ID_KEY)
@@ -162,6 +180,8 @@ internal class SettingsRepository(
     private companion object {
         const val KEY_DONATION_PROMPT_VERSION = "KEY_DONATION_PROMPT_VERSION"
         const val ACCESS_TOKEN_KEY = "access_token"
+        const val REFRESH_TOKEN_KEY = "refresh_token"
+        const val TOKEN_EXPIRES_AT_KEY = "token_expires_at"
         const val DEVICE_ID_KEY = "device_id"
         const val DARK_MODE_KEY = "dark_mode"
         const val SYSTEM_PLAYER_KEY = "system_player"

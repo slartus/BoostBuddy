@@ -53,6 +53,8 @@ internal class AuthComponentImpl(
     private fun clearToken() {
         scope.launch {
             settingsRepository.putAccessToken(null)
+            settingsRepository.putRefreshToken(null)
+            settingsRepository.putTokenExpiresAt(null)
         }
     }
 
@@ -62,11 +64,16 @@ internal class AuthComponentImpl(
                 val authCookie =
                     parseCookies(cookies).entries.firstOrNull { it.key == "auth" } ?: return@launch
                 val jsonObject = authCookie.value.decodeURLQueryComponent()
-                json.decodeFromString<AuthResponse>(jsonObject).accessToken?.let { accessToken ->
+                val authResponse = json.decodeFromString<AuthResponse>(jsonObject)
+                authResponse.accessToken?.let { accessToken ->
                     if (accessToken != settingsRepository.getAccessToken() && accessToken !in badTokens) {
                         checkTokenJob.cancel()
                         checkTokenJob = launch(SupervisorJob()) {
-                            checkToken(accessToken)
+                            checkToken(
+                                accessToken,
+                                authResponse.refreshToken,
+                                authResponse.expiresAt
+                            )
                         }
                     }
                 }
@@ -179,12 +186,19 @@ internal class AuthComponentImpl(
             )
                 .onSuccess { tokens ->
                     settingsRepository.putAccessToken(tokens.accessToken)
+                    settingsRepository.putRefreshToken(tokens.refreshToken)
+                    if (tokens.expiresIn > 0) {
+                        val expiresAt = Clock.System.now().epochSeconds + tokens.expiresIn
+                        settingsRepository.putTokenExpiresAt(expiresAt)
+                    }
                     if (profileRepository.getProfile().isSuccess) {
                         viewState = viewState.copy(isLoading = false)
                         onLogined()
                     } else {
                         badTokens.add(tokens.accessToken)
                         settingsRepository.putAccessToken(null)
+                        settingsRepository.putRefreshToken(null)
+                        settingsRepository.putTokenExpiresAt(null)
                         viewState = viewState.copy(
                             isLoading = false,
                             errorMessage = "Не удалось получить профиль",
@@ -201,13 +215,16 @@ internal class AuthComponentImpl(
         }
     }
 
-    private suspend fun checkToken(token: String) {
+    private suspend fun checkToken(token: String, refreshToken: String?, expiresAt: Long?) {
         settingsRepository.putAccessToken(token)
+        settingsRepository.putRefreshToken(refreshToken)
+        settingsRepository.putTokenExpiresAt(expiresAt)
         if (profileRepository.getProfile().isSuccess) {
             analytics.trackEvent("auth", mapOf("action" to "login"))
             onLogined()
+        } else {
+            badTokens.add(token)
         }
-        else badTokens.add(token)
     }
 
     private fun parseCookies(cookies: String?): Map<String, String> {

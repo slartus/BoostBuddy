@@ -29,13 +29,17 @@ internal class BoostyApi(
     suspend fun refreshToken(deviceId: String, refreshToken: String): HttpResponse =
         httpClient
             .post("oauth/token/") {
-                setBody(FormDataContent(Parameters.build {
-                    append("device_id", deviceId)
-                    append("device_os", "android")
-                    append("grant_type", "refresh_token")
-                    append("refresh_token", refreshToken)
-                }))
-            }.body()
+                setBody(
+                    FormDataContent(
+                        Parameters.build {
+                            append("device_id", deviceId)
+                            append("device_os", "android")
+                            append("grant_type", "refresh_token")
+                            append("refresh_token", refreshToken)
+                        }
+                    )
+                )
+            }
 
     suspend fun subscribes(limit: Int, withFollow: Boolean): HttpResponse =
         httpClient
