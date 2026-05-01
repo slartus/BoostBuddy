@@ -10,17 +10,22 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.focusable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.FastForward
+import androidx.compose.material.icons.filled.FastRewind
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.Icon
@@ -35,12 +40,14 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
@@ -69,6 +76,15 @@ import kotlin.time.DurationUnit
 private val HIDE_CONTROLLER_DELAY = 5.seconds
 private val SEEK_INCREMENT = 5.seconds
 private val DOUBLE_TAP_SEEK = 10.seconds
+private val SEEK_FEEDBACK_TIMEOUT = 1.seconds
+
+private enum class SeekDirection { FORWARD, BACKWARD }
+
+private data class SeekFeedback(val direction: SeekDirection, val seconds: Int)
+
+private class JobHolder {
+    var job: Job? = null
+}
 
 @OptIn(UnstableApi::class)
 @Composable
@@ -91,6 +107,39 @@ internal fun VideoPlayerChrome(
     var zoom by remember { mutableFloatStateOf(1f) }
     var offsetX by remember { mutableFloatStateOf(0f) }
     var offsetY by remember { mutableFloatStateOf(0f) }
+
+    var seekFeedback by remember { mutableStateOf<SeekFeedback?>(null) }
+    val seekFeedbackJobHolder = remember { JobHolder() }
+
+    val applySeekTick by rememberUpdatedState<(Offset) -> Unit> { offset ->
+        val width = playerSize.width
+        if (width <= 0) return@rememberUpdatedState
+        val direction = if (offset.x > width / 2f) {
+            SeekDirection.FORWARD
+        } else {
+            SeekDirection.BACKWARD
+        }
+        val seekMs = DOUBLE_TAP_SEEK.toLong(DurationUnit.MILLISECONDS)
+        val previous = seekFeedback
+        val newSeconds = if (previous?.direction == direction) {
+            previous.seconds + DOUBLE_TAP_SEEK.inWholeSeconds.toInt()
+        } else {
+            DOUBLE_TAP_SEEK.inWholeSeconds.toInt()
+        }
+        seekFeedback = SeekFeedback(direction, newSeconds)
+        val target = when (direction) {
+            SeekDirection.FORWARD -> exoPlayer.currentPosition + seekMs
+            SeekDirection.BACKWARD -> exoPlayer.currentPosition - seekMs
+        }
+        exoPlayer.seekTo(target.coerceAtLeast(0L))
+        controllerState.hide()
+
+        seekFeedbackJobHolder.job?.cancel()
+        seekFeedbackJobHolder.job = coroutineScope.launch {
+            delay(SEEK_FEEDBACK_TIMEOUT)
+            seekFeedback = null
+        }
+    }
 
     LaunchedEffect(isEnded) {
         if (isEnded) {
@@ -178,8 +227,10 @@ internal fun VideoPlayerChrome(
                             }
                             .pointerInput(Unit) {
                                 detectTapGestures(
-                                    onTap = {
-                                        if (controllerState.isVisible) {
+                                    onTap = { offset ->
+                                        if (seekFeedback != null) {
+                                            applySeekTick(offset)
+                                        } else if (controllerState.isVisible) {
                                             controllerState.hide()
                                         } else {
                                             controllerState.showWithAutoHide()
@@ -191,19 +242,9 @@ internal fun VideoPlayerChrome(
                                             offsetX = 0f
                                             offsetY = 0f
                                         } else {
-                                            val seekMs = DOUBLE_TAP_SEEK
-                                                .toLong(DurationUnit.MILLISECONDS)
-                                            val width = playerSize.width
-                                            val target =
-                                                if (width > 0 && offset.x > width / 2f) {
-                                                    exoPlayer.currentPosition + seekMs
-                                                } else {
-                                                    exoPlayer.currentPosition - seekMs
-                                                }
-                                            exoPlayer.seekTo(target.coerceAtLeast(0L))
-                                            controllerState.hide()
+                                            applySeekTick(offset)
                                         }
-                                    }
+                                    },
                                 )
                             }
                             .graphicsLayer {
@@ -232,6 +273,16 @@ internal fun VideoPlayerChrome(
                 }
             }
         )
+
+        AnimatedVisibility(
+            visible = seekFeedback != null,
+            enter = fadeIn(),
+            exit = fadeOut(),
+        ) {
+            seekFeedback?.let { feedback ->
+                SeekFeedbackOverlay(feedback)
+            }
+        }
 
         AnimatedVisibility(
             visible = controllerState.isVisible,
@@ -334,6 +385,49 @@ private fun PlayerControllerView(
                 color = androidx.compose.ui.graphics.Color.White,
                 style = MaterialTheme.typography.labelMedium
             )
+        }
+    }
+}
+
+@Composable
+private fun SeekFeedbackOverlay(
+    feedback: SeekFeedback,
+    modifier: Modifier = Modifier,
+) {
+    val isForward = feedback.direction == SeekDirection.FORWARD
+    Box(modifier = modifier.fillMaxSize()) {
+        Box(
+            modifier = Modifier
+                .fillMaxHeight()
+                .fillMaxWidth(0.5f)
+                .align(if (isForward) Alignment.CenterEnd else Alignment.CenterStart)
+                .background(
+                    color = MaterialTheme.colorScheme.scrim.copy(alpha = 0.35f),
+                    shape = RoundedCornerShape(24.dp),
+                ),
+            contentAlignment = Alignment.Center,
+        ) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center,
+            ) {
+                Icon(
+                    imageVector = if (isForward) {
+                        Icons.Filled.FastForward
+                    } else {
+                        Icons.Filled.FastRewind
+                    },
+                    contentDescription = null,
+                    tint = LightColorScheme.background,
+                    modifier = Modifier.size(48.dp),
+                )
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    text = "${feedback.seconds} сек",
+                    color = LightColorScheme.background,
+                    style = MaterialTheme.typography.titleMedium,
+                )
+            }
         }
     }
 }
