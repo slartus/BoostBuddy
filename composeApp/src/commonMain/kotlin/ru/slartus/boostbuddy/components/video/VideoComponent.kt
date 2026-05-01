@@ -11,6 +11,7 @@ import ru.slartus.boostbuddy.components.video.VideoState.Idle
 import ru.slartus.boostbuddy.components.video.VideoState.Ready
 import ru.slartus.boostbuddy.data.Inject
 import ru.slartus.boostbuddy.data.repositories.PostRepository
+import ru.slartus.boostbuddy.data.repositories.SettingsRepository
 import ru.slartus.boostbuddy.data.repositories.VideoRepository
 import ru.slartus.boostbuddy.data.repositories.models.Content
 import ru.slartus.boostbuddy.data.repositories.models.PlayerUrl
@@ -21,12 +22,16 @@ interface VideoComponent {
     fun onVideoStateChanged(videoState: VideoState)
     fun onContentPositionChange(position: Long)
     fun onStopClicked()
+    fun onChangeQualityClicked()
+    fun onQualitySheetDismissed()
+    fun onQualityItemClicked(playerUrl: PlayerUrl)
 }
 
 data class VideoViewState(
     val postData: Content.OkVideo?,
     val playerUrl: PlayerUrl,
-    val loading: Boolean = true
+    val loading: Boolean = true,
+    val qualitySheetVisible: Boolean = false
 )
 
 val Content.OkVideo.timeCodeMs: Long get() = timeCode * 1000
@@ -47,6 +52,7 @@ internal class VideoComponentImpl(
 
     private val videoRepository by Inject.lazy<VideoRepository>()
     private val postRepository by Inject.lazy<PostRepository>()
+    private val settingsRepository by Inject.lazy<SettingsRepository>()
     private val timeCodeManager = TimeCodeManager(
         scope = scope,
         videoRepository = videoRepository,
@@ -76,6 +82,21 @@ internal class VideoComponentImpl(
     override fun onStopClicked() {
         timeCodeManager.putLastPosition()
         onStopClicked.invoke()
+    }
+
+    override fun onChangeQualityClicked() {
+        viewState = viewState.copy(qualitySheetVisible = true)
+    }
+
+    override fun onQualitySheetDismissed() {
+        viewState = viewState.copy(qualitySheetVisible = false)
+    }
+
+    override fun onQualityItemClicked(playerUrl: PlayerUrl) {
+        scope.launch {
+            settingsRepository.setPreferredQuality(playerUrl.quality)
+        }
+        viewState = viewState.copy(playerUrl = playerUrl, qualitySheetVisible = false)
     }
 
     private fun refreshData(

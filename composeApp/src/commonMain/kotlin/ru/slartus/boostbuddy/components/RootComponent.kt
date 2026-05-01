@@ -51,6 +51,7 @@ import ru.slartus.boostbuddy.data.repositories.Blog
 import ru.slartus.boostbuddy.data.repositories.GithubRepository
 import ru.slartus.boostbuddy.data.repositories.ReleaseInfo
 import ru.slartus.boostbuddy.data.repositories.SettingsRepository
+import ru.slartus.boostbuddy.components.video.pickPlayerUrl
 import ru.slartus.boostbuddy.data.repositories.models.Content
 import ru.slartus.boostbuddy.data.repositories.models.PlayerUrl
 import ru.slartus.boostbuddy.data.repositories.models.Post
@@ -208,12 +209,10 @@ class RootComponentImpl(
                 )
             )
 
-            is NavigationTree.VideoType -> dialogNavigation.activate(
-                DialogConfig.VideoType(
-                    blogUrl = screen.blogUrl,
-                    postId = screen.postId,
-                    postData = screen.postData
-                )
+            is NavigationTree.VideoType -> resolveVideoType(
+                blogUrl = screen.blogUrl,
+                postId = screen.postId,
+                postData = screen.postData
             )
 
             is NavigationTree.Filter -> dialogNavigation.activate(
@@ -413,6 +412,45 @@ class RootComponentImpl(
             post = config.post,
             onBackClicked = { navigation.popWhile { it == config } }
         )
+
+    private fun resolveVideoType(
+        blogUrl: String,
+        postId: String,
+        postData: Content.OkVideo,
+    ) {
+        scope.launch {
+            val settings = settingsRepository.getSettings()
+            if (settings.useSystemVideoPlayer) {
+                dialogNavigation.activate(
+                    DialogConfig.VideoType(
+                        blogUrl = blogUrl,
+                        postId = postId,
+                        postData = postData
+                    )
+                )
+                return@launch
+            }
+            val autoPick = postData.playerUrls.pickPlayerUrl(settings.preferredQuality)
+            if (autoPick != null) {
+                navigation.push(
+                    Config.VideoConfig(
+                        blogUrl = blogUrl,
+                        postId = postId,
+                        postData = postData,
+                        playerUrl = autoPick
+                    )
+                )
+            } else {
+                dialogNavigation.activate(
+                    DialogConfig.VideoType(
+                        blogUrl = blogUrl,
+                        postId = postId,
+                        postData = postData
+                    )
+                )
+            }
+        }
+    }
 
     private fun playVideo(
         blogUrl: String,

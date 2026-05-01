@@ -4,6 +4,7 @@ import com.russhwolf.settings.ExperimentalSettingsApi
 import com.russhwolf.settings.ObservableSettings
 import com.russhwolf.settings.coroutines.getBooleanFlow
 import com.russhwolf.settings.coroutines.getBooleanOrNullFlow
+import com.russhwolf.settings.coroutines.getStringOrNullFlow
 import com.russhwolf.settings.coroutines.getStringOrNullStateFlow
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -11,9 +12,11 @@ import kotlinx.coroutines.IO
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
+import ru.slartus.boostbuddy.data.repositories.models.VideoQuality
 import kotlin.random.Random
 
 @OptIn(ExperimentalSettingsApi::class)
@@ -30,12 +33,14 @@ internal class SettingsRepository(
         get() = combine(
             settings.getBooleanOrNullFlow(DARK_MODE_KEY),
             settings.getBooleanFlow(SYSTEM_PLAYER_KEY, false),
-            settings.getBooleanFlow(DEBUG_LOG, false)
-        ) { darkMode, systemPlayer, debugLog ->
+            settings.getBooleanFlow(DEBUG_LOG, false),
+            settings.getStringOrNullFlow(PREFERRED_QUALITY_KEY).map { it.toVideoQualityOrNull() }
+        ) { darkMode, systemPlayer, debugLog, preferredQuality ->
             AppSettings(
                 isDarkMode = darkMode,
                 useSystemVideoPlayer = systemPlayer,
-                debugLog = debugLog
+                debugLog = debugLog,
+                preferredQuality = preferredQuality
             )
         }
 
@@ -43,7 +48,9 @@ internal class SettingsRepository(
         AppSettings(
             isDarkMode = settings.getBooleanOrNull(DARK_MODE_KEY),
             useSystemVideoPlayer = settings.getBoolean(SYSTEM_PLAYER_KEY, false),
-            debugLog = settings.getBoolean(DEBUG_LOG, false)
+            debugLog = settings.getBoolean(DEBUG_LOG, false),
+            preferredQuality = settings.getStringOrNull(PREFERRED_QUALITY_KEY)
+                .toVideoQualityOrNull()
         )
     }
 
@@ -53,6 +60,14 @@ internal class SettingsRepository(
 
     suspend fun setUseSystemVideoPlayer(value: Boolean) = withContext(Dispatchers.IO) {
         putBoolean(SYSTEM_PLAYER_KEY, value)
+    }
+
+    suspend fun setPreferredQuality(value: VideoQuality?) = withContext(Dispatchers.IO) {
+        if (value == null) {
+            remove(PREFERRED_QUALITY_KEY)
+        } else {
+            putString(PREFERRED_QUALITY_KEY, value.name)
+        }
     }
 
     suspend fun setDebugLog(value: Boolean) = withContext(Dispatchers.IO) {
@@ -187,17 +202,26 @@ internal class SettingsRepository(
         const val SYSTEM_PLAYER_KEY = "system_player"
         const val DEBUG_LOG = "debug_log"
         const val LAST_DONATE_NOTIFY_VERSION_KEY = "LAST_DONATE_NOTIFY_VERSION_KEY"
+        const val PREFERRED_QUALITY_KEY = "preferred_video_quality"
     }
 }
+
+private fun String?.toVideoQualityOrNull(): VideoQuality? =
+    this?.let { name -> VideoQuality.entries.firstOrNull { it.name == name } }
 
 data class AppSettings(
     val isDarkMode: Boolean?,
     val useSystemVideoPlayer: Boolean,
-    val debugLog: Boolean
+    val debugLog: Boolean,
+    val preferredQuality: VideoQuality?
 ) {
     companion object {
-        val Default: AppSettings =
-            AppSettings(isDarkMode = null, useSystemVideoPlayer = false, debugLog = false)
+        val Default: AppSettings = AppSettings(
+            isDarkMode = null,
+            useSystemVideoPlayer = false,
+            debugLog = false,
+            preferredQuality = null
+        )
     }
 }
 

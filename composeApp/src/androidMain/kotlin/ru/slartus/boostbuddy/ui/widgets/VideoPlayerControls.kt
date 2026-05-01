@@ -9,7 +9,10 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -28,6 +31,7 @@ import androidx.compose.material.icons.filled.FastForward
 import androidx.compose.material.icons.filled.FastRewind
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
@@ -94,6 +98,7 @@ internal fun VideoPlayerChrome(
     playingPosition: Long,
     isEnded: Boolean,
     onStopClick: () -> Unit,
+    onChangeQualityClick: (() -> Unit)? = null,
 ) {
     val coroutineScope = rememberCoroutineScope()
     val controllerState = rememberVideoControllerState()
@@ -190,7 +195,8 @@ internal fun VideoPlayerChrome(
                         )
                         controllerState.showWithAutoHide()
                     },
-                    onStopClick = { onStopClick() }
+                    onStopClick = { onStopClick() },
+                    onSettingsClick = onChangeQualityClick?.let { { _: Boolean -> it() } },
                 )
                 .then(
                     if (isAtv) {
@@ -290,6 +296,18 @@ internal fun VideoPlayerChrome(
             exit = fadeOut(),
         ) {
             Box(Modifier.fillMaxSize()) {
+                if (onChangeQualityClick != null) {
+                    PlayerQualityButton(
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .padding(16.dp),
+                        onClick = {
+                            controllerState.showWithAutoHide()
+                            onChangeQualityClick()
+                        },
+                    )
+                }
+
                 PlayerPlayStateIcon(
                     modifier = Modifier
                         .align(Alignment.Center)
@@ -455,6 +473,39 @@ private fun PlayerPlayStateIcon(
     }
 }
 
+@Composable
+private fun PlayerQualityButton(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isFocused by interactionSource.collectIsFocusedAsState()
+    Box(
+        modifier = modifier
+            .size(48.dp)
+            .background(
+                color = MaterialTheme.colorScheme.scrim.copy(
+                    alpha = if (isFocused) 0.85f else 0.5f
+                ),
+                shape = CircleShape,
+            )
+            .focusable(interactionSource = interactionSource)
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                onClick = onClick,
+            )
+            .padding(10.dp),
+    ) {
+        Icon(
+            modifier = Modifier.fillMaxSize(),
+            tint = LightColorScheme.background,
+            imageVector = Icons.Filled.Settings,
+            contentDescription = "Качество видео",
+        )
+    }
+}
+
 private fun Modifier.onPlayerKeyEvent(
     onUpClick: (longPress: Boolean) -> Unit,
     onPauseClick: (longPress: Boolean) -> Unit,
@@ -462,7 +513,8 @@ private fun Modifier.onPlayerKeyEvent(
     onPlayPauseClick: (longPress: Boolean) -> Unit,
     onLeftClick: (longPress: Boolean) -> Unit,
     onRightClick: (longPress: Boolean) -> Unit,
-    onStopClick: (longPress: Boolean) -> Unit
+    onStopClick: (longPress: Boolean) -> Unit,
+    onSettingsClick: ((longPress: Boolean) -> Unit)? = null,
 ): Modifier = composed {
     var longPress by remember { mutableStateOf(false) }
 
@@ -513,6 +565,13 @@ private fun Modifier.onPlayerKeyEvent(
                         true
                     }
 
+                    KeyEvent.KEYCODE_SETTINGS,
+                    KeyEvent.KEYCODE_INFO,
+                    KeyEvent.KEYCODE_MENU -> {
+                        onSettingsClick?.invoke(longPress)
+                        onSettingsClick != null
+                    }
+
                     else -> false
                 }
             } finally {
@@ -539,7 +598,10 @@ private fun isOwnKeyCode(keyEvent: androidx.compose.ui.input.key.KeyEvent): Bool
         KeyEvent.KEYCODE_MEDIA_PREVIOUS,
         KeyEvent.KEYCODE_MEDIA_STEP_BACKWARD,
         KeyEvent.KEYCODE_MEDIA_STEP_FORWARD,
-        KeyEvent.KEYCODE_MEDIA_PAUSE -> true
+        KeyEvent.KEYCODE_MEDIA_PAUSE,
+        KeyEvent.KEYCODE_SETTINGS,
+        KeyEvent.KEYCODE_INFO,
+        KeyEvent.KEYCODE_MENU -> true
 
         else -> false
     }

@@ -40,7 +40,8 @@ actual fun VideoPlayer(
     position: Long,
     onVideoStateChange: (VideoState) -> Unit,
     onContentPositionChange: (Long) -> Unit,
-    onStopClick: () -> Unit
+    onStopClick: () -> Unit,
+    onChangeQualityClick: (() -> Unit)?
 ) {
     var playingPosition by remember { mutableLongStateOf(0L) }
 
@@ -78,12 +79,26 @@ actual fun VideoPlayer(
         }
     }
 
+    val initialPlayerUrl = remember(exoPlayer) { playerUrl }
+    LaunchedEffect(exoPlayer, playerUrl) {
+        if (playerUrl == initialPlayerUrl) return@LaunchedEffect
+        val savedPosition = exoPlayer.currentPosition
+        val wasPlaying = exoPlayer.playWhenReady
+        exoPlayer.stop()
+        exoPlayer.clearMediaItems()
+        exoPlayer.setMediaSource(mediaId = vid, title = title, playerUrl = playerUrl)
+        exoPlayer.seekTo(savedPosition)
+        exoPlayer.playWhenReady = wasPlaying
+        exoPlayer.prepare()
+    }
+
     VideoPlayerChrome(
         exoPlayer = exoPlayer,
         title = title,
         playingPosition = playingPosition,
         isEnded = isEnded,
-        onStopClick = onStopClick
+        onStopClick = onStopClick,
+        onChangeQualityClick = onChangeQualityClick,
     )
 }
 

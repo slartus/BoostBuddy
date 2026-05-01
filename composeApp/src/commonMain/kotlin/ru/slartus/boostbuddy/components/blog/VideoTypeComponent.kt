@@ -3,6 +3,8 @@ package ru.slartus.boostbuddy.components.blog
 import androidx.compose.runtime.Stable
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.value.Value
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.launch
 import ru.slartus.boostbuddy.components.BaseComponent
 import ru.slartus.boostbuddy.data.Inject
@@ -35,6 +37,7 @@ class VideoTypeComponentImpl(
 ), VideoTypeComponent {
 
     private val settingsRepository by Inject.lazy<SettingsRepository>()
+    private val pendingWrites = mutableListOf<Job>()
 
     init {
         subscribeSettings()
@@ -53,13 +56,20 @@ class VideoTypeComponentImpl(
     }
 
     override fun onItemClicked(playerUrl: PlayerUrl) {
-        onItemClicked.invoke(playerUrl)
+        scope.launch {
+            pendingWrites.toList().joinAll()
+            pendingWrites.clear()
+            settingsRepository.setPreferredQuality(playerUrl.quality)
+            onItemClicked.invoke(playerUrl)
+        }
     }
 
     override fun onUseSystemPlayerClicked(value: Boolean) {
-        scope.launch {
+        val job = scope.launch {
             settingsRepository.setUseSystemVideoPlayer(value)
         }
+        pendingWrites += job
+        job.invokeOnCompletion { pendingWrites.remove(job) }
     }
 
 }

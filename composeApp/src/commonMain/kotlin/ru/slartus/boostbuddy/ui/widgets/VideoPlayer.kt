@@ -12,5 +12,6 @@ expect fun VideoPlayer(
     position: Long,
     onVideoStateChange: (VideoState) -> Unit,
     onContentPositionChange: (Long) -> Unit,
-    onStopClick: () -> Unit
+    onStopClick: () -> Unit,
+    onChangeQualityClick: (() -> Unit)?
 )

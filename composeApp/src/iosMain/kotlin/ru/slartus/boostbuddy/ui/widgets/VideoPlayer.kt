@@ -28,7 +28,8 @@ actual fun VideoPlayer(
     position: Long,
     onVideoStateChange: (VideoState) -> Unit,
     onContentPositionChange: (Long) -> Unit,
-    onStopClick: () -> Unit
+    onStopClick: () -> Unit,
+    onChangeQualityClick: (() -> Unit)?
 ) {
 
     val player = remember { AVPlayer(uRL = NSURL.URLWithString(playerUrl.url)!!) }
