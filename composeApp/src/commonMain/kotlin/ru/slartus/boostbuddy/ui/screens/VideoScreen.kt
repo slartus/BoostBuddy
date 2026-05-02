@@ -84,21 +84,16 @@ internal fun VideoScreen(component: VideoComponent) {
         state.postData?.let { postData ->
             val qualityOptions = remember(postData) { postData.playerUrls.usableOptions() }
             val downloadOptions = remember(postData) { postData.playerUrls.downloadableOptions() }
-            val onSettingsClick: (() -> Unit) = remember(component) {
-                { component.onSettingsClicked() }
-            }
             VideoPlayer(
                 vid = postData.vid,
                 playerUrl = state.playerUrl,
                 title = postData.title,
                 position = postData.timeCodeMs,
                 playbackSpeed = state.playbackSpeed,
-                onVideoStateChange = { videoState ->
-                    component.onVideoStateChanged(videoState)
-                },
-                onContentPositionChange = { component.onContentPositionChange(it) },
-                onStopClick = { component.onStopClicked() },
-                onSettingsClick = onSettingsClick,
+                onVideoStateChange = component::onVideoStateChanged,
+                onContentPositionChange = component::onContentPositionChange,
+                onStopClick = component::onStopClicked,
+                onSettingsClick = component::onSettingsClicked,
             )
 
             if (state.settingsSheetVisible) {
@@ -390,11 +385,12 @@ private fun SpeedPanelMobile(
             IconButton(
                 onClick = {
                     val next = roundSpeed(
-                        (currentSpeed - PLAYBACK_SPEED_STEP).coerceAtLeast(PLAYBACK_SPEED_MIN)
+                        (displaySpeed - PLAYBACK_SPEED_STEP).coerceAtLeast(PLAYBACK_SPEED_MIN)
                     )
+                    dragValue = next
                     onSelected(next)
                 },
-                enabled = currentSpeed > PLAYBACK_SPEED_MIN,
+                enabled = displaySpeed > PLAYBACK_SPEED_MIN,
             ) {
                 Icon(Icons.Filled.Remove, contentDescription = "Уменьшить скорость")
             }
@@ -408,11 +404,12 @@ private fun SpeedPanelMobile(
             IconButton(
                 onClick = {
                     val next = roundSpeed(
-                        (currentSpeed + PLAYBACK_SPEED_STEP).coerceAtMost(PLAYBACK_SPEED_MAX)
+                        (displaySpeed + PLAYBACK_SPEED_STEP).coerceAtMost(PLAYBACK_SPEED_MAX)
                     )
+                    dragValue = next
                     onSelected(next)
                 },
-                enabled = currentSpeed < PLAYBACK_SPEED_MAX,
+                enabled = displaySpeed < PLAYBACK_SPEED_MAX,
             ) {
                 Icon(Icons.Outlined.Add, contentDescription = "Увеличить скорость")
             }
