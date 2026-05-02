@@ -3,6 +3,8 @@ package ru.slartus.boostbuddy.components.video
 import androidx.compose.runtime.Stable
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.value.Value
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import ru.slartus.boostbuddy.components.BaseComponent
 import ru.slartus.boostbuddy.components.video.VideoState.Buffering
@@ -22,16 +24,18 @@ interface VideoComponent {
     fun onVideoStateChanged(videoState: VideoState)
     fun onContentPositionChange(position: Long)
     fun onStopClicked()
-    fun onChangeQualityClicked()
-    fun onQualitySheetDismissed()
+    fun onSettingsClicked()
+    fun onSettingsSheetDismissed()
     fun onQualityItemClicked(playerUrl: PlayerUrl)
+    fun onPlaybackSpeedSelected(speed: Float)
 }
 
 data class VideoViewState(
     val postData: Content.OkVideo?,
     val playerUrl: PlayerUrl,
     val loading: Boolean = true,
-    val qualitySheetVisible: Boolean = false
+    val settingsSheetVisible: Boolean = false,
+    val playbackSpeed: Float = 1f
 )
 
 val Content.OkVideo.timeCodeMs: Long get() = timeCode * 1000
@@ -64,6 +68,18 @@ internal class VideoComponentImpl(
             postId = postId,
             postData = postData
         )
+        subscribePlaybackSpeed()
+    }
+
+    private fun subscribePlaybackSpeed() {
+        scope.launch {
+            settingsRepository.appSettingsFlow
+                .map { it.preferredPlaybackSpeed }
+                .distinctUntilChanged()
+                .collect { speed ->
+                    viewState = viewState.copy(playbackSpeed = speed)
+                }
+        }
     }
 
     override fun onVideoStateChanged(videoState: VideoState) {
@@ -84,19 +100,27 @@ internal class VideoComponentImpl(
         onStopClicked.invoke()
     }
 
-    override fun onChangeQualityClicked() {
-        viewState = viewState.copy(qualitySheetVisible = true)
+    override fun onSettingsClicked() {
+        viewState = viewState.copy(settingsSheetVisible = true)
     }
 
-    override fun onQualitySheetDismissed() {
-        viewState = viewState.copy(qualitySheetVisible = false)
+    override fun onSettingsSheetDismissed() {
+        viewState = viewState.copy(settingsSheetVisible = false)
     }
 
     override fun onQualityItemClicked(playerUrl: PlayerUrl) {
         scope.launch {
             settingsRepository.setPreferredQuality(playerUrl.quality)
         }
-        viewState = viewState.copy(playerUrl = playerUrl, qualitySheetVisible = false)
+        viewState = viewState.copy(playerUrl = playerUrl, settingsSheetVisible = false)
+    }
+
+    override fun onPlaybackSpeedSelected(speed: Float) {
+        // Запись в Settings — единственная точка истины. State обновится через
+        // subscribePlaybackSpeed-коллектор, иначе будут два writer'а на одно поле.
+        scope.launch {
+            settingsRepository.setPreferredPlaybackSpeed(speed)
+        }
     }
 
     private fun refreshData(

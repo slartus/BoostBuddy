@@ -4,6 +4,7 @@ import com.russhwolf.settings.ExperimentalSettingsApi
 import com.russhwolf.settings.ObservableSettings
 import com.russhwolf.settings.coroutines.getBooleanFlow
 import com.russhwolf.settings.coroutines.getBooleanOrNullFlow
+import com.russhwolf.settings.coroutines.getFloatFlow
 import com.russhwolf.settings.coroutines.getStringOrNullFlow
 import com.russhwolf.settings.coroutines.getStringOrNullStateFlow
 import kotlinx.coroutines.CoroutineScope
@@ -34,13 +35,15 @@ internal class SettingsRepository(
             settings.getBooleanOrNullFlow(DARK_MODE_KEY),
             settings.getBooleanFlow(SYSTEM_PLAYER_KEY, false),
             settings.getBooleanFlow(DEBUG_LOG, false),
-            settings.getStringOrNullFlow(PREFERRED_QUALITY_KEY).map { it.toVideoQualityOrNull() }
-        ) { darkMode, systemPlayer, debugLog, preferredQuality ->
+            settings.getStringOrNullFlow(PREFERRED_QUALITY_KEY).map { it.toVideoQualityOrNull() },
+            settings.getFloatFlow(PREFERRED_PLAYBACK_SPEED_KEY, DEFAULT_PLAYBACK_SPEED)
+        ) { darkMode, systemPlayer, debugLog, preferredQuality, preferredPlaybackSpeed ->
             AppSettings(
                 isDarkMode = darkMode,
                 useSystemVideoPlayer = systemPlayer,
                 debugLog = debugLog,
-                preferredQuality = preferredQuality
+                preferredQuality = preferredQuality,
+                preferredPlaybackSpeed = preferredPlaybackSpeed
             )
         }
 
@@ -50,7 +53,11 @@ internal class SettingsRepository(
             useSystemVideoPlayer = settings.getBoolean(SYSTEM_PLAYER_KEY, false),
             debugLog = settings.getBoolean(DEBUG_LOG, false),
             preferredQuality = settings.getStringOrNull(PREFERRED_QUALITY_KEY)
-                .toVideoQualityOrNull()
+                .toVideoQualityOrNull(),
+            preferredPlaybackSpeed = settings.getFloat(
+                PREFERRED_PLAYBACK_SPEED_KEY,
+                DEFAULT_PLAYBACK_SPEED
+            )
         )
     }
 
@@ -68,6 +75,10 @@ internal class SettingsRepository(
         } else {
             putString(PREFERRED_QUALITY_KEY, value.name)
         }
+    }
+
+    suspend fun setPreferredPlaybackSpeed(value: Float) = withContext(Dispatchers.IO) {
+        putFloat(PREFERRED_PLAYBACK_SPEED_KEY, value)
     }
 
     suspend fun setDebugLog(value: Boolean) = withContext(Dispatchers.IO) {
@@ -173,6 +184,12 @@ internal class SettingsRepository(
         }
     }
 
+    private suspend fun putFloat(key: String, value: Float) = withContext(Dispatchers.IO) {
+        locker.withLock {
+            settings.putFloat(key, value)
+        }
+    }
+
     private suspend fun getLong(key: String) = withContext(Dispatchers.IO) {
         locker.withLock {
             settings.getLongOrNull(key)
@@ -203,6 +220,8 @@ internal class SettingsRepository(
         const val DEBUG_LOG = "debug_log"
         const val LAST_DONATE_NOTIFY_VERSION_KEY = "LAST_DONATE_NOTIFY_VERSION_KEY"
         const val PREFERRED_QUALITY_KEY = "preferred_video_quality"
+        const val PREFERRED_PLAYBACK_SPEED_KEY = "preferred_playback_speed"
+        const val DEFAULT_PLAYBACK_SPEED = 1f
     }
 }
 
@@ -213,14 +232,16 @@ data class AppSettings(
     val isDarkMode: Boolean?,
     val useSystemVideoPlayer: Boolean,
     val debugLog: Boolean,
-    val preferredQuality: VideoQuality?
+    val preferredQuality: VideoQuality?,
+    val preferredPlaybackSpeed: Float
 ) {
     companion object {
         val Default: AppSettings = AppSettings(
             isDarkMode = null,
             useSystemVideoPlayer = false,
             debugLog = false,
-            preferredQuality = null
+            preferredQuality = null,
+            preferredPlaybackSpeed = 1f
         )
     }
 }

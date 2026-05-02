@@ -38,10 +38,11 @@ actual fun VideoPlayer(
     playerUrl: PlayerUrl,
     title: String,
     position: Long,
+    playbackSpeed: Float,
     onVideoStateChange: (VideoState) -> Unit,
     onContentPositionChange: (Long) -> Unit,
     onStopClick: () -> Unit,
-    onChangeQualityClick: (() -> Unit)?
+    onSettingsClick: (() -> Unit)?
 ) {
     var playingPosition by remember { mutableLongStateOf(0L) }
 
@@ -92,13 +93,17 @@ actual fun VideoPlayer(
         exoPlayer.prepare()
     }
 
+    LaunchedEffect(exoPlayer, playbackSpeed) {
+        exoPlayer.setPlaybackSpeed(playbackSpeed)
+    }
+
     VideoPlayerChrome(
         exoPlayer = exoPlayer,
         title = title,
         playingPosition = playingPosition,
         isEnded = isEnded,
         onStopClick = onStopClick,
-        onChangeQualityClick = onChangeQualityClick,
+        onSettingsClick = onSettingsClick,
     )
 }
 

@@ -98,7 +98,7 @@ internal fun VideoPlayerChrome(
     playingPosition: Long,
     isEnded: Boolean,
     onStopClick: () -> Unit,
-    onChangeQualityClick: (() -> Unit)? = null,
+    onSettingsClick: (() -> Unit)? = null,
 ) {
     val coroutineScope = rememberCoroutineScope()
     val controllerState = rememberVideoControllerState()
@@ -196,7 +196,7 @@ internal fun VideoPlayerChrome(
                         controllerState.showWithAutoHide()
                     },
                     onStopClick = { onStopClick() },
-                    onSettingsClick = onChangeQualityClick?.let { { _: Boolean -> it() } },
+                    onSettingsClick = onSettingsClick?.let { { _: Boolean -> it() } },
                 )
                 .then(
                     if (isAtv) {
@@ -296,14 +296,14 @@ internal fun VideoPlayerChrome(
             exit = fadeOut(),
         ) {
             Box(Modifier.fillMaxSize()) {
-                if (onChangeQualityClick != null) {
+                if (onSettingsClick != null) {
                     PlayerQualityButton(
                         modifier = Modifier
                             .align(Alignment.TopEnd)
                             .padding(16.dp),
                         onClick = {
                             controllerState.showWithAutoHide()
-                            onChangeQualityClick()
+                            onSettingsClick()
                         },
                     )
                 }

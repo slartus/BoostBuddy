@@ -2,11 +2,16 @@ package ru.slartus.boostbuddy.ui.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -14,20 +19,35 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Remove
+import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material3.AssistChip
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.runtime.remember
+import kotlin.math.abs
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import ru.slartus.boostbuddy.components.blog.text
 import ru.slartus.boostbuddy.components.video.VideoComponent
@@ -37,7 +57,20 @@ import ru.slartus.boostbuddy.data.repositories.models.PlayerUrl
 import ru.slartus.boostbuddy.data.repositories.models.VideoQuality
 import ru.slartus.boostbuddy.ui.common.HideSystemBarsEffect
 import ru.slartus.boostbuddy.ui.common.KeepScreenOnEffect
+import ru.slartus.boostbuddy.ui.common.LocalPlatformConfiguration
 import ru.slartus.boostbuddy.ui.widgets.VideoPlayer
+import ru.slartus.boostbuddy.utils.Platform
+import kotlin.math.roundToInt
+
+private val PLAYBACK_SPEED_PRESETS: List<Float> = listOf(
+    0.5f, 0.75f, 1f, 1.25f, 1.5f, 1.75f, 2f, 3f
+)
+private const val PLAYBACK_SPEED_MIN = 0.5f
+private const val PLAYBACK_SPEED_MAX = 3f
+private const val PLAYBACK_SPEED_STEP = 0.05f
+private const val PLAYBACK_SPEED_EPSILON = 0.005f
+
+private fun Float.matchesSpeed(other: Float): Boolean = abs(this - other) < PLAYBACK_SPEED_EPSILON
 
 @Composable
 internal fun VideoScreen(component: VideoComponent) {
@@ -49,33 +82,31 @@ internal fun VideoScreen(component: VideoComponent) {
     Box(modifier = Modifier.fillMaxSize().background(Color.Black)) {
         state.postData?.let { postData ->
             val qualityOptions = remember(postData) { postData.playerUrls.usableOptions() }
-            val hasMultipleQualities = qualityOptions.size > 1
-            val onChangeQualityClick: (() -> Unit)? = remember(component, hasMultipleQualities) {
-                if (hasMultipleQualities) {
-                    { component.onChangeQualityClicked() }
-                } else {
-                    null
-                }
+            val onSettingsClick: (() -> Unit) = remember(component) {
+                { component.onSettingsClicked() }
             }
             VideoPlayer(
                 vid = postData.vid,
                 playerUrl = state.playerUrl,
                 title = postData.title,
                 position = postData.timeCodeMs,
+                playbackSpeed = state.playbackSpeed,
                 onVideoStateChange = { videoState ->
                     component.onVideoStateChanged(videoState)
                 },
                 onContentPositionChange = { component.onContentPositionChange(it) },
                 onStopClick = { component.onStopClicked() },
-                onChangeQualityClick = onChangeQualityClick,
+                onSettingsClick = onSettingsClick,
             )
 
-            if (state.qualitySheetVisible) {
-                QualitySelectionSheet(
+            if (state.settingsSheetVisible) {
+                PlayerSettingsSheet(
                     qualities = qualityOptions,
                     currentQuality = state.playerUrl.quality,
-                    onSelected = { component.onQualityItemClicked(it) },
-                    onDismiss = { component.onQualitySheetDismissed() },
+                    currentSpeed = state.playbackSpeed,
+                    onQualitySelected = { component.onQualityItemClicked(it) },
+                    onSpeedSelected = { component.onPlaybackSpeedSelected(it) },
+                    onDismiss = { component.onSettingsSheetDismissed() },
                 )
             }
         }
@@ -88,42 +119,328 @@ internal fun VideoScreen(component: VideoComponent) {
     }
 }
 
+private enum class SettingsSection { Root, Quality, Speed }
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun QualitySelectionSheet(
+private fun PlayerSettingsSheet(
     qualities: List<PlayerUrl>,
     currentQuality: VideoQuality,
-    onSelected: (PlayerUrl) -> Unit,
+    currentSpeed: Float,
+    onQualitySelected: (PlayerUrl) -> Unit,
+    onSpeedSelected: (Float) -> Unit,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    var section by remember { mutableStateOf(SettingsSection.Root) }
 
     ModalBottomSheet(
         modifier = modifier.navigationBarsPadding(),
         onDismissRequest = onDismiss,
         sheetState = sheetState,
     ) {
-        Column(Modifier.verticalScroll(rememberScrollState())) {
-            qualities.forEach { item ->
-                Row(
-                    modifier = Modifier.fillMaxWidth()
-                        .clickable { onSelected(item) }
-                        .padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    if (item.quality == currentQuality) {
-                        Icon(
-                            imageVector = Icons.Filled.Check,
-                            contentDescription = null,
-                        )
-                    } else {
-                        Box(Modifier.size(24.dp))
-                    }
-                    Box(Modifier.width(16.dp))
-                    Text(text = item.quality.text)
-                }
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
+        ) {
+            SettingsSheetHeader(
+                section = section,
+                onBack = { section = SettingsSection.Root },
+            )
+            when (section) {
+                SettingsSection.Root -> SettingsRootPanel(
+                    qualityLabel = currentQuality.text,
+                    speedLabel = formatSpeed(currentSpeed),
+                    onQualityClick = { section = SettingsSection.Quality },
+                    onSpeedClick = { section = SettingsSection.Speed },
+                )
+
+                SettingsSection.Quality -> QualityPanel(
+                    qualities = qualities,
+                    currentQuality = currentQuality,
+                    onSelected = onQualitySelected,
+                )
+
+                SettingsSection.Speed -> SpeedPanel(
+                    currentSpeed = currentSpeed,
+                    onSelected = onSpeedSelected,
+                )
             }
         }
     }
 }
+
+@Composable
+private fun SettingsSheetHeader(
+    section: SettingsSection,
+    onBack: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 8.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        if (section != SettingsSection.Root) {
+            IconButton(onClick = onBack) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = "Назад",
+                )
+            }
+        } else {
+            Spacer(Modifier.width(48.dp))
+        }
+        Text(
+            modifier = Modifier.padding(start = 8.dp),
+            text = when (section) {
+                SettingsSection.Root -> "Настройки"
+                SettingsSection.Quality -> "Качество"
+                SettingsSection.Speed -> "Скорость воспроизведения"
+            },
+            style = MaterialTheme.typography.titleMedium,
+        )
+    }
+}
+
+@Composable
+private fun SettingsRootPanel(
+    qualityLabel: String,
+    speedLabel: String,
+    onQualityClick: () -> Unit,
+    onSpeedClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(modifier = modifier.fillMaxWidth()) {
+        SettingsRootRow(
+            title = "Качество",
+            value = qualityLabel,
+            onClick = onQualityClick,
+        )
+        SettingsRootRow(
+            title = "Скорость воспроизведения",
+            value = speedLabel,
+            onClick = onSpeedClick,
+        )
+    }
+}
+
+@Composable
+private fun SettingsRootRow(
+    title: String,
+    value: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            modifier = Modifier.weight(1f),
+            text = title,
+            style = MaterialTheme.typography.bodyLarge,
+        )
+        Text(
+            text = value,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Spacer(Modifier.width(8.dp))
+        Icon(
+            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+            contentDescription = null,
+        )
+    }
+}
+
+@Composable
+private fun QualityPanel(
+    qualities: List<PlayerUrl>,
+    currentQuality: VideoQuality,
+    onSelected: (PlayerUrl) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(modifier = modifier.fillMaxWidth()) {
+        qualities.forEach { item ->
+            CheckmarkRow(
+                title = item.quality.text,
+                checked = item.quality == currentQuality,
+                onClick = { onSelected(item) },
+            )
+        }
+    }
+}
+
+@Composable
+private fun SpeedPanel(
+    currentSpeed: Float,
+    onSelected: (Float) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val isAtv = LocalPlatformConfiguration.current.platform == Platform.AndroidTV
+    if (isAtv) {
+        SpeedPanelTv(
+            currentSpeed = currentSpeed,
+            onSelected = onSelected,
+            modifier = modifier,
+        )
+    } else {
+        SpeedPanelMobile(
+            currentSpeed = currentSpeed,
+            onSelected = onSelected,
+            modifier = modifier,
+        )
+    }
+}
+
+@Composable
+private fun SpeedPanelTv(
+    currentSpeed: Float,
+    onSelected: (Float) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(modifier = modifier.fillMaxWidth()) {
+        PLAYBACK_SPEED_PRESETS.forEach { preset ->
+            CheckmarkRow(
+                title = formatSpeed(preset),
+                checked = preset.matchesSpeed(currentSpeed),
+                onClick = { onSelected(preset) },
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun SpeedPanelMobile(
+    currentSpeed: Float,
+    onSelected: (Float) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    // Локальный буфер во время drag слайдера: чтобы не писать в Settings и не дёргать ExoPlayer
+    // на каждое микро-движение пальца. Запись — только на отпускании или явном клике.
+    var dragValue by remember(currentSpeed) { mutableFloatStateOf(currentSpeed) }
+    val displaySpeed = dragValue.coerceIn(PLAYBACK_SPEED_MIN, PLAYBACK_SPEED_MAX)
+
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Text(
+            modifier = Modifier.fillMaxWidth(),
+            textAlign = TextAlign.Center,
+            text = formatSpeed(displaySpeed),
+            style = MaterialTheme.typography.headlineMedium,
+            fontWeight = FontWeight.Bold,
+        )
+        Spacer(Modifier.height(8.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            IconButton(
+                onClick = {
+                    val next = roundSpeed(
+                        (currentSpeed - PLAYBACK_SPEED_STEP).coerceAtLeast(PLAYBACK_SPEED_MIN)
+                    )
+                    onSelected(next)
+                },
+                enabled = currentSpeed > PLAYBACK_SPEED_MIN,
+            ) {
+                Icon(Icons.Filled.Remove, contentDescription = "Уменьшить скорость")
+            }
+            Slider(
+                modifier = Modifier.weight(1f).padding(horizontal = 8.dp),
+                value = displaySpeed,
+                valueRange = PLAYBACK_SPEED_MIN..PLAYBACK_SPEED_MAX,
+                onValueChange = { dragValue = it },
+                onValueChangeFinished = { onSelected(roundSpeed(dragValue)) },
+            )
+            IconButton(
+                onClick = {
+                    val next = roundSpeed(
+                        (currentSpeed + PLAYBACK_SPEED_STEP).coerceAtMost(PLAYBACK_SPEED_MAX)
+                    )
+                    onSelected(next)
+                },
+                enabled = currentSpeed < PLAYBACK_SPEED_MAX,
+            ) {
+                Icon(Icons.Outlined.Add, contentDescription = "Увеличить скорость")
+            }
+        }
+        Spacer(Modifier.height(8.dp))
+        FlowRow(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            PLAYBACK_SPEED_PRESETS.forEach { preset ->
+                val selected = preset.matchesSpeed(currentSpeed)
+                if (selected) {
+                    FilterChip(
+                        selected = true,
+                        onClick = { onSelected(preset) },
+                        label = { Text(formatSpeed(preset)) },
+                    )
+                } else {
+                    AssistChip(
+                        onClick = { onSelected(preset) },
+                        label = { Text(formatSpeed(preset)) },
+                    )
+                }
+            }
+        }
+        Spacer(Modifier.height(8.dp))
+    }
+}
+
+@Composable
+private fun CheckmarkRow(
+    title: String,
+    checked: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        if (checked) {
+            Icon(imageVector = Icons.Filled.Check, contentDescription = null)
+        } else {
+            Box(Modifier.size(24.dp))
+        }
+        Spacer(Modifier.width(16.dp))
+        Text(text = title)
+    }
+}
+
+private fun formatSpeed(speed: Float): String {
+    val rounded = roundSpeed(speed)
+    val text = if (rounded == rounded.toInt().toFloat()) {
+        rounded.toInt().toString()
+    } else {
+        val cents = (rounded * 100).roundToInt()
+        if (cents % 10 == 0) {
+            "${cents / 100}.${(cents / 10) % 10}"
+        } else {
+            "${cents / 100}.${((cents / 10) % 10)}${cents % 10}"
+        }
+    }
+    return "${text}x"
+}
+
+private fun roundSpeed(speed: Float): Float =
+    ((speed * 100).roundToInt() / 100f)
