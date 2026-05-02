@@ -124,8 +124,13 @@ internal fun VideoPlayerChrome(
         } else {
             SeekDirection.BACKWARD
         }
-        val seekMs = DOUBLE_TAP_SEEK.toLong(DurationUnit.MILLISECONDS)
         val previous = seekFeedback
+        // Пока активна серия в одну сторону — игнорируем тапы в противоположную половину,
+        // чтобы случайный/промазанный тап не разворачивал перемотку назад.
+        if (previous != null && previous.direction != direction) {
+            return@rememberUpdatedState
+        }
+        val seekMs = DOUBLE_TAP_SEEK.toLong(DurationUnit.MILLISECONDS)
         val newSeconds = if (previous?.direction == direction) {
             previous.seconds + DOUBLE_TAP_SEEK.inWholeSeconds.toInt()
         } else {
