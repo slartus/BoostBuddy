@@ -1,9 +1,11 @@
 package ru.slartus.boostbuddy.utils
 
+import android.app.DownloadManager
 import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.os.Environment
 import android.widget.Toast
 import androidx.core.content.FileProvider
 import kotlinx.io.files.Path
@@ -54,6 +56,32 @@ actual class PlatformConfiguration(var androidContext: Context, actual val platf
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         }
         androidContext.tryStartActivity(shareIntent, null)
+    }
+
+    actual fun downloadVideo(url: String, fileName: String, onError: (() -> Unit)?) {
+        runCatching {
+            val request = DownloadManager.Request(Uri.parse(url))
+                .setTitle(fileName)
+                .setDescription("BoostBuddy")
+                .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
+                .setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, fileName)
+                .setAllowedOverMetered(true)
+                .setAllowedOverRoaming(true)
+            val manager =
+                androidContext.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
+            manager.enqueue(request)
+        }.onFailure { error ->
+            logger.e(error, "downloadVideo")
+            if (onError != null) {
+                onError.invoke()
+            } else {
+                Toast.makeText(
+                    androidContext,
+                    "Не удалось запустить загрузку",
+                    Toast.LENGTH_LONG,
+                ).show()
+            }
+        }
     }
 
     companion object {

@@ -22,6 +22,11 @@ private val VIDEO_QUALITY_FALLBACK_PRIORITY: List<VideoQuality> = listOf(
 internal fun List<PlayerUrl>.usableOptions(): List<PlayerUrl> =
     filter { it.url.isNotEmpty() && it.quality.used }
 
+// HLS/DASH — манифесты адаптивных стримов (списки сегментов), а не цельный медиафайл,
+// поэтому DownloadManager их не скачает в осмысленном виде.
+internal fun List<PlayerUrl>.downloadableOptions(): List<PlayerUrl> =
+    usableOptions().filter { it.quality != VideoQuality.HLS && it.quality != VideoQuality.DASH }
+
 internal fun List<PlayerUrl>.pickPlayerUrl(preferred: VideoQuality?): PlayerUrl? {
     val available = usableOptions()
     if (available.isEmpty()) return null

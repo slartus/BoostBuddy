@@ -44,4 +44,8 @@ actual open class PlatformConfiguration private constructor() {
     actual fun shareFile(path: Path) {
         TODO()
     }
+
+    actual fun downloadVideo(url: String, fileName: String, onError: (() -> Unit)?) {
+        openBrowser(url, onError)
+    }
 }

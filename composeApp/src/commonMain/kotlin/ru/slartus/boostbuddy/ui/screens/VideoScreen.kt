@@ -51,6 +51,7 @@ import kotlin.math.abs
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import ru.slartus.boostbuddy.components.blog.text
 import ru.slartus.boostbuddy.components.video.VideoComponent
+import ru.slartus.boostbuddy.components.video.downloadableOptions
 import ru.slartus.boostbuddy.components.video.timeCodeMs
 import ru.slartus.boostbuddy.components.video.usableOptions
 import ru.slartus.boostbuddy.data.repositories.models.PlayerUrl
@@ -82,6 +83,7 @@ internal fun VideoScreen(component: VideoComponent) {
     Box(modifier = Modifier.fillMaxSize().background(Color.Black)) {
         state.postData?.let { postData ->
             val qualityOptions = remember(postData) { postData.playerUrls.usableOptions() }
+            val downloadOptions = remember(postData) { postData.playerUrls.downloadableOptions() }
             val onSettingsClick: (() -> Unit) = remember(component) {
                 { component.onSettingsClicked() }
             }
@@ -102,10 +104,12 @@ internal fun VideoScreen(component: VideoComponent) {
             if (state.settingsSheetVisible) {
                 PlayerSettingsSheet(
                     qualities = qualityOptions,
+                    downloadOptions = downloadOptions,
                     currentQuality = state.playerUrl.quality,
                     currentSpeed = state.playbackSpeed,
                     onQualitySelected = { component.onQualityItemClicked(it) },
                     onSpeedSelected = { component.onPlaybackSpeedSelected(it) },
+                    onDownloadSelected = { component.onDownloadQualitySelected(it) },
                     onDismiss = { component.onSettingsSheetDismissed() },
                 )
             }
@@ -119,16 +123,18 @@ internal fun VideoScreen(component: VideoComponent) {
     }
 }
 
-private enum class SettingsSection { Root, Quality, Speed }
+private enum class SettingsSection { Root, Quality, Speed, Download }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun PlayerSettingsSheet(
     qualities: List<PlayerUrl>,
+    downloadOptions: List<PlayerUrl>,
     currentQuality: VideoQuality,
     currentSpeed: Float,
     onQualitySelected: (PlayerUrl) -> Unit,
     onSpeedSelected: (Float) -> Unit,
+    onDownloadSelected: (PlayerUrl) -> Unit,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -153,8 +159,10 @@ private fun PlayerSettingsSheet(
                 SettingsSection.Root -> SettingsRootPanel(
                     qualityLabel = currentQuality.text,
                     speedLabel = formatSpeed(currentSpeed),
+                    downloadAvailable = downloadOptions.isNotEmpty(),
                     onQualityClick = { section = SettingsSection.Quality },
                     onSpeedClick = { section = SettingsSection.Speed },
+                    onDownloadClick = { section = SettingsSection.Download },
                 )
 
                 SettingsSection.Quality -> QualityPanel(
@@ -167,6 +175,11 @@ private fun PlayerSettingsSheet(
                     currentSpeed = currentSpeed,
                     onSelected = onSpeedSelected,
                 )
+
+                SettingsSection.Download -> DownloadPanel(
+                    qualities = downloadOptions,
+                    onSelected = onDownloadSelected,
+                )
             }
         }
     }
@@ -178,28 +191,29 @@ private fun SettingsSheetHeader(
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Row(
+    Box(
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 8.dp, vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically,
+        contentAlignment = Alignment.Center,
     ) {
         if (section != SettingsSection.Root) {
-            IconButton(onClick = onBack) {
+            IconButton(
+                modifier = Modifier.align(Alignment.CenterStart),
+                onClick = onBack,
+            ) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                     contentDescription = "Назад",
                 )
             }
-        } else {
-            Spacer(Modifier.width(48.dp))
         }
         Text(
-            modifier = Modifier.padding(start = 8.dp),
             text = when (section) {
-                SettingsSection.Root -> "Настройки"
+                SettingsSection.Root -> "Настройки воспроизведения"
                 SettingsSection.Quality -> "Качество"
                 SettingsSection.Speed -> "Скорость воспроизведения"
+                SettingsSection.Download -> "Скачать видео"
             },
             style = MaterialTheme.typography.titleMedium,
         )
@@ -210,8 +224,10 @@ private fun SettingsSheetHeader(
 private fun SettingsRootPanel(
     qualityLabel: String,
     speedLabel: String,
+    downloadAvailable: Boolean,
     onQualityClick: () -> Unit,
     onSpeedClick: () -> Unit,
+    onDownloadClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(modifier = modifier.fillMaxWidth()) {
@@ -225,6 +241,13 @@ private fun SettingsRootPanel(
             value = speedLabel,
             onClick = onSpeedClick,
         )
+        if (downloadAvailable) {
+            SettingsRootRow(
+                title = "Скачать видео",
+                value = "",
+                onClick = onDownloadClick,
+            )
+        }
     }
 }
 
@@ -272,6 +295,23 @@ private fun QualityPanel(
             CheckmarkRow(
                 title = item.quality.text,
                 checked = item.quality == currentQuality,
+                onClick = { onSelected(item) },
+            )
+        }
+    }
+}
+
+@Composable
+private fun DownloadPanel(
+    qualities: List<PlayerUrl>,
+    onSelected: (PlayerUrl) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(modifier = modifier.fillMaxWidth()) {
+        qualities.forEach { item ->
+            CheckmarkRow(
+                title = item.quality.text,
+                checked = false,
                 onClick = { onSelected(item) },
             )
         }

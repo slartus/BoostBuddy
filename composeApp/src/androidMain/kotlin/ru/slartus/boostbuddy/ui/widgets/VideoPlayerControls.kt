@@ -214,6 +214,13 @@ internal fun VideoPlayerChrome(
                             .onSizeChanged { playerSize = it }
                             .pointerInput(Unit) {
                                 detectTransformGestures { _, pan, gestureZoom, _ ->
+                                    // detectTransformGestures триггерится и одним пальцем,
+                                    // и на фантомных событиях при закрытии bottom sheet'а.
+                                    // Без зума и реального пинча — выходим, иначе видео
+                                    // тихо «раздувается» от случайных свайпов.
+                                    if (zoom == 1f && gestureZoom == 1f) {
+                                        return@detectTransformGestures
+                                    }
                                     val newZoom = (zoom * gestureZoom).coerceIn(1f, 5f)
                                     if (newZoom > 1f) {
                                         val maxOffsetX =
