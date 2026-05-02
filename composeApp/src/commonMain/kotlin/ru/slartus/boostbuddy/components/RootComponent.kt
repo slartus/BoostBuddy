@@ -133,6 +133,12 @@ class RootComponentImpl(
     private val permissions by Inject.lazy<Permissions>()
     private var fetchVersionJob: Job = Job()
 
+    // Лямбда не сериализуется и поэтому не лежит в DialogConfig.Filter. Живёт в памяти процесса:
+    // переживёт обычное конфиг-чейндж, но не process death. Если процесс пересоздался —
+    // dialogChild увидит null и сразу закроет диалог фильтра (см. dialogChild).
+    private var pendingFilterCallback: ((ru.slartus.boostbuddy.components.filter.Filter) -> Unit)? =
+        null
+
     override val dialogSlot: Value<ChildSlot<*, RootComponent.DialogChild>> =
         childSlot(
             key = "dialogSlot",
@@ -215,9 +221,10 @@ class RootComponentImpl(
                 postData = screen.postData
             )
 
-            is NavigationTree.Filter -> dialogNavigation.activate(
-                DialogConfig.Filter(screen.filter, screen.onFilter)
-            )
+            is NavigationTree.Filter -> {
+                pendingFilterCallback = screen.onFilter
+                dialogNavigation.activate(DialogConfig.Filter(screen.filter))
+            }
         }
     }
 
@@ -349,16 +356,23 @@ class RootComponentImpl(
                 )
             )
 
-            is DialogConfig.Filter -> RootComponent.DialogChild.Filter(
-                FilterComponentImpl(
-                    componentContext = componentContext,
-                    params = FilterParams(
-                        filter = config.filter,
-                        onFilter = config.onFilter,
-                        entryPoint = FilterScreenEntryPoint.Feed,
-                    ),
+            is DialogConfig.Filter -> {
+                val callback = pendingFilterCallback
+                if (callback == null) {
+                    // process death: лямбда потеряна, диалог без обратной связи бесполезен
+                    scope.launch { dialogNavigation.dismiss() }
+                }
+                RootComponent.DialogChild.Filter(
+                    FilterComponentImpl(
+                        componentContext = componentContext,
+                        params = FilterParams(
+                            filter = config.filter,
+                            onFilter = callback ?: {},
+                            entryPoint = FilterScreenEntryPoint.Feed,
+                        ),
+                    )
                 )
-            )
+            }
         }
 
     private fun logout() {
@@ -611,9 +625,8 @@ class RootComponentImpl(
         ) : DialogConfig
 
         @Serializable
-        class Filter(
+        data class Filter(
             val filter: ru.slartus.boostbuddy.components.filter.Filter,
-            val onFilter: (filter: ru.slartus.boostbuddy.components.filter.Filter) -> Unit,
         ) : DialogConfig
     }
 }
