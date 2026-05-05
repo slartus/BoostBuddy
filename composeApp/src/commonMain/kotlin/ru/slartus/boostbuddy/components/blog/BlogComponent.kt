@@ -12,7 +12,9 @@ import kotlinx.atomicfu.atomic
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import ru.slartus.boostbuddy.components.common.ProgressState
@@ -79,6 +81,7 @@ class BlogComponentImpl(
     private val navigationRouter by Inject.lazy<NavigationRouter>()
     private val platformConfiguration by Inject.lazy<PlatformConfiguration>()
     private var liveStreamJob: Job? = null
+    private var schedulePollingJob: Job? = null
     private val likeRequestInFlight = atomic(false)
     override val extra: Extra? get() = viewState.extra
     override val viewStateItems: List<FeedPostItem> get() = viewState.items
@@ -126,6 +129,9 @@ class BlogComponentImpl(
         fetchBlogInfo()
         if (token != null) {
             fetchLiveStream()
+        } else {
+            stopSchedulePolling()
+            viewState = viewState.copy(liveStream = null)
         }
     }
 
@@ -145,9 +151,34 @@ class BlogComponentImpl(
             val result = streamRepository.fetchActive(blog.blogUrl)
             coroutineContext.ensureActive()
             if (result.isSuccess) {
-                viewState = viewState.copy(liveStream = result.getOrNull())
+                val newStream = result.getOrNull()
+                viewState = viewState.copy(liveStream = newStream)
+                updateSchedulePolling(newStream)
             }
         }
+    }
+
+    private fun updateSchedulePolling(stream: LiveStream?) {
+        if (stream?.status is LiveStream.Status.Scheduled) {
+            startSchedulePollingIfNeeded()
+        } else {
+            stopSchedulePolling()
+        }
+    }
+
+    private fun startSchedulePollingIfNeeded() {
+        if (schedulePollingJob?.isActive == true) return
+        schedulePollingJob = scope.launch {
+            while (isActive) {
+                delay(SCHEDULE_POLL_INTERVAL_MS)
+                fetchLiveStream()
+            }
+        }
+    }
+
+    private fun stopSchedulePolling() {
+        schedulePollingJob?.cancel()
+        schedulePollingJob = null
     }
 
     override suspend fun fetch(offset: String?): Result<Posts> =
@@ -271,5 +302,9 @@ class BlogComponentImpl(
     @Serializable
     private sealed interface DialogConfig {
         object Filter : DialogConfig
+    }
+
+    private companion object {
+        private const val SCHEDULE_POLL_INTERVAL_MS = 90_000L
     }
 }
