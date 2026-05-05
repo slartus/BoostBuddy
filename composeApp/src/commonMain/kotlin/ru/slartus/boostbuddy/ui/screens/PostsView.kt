@@ -62,15 +62,19 @@ internal fun PostsView(
     onCommentsClick: (post: Post) -> Unit,
     onPollOptionClick: (Post, Poll, PollOption) -> Unit,
     onVoteClick: (Post, poll: Poll) -> Unit,
-    onDeleteVoteClick: (Post, poll: Poll) -> Unit
+    onDeleteVoteClick: (Post, poll: Poll) -> Unit,
+    header: (@Composable () -> Unit)? = null,
 ) {
     FeedBox {
         if (items.isEmpty()) {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Center,
-            ) {
-                Text(text = "Нет постов")
+            Column(modifier = Modifier.fillMaxSize()) {
+                header?.invoke()
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Center,
+                ) {
+                    Text(text = "Нет постов")
+                }
             }
         } else {
             val listScrollState = rememberLazyListState()
@@ -85,6 +89,11 @@ internal fun PostsView(
                 state = listScrollState,
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
+                if (header != null) {
+                    item(key = "live_stream_header", contentType = "live_stream_header") {
+                        header()
+                    }
+                }
                 items(items, key = { it.key }, contentType = { it.contentType }) { item ->
                     when (item) {
                         is FeedPostItem.ErrorItem -> ErrorView(

@@ -138,7 +138,7 @@ abstract class PostsFeedComponent<State : Any, Action>(
         }
     }
 
-    fun onPullToRefresh() {
+    open fun onPullToRefresh() {
         scope.launch {
             settingsRepository.getAccessToken() ?: unauthorizedError()
             onIsRefreshingChanged(true)

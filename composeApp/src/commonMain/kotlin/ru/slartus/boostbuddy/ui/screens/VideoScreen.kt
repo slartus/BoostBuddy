@@ -99,9 +99,10 @@ internal fun VideoScreen(component: VideoComponent) {
             if (state.settingsSheetVisible) {
                 PlayerSettingsSheet(
                     qualities = qualityOptions,
-                    downloadOptions = downloadOptions,
+                    downloadOptions = if (state.isLive) emptyList() else downloadOptions,
                     currentQuality = state.playerUrl.quality,
                     currentSpeed = state.playbackSpeed,
+                    isLive = state.isLive,
                     onQualitySelected = { component.onQualityItemClicked(it) },
                     onSpeedSelected = { component.onPlaybackSpeedSelected(it) },
                     onDownloadSelected = { component.onDownloadQualitySelected(it) },
@@ -127,6 +128,7 @@ private fun PlayerSettingsSheet(
     downloadOptions: List<PlayerUrl>,
     currentQuality: VideoQuality,
     currentSpeed: Float,
+    isLive: Boolean,
     onQualitySelected: (PlayerUrl) -> Unit,
     onSpeedSelected: (Float) -> Unit,
     onDownloadSelected: (PlayerUrl) -> Unit,
@@ -155,6 +157,7 @@ private fun PlayerSettingsSheet(
                     qualityLabel = currentQuality.text,
                     speedLabel = formatSpeed(currentSpeed),
                     downloadAvailable = downloadOptions.isNotEmpty(),
+                    speedAvailable = !isLive,
                     onQualityClick = { section = SettingsSection.Quality },
                     onSpeedClick = { section = SettingsSection.Speed },
                     onDownloadClick = { section = SettingsSection.Download },
@@ -220,6 +223,7 @@ private fun SettingsRootPanel(
     qualityLabel: String,
     speedLabel: String,
     downloadAvailable: Boolean,
+    speedAvailable: Boolean,
     onQualityClick: () -> Unit,
     onSpeedClick: () -> Unit,
     onDownloadClick: () -> Unit,
@@ -231,11 +235,13 @@ private fun SettingsRootPanel(
             value = qualityLabel,
             onClick = onQualityClick,
         )
-        SettingsRootRow(
-            title = "Скорость воспроизведения",
-            value = speedLabel,
-            onClick = onSpeedClick,
-        )
+        if (speedAvailable) {
+            SettingsRootRow(
+                title = "Скорость воспроизведения",
+                value = speedLabel,
+                onClick = onSpeedClick,
+            )
+        }
         if (downloadAvailable) {
             SettingsRootRow(
                 title = "Скачать видео",

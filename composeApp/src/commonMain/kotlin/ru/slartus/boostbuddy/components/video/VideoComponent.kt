@@ -3,8 +3,16 @@ package ru.slartus.boostbuddy.components.video
 import androidx.compose.runtime.Stable
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.value.Value
+import com.arkivanov.essenty.lifecycle.doOnDestroy
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import ru.slartus.boostbuddy.components.BaseComponent
 import ru.slartus.boostbuddy.components.video.VideoState.Buffering
@@ -15,6 +23,7 @@ import ru.slartus.boostbuddy.components.blog.text
 import ru.slartus.boostbuddy.data.Inject
 import ru.slartus.boostbuddy.data.repositories.PostRepository
 import ru.slartus.boostbuddy.data.repositories.SettingsRepository
+import ru.slartus.boostbuddy.data.repositories.StreamRepository
 import ru.slartus.boostbuddy.data.repositories.VideoRepository
 import ru.slartus.boostbuddy.data.repositories.models.Content
 import ru.slartus.boostbuddy.data.repositories.models.PlayerUrl
@@ -38,7 +47,8 @@ data class VideoViewState(
     val playerUrl: PlayerUrl,
     val loading: Boolean = true,
     val settingsSheetVisible: Boolean = false,
-    val playbackSpeed: Float = 1f
+    val playbackSpeed: Float = 1f,
+    val isLive: Boolean = false,
 )
 
 val Content.OkVideo.timeCodeMs: Long get() = timeCode * 1000
@@ -53,25 +63,41 @@ internal class VideoComponentImpl(
     postId: String,
     postData: Content.OkVideo,
     playerUrl: PlayerUrl,
+    private val liveBlogUrl: String? = null,
     private val onStopClicked: () -> Unit
-) : BaseComponent<VideoViewState, Any>(componentContext, VideoViewState(null, playerUrl)),
-    VideoComponent {
+) : BaseComponent<VideoViewState, Any>(
+    componentContext,
+    VideoViewState(postData = null, playerUrl = playerUrl, isLive = liveBlogUrl != null)
+), VideoComponent {
 
     private val videoRepository by Inject.lazy<VideoRepository>()
     private val postRepository by Inject.lazy<PostRepository>()
+    private val streamRepository by Inject.lazy<StreamRepository>()
     private val settingsRepository by Inject.lazy<SettingsRepository>()
     private val platformConfiguration by Inject.lazy<PlatformConfiguration>()
     private val timeCodeManager = TimeCodeManager(
         scope = scope,
         videoRepository = videoRepository,
     )
+    private var heartbeatJob: Job? = null
+    private var heartbeatStopped: Boolean = false
 
     init {
-        refreshData(
-            blogUrl = blogUrl,
-            postId = postId,
-            postData = postData
-        )
+        if (liveBlogUrl != null) {
+            viewState = viewState.copy(postData = postData, loading = false)
+            startHeartbeat(liveBlogUrl)
+            lifecycle.doOnDestroy {
+                if (!heartbeatStopped) {
+                    stopHeartbeat(liveBlogUrl)
+                }
+            }
+        } else {
+            refreshData(
+                blogUrl = blogUrl,
+                postId = postId,
+                postData = postData
+            )
+        }
         subscribePlaybackSpeed()
     }
 
@@ -96,11 +122,16 @@ internal class VideoComponentImpl(
     }
 
     override fun onContentPositionChange(position: Long) {
+        if (liveBlogUrl != null) return
         timeCodeManager.onPositionChanged(position)
     }
 
     override fun onStopClicked() {
-        timeCodeManager.putLastPosition()
+        if (liveBlogUrl != null) {
+            stopHeartbeat(liveBlogUrl)
+        } else {
+            timeCodeManager.putLastPosition()
+        }
         onStopClicked.invoke()
     }
 
@@ -160,5 +191,34 @@ internal class VideoComponentImpl(
             timeCodeManager.setContentId(refreshData.id)
             viewState = viewState.copy(postData = refreshData, loading = false)
         }
+    }
+
+    private fun startHeartbeat(blogUrl: String) {
+        heartbeatJob?.cancel()
+        heartbeatJob = scope.launch {
+            while (isActive) {
+                streamRepository.heartbeat(blogUrl, stop = false)
+                delay(HEARTBEAT_INTERVAL_MS)
+            }
+        }
+    }
+
+    private fun stopHeartbeat(blogUrl: String) {
+        if (heartbeatStopped) return
+        heartbeatStopped = true
+        heartbeatJob?.cancel()
+        heartbeatJob = null
+        sendStopHeartbeat(blogUrl)
+    }
+
+    private fun sendStopHeartbeat(blogUrl: String) {
+        externalHeartbeatScope.launch(NonCancellable) {
+            streamRepository.heartbeat(blogUrl, stop = true)
+        }
+    }
+
+    private companion object {
+        private const val HEARTBEAT_INTERVAL_MS = 30_000L
+        private val externalHeartbeatScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     }
 }

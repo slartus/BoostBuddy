@@ -221,6 +221,12 @@ class RootComponentImpl(
                 postData = screen.postData
             )
 
+            is NavigationTree.LiveStream -> resolveLiveStream(
+                blogUrl = screen.blogUrl,
+                streamId = screen.streamId,
+                postData = screen.postData,
+            )
+
             is NavigationTree.Filter -> {
                 pendingFilterCallback = screen.onFilter
                 dialogNavigation.activate(DialogConfig.Filter(screen.filter))
@@ -496,6 +502,28 @@ class RootComponentImpl(
         }
     }
 
+    private fun resolveLiveStream(
+        blogUrl: String,
+        streamId: String,
+        postData: Content.OkVideo,
+    ) {
+        scope.launch {
+            val settings = settingsRepository.getSettings()
+            val playerUrl = postData.playerUrls.pickPlayerUrl(settings.preferredQuality)
+                ?: postData.playerUrls.firstOrNull()
+                ?: return@launch
+            navigation.push(
+                Config.VideoConfig(
+                    blogUrl = blogUrl,
+                    postId = streamId,
+                    postData = postData,
+                    playerUrl = playerUrl,
+                    liveBlogUrl = blogUrl,
+                )
+            )
+        }
+    }
+
     private fun videoComponent(
         componentContext: ComponentContext,
         config: Config.VideoConfig
@@ -506,6 +534,7 @@ class RootComponentImpl(
             postId = config.postId,
             postData = config.postData,
             playerUrl = config.playerUrl,
+            liveBlogUrl = config.liveBlogUrl,
             onStopClicked = { navigation.popWhile { it == config } }
         )
 
@@ -590,6 +619,7 @@ class RootComponentImpl(
             val postId: String,
             val postData: Content.OkVideo,
             val playerUrl: PlayerUrl,
+            val liveBlogUrl: String? = null,
             val id: String = Uuid.random().toString()
         ) : Config
 

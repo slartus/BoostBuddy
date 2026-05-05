@@ -23,6 +23,7 @@ import ru.slartus.boostbuddy.ui.screens.filter.FilterDialogView
 import ru.slartus.boostbuddy.ui.widgets.ErrorView
 import ru.slartus.boostbuddy.ui.widgets.FeedBox
 import ru.slartus.boostbuddy.ui.widgets.LoaderView
+import ru.slartus.boostbuddy.data.repositories.models.LiveStream
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -69,6 +70,7 @@ internal fun BlogScreen(component: BlogComponent) {
                         isRefreshing = state.isRefreshing,
                         onRefresh = { component.onPullToRefresh() },
                     ) {
+                        val liveStream: LiveStream? = state.liveStream
                         PostsView(
                             items = state.items,
                             showBlogInfo = false,
@@ -92,7 +94,18 @@ internal fun BlogScreen(component: BlogComponent) {
                                     poll
                                 )
                             },
-                            onBlogClick = {}
+                            onBlogClick = {},
+                            header = liveStream?.let { stream ->
+                                {
+                                    LiveStreamCard(
+                                        stream = stream,
+                                        onClick = component::onLiveStreamClicked,
+                                        onLikeClick = component::onLiveStreamLikeClicked,
+                                        onShareClick = component::onLiveStreamShareClicked,
+                                        coverFallbackUrl = state.blog.owner.avatarUrl,
+                                    )
+                                }
+                            },
                         )
                     }
             }

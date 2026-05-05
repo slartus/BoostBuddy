@@ -7,6 +7,7 @@ import ru.slartus.boostbuddy.components.feed.FeedPostItem
 import ru.slartus.boostbuddy.components.filter.Filter
 import ru.slartus.boostbuddy.data.repositories.Blog
 import ru.slartus.boostbuddy.data.repositories.models.Extra
+import ru.slartus.boostbuddy.data.repositories.models.LiveStream
 import ru.slartus.boostbuddy.data.repositories.models.VideoQuality
 
 data class BlogViewState(
@@ -17,6 +18,7 @@ data class BlogViewState(
     val progressState: ProgressState = ProgressState.Init,
     val searchQuery: String = "",
     val isRefreshing: Boolean = false,
+    val liveStream: LiveStream? = null,
 ) {
     val hasMore: Boolean = extra?.isLast == false
 }

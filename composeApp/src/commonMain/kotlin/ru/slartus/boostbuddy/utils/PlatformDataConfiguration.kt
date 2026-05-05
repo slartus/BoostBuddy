@@ -36,6 +36,7 @@ import ru.slartus.boostbuddy.data.repositories.PhoneAuthRepository
 import ru.slartus.boostbuddy.data.repositories.PostRepository
 import ru.slartus.boostbuddy.data.repositories.ProfileRepository
 import ru.slartus.boostbuddy.data.repositories.SettingsRepository
+import ru.slartus.boostbuddy.data.repositories.StreamRepository
 import ru.slartus.boostbuddy.data.repositories.SubscribesRepository
 import ru.slartus.boostbuddy.data.repositories.TagRepository
 import ru.slartus.boostbuddy.data.repositories.VideoRepository
@@ -132,6 +133,7 @@ object PlatformDataConfiguration {
         bindSingleton { PhoneAuthRepository(phoneAuthApi = instance()) }
         bindSingleton { EventsRepository(boostyApi = instance()) }
         bindSingleton { FeedRepository(boostyApi = instance()) }
+        bindSingleton { StreamRepository(boostyApi = instance()) }
         bindProvider { new(::TagRepository) }
     }
 }

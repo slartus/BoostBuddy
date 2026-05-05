@@ -29,6 +29,12 @@ object NavigationTree {
         val postData: Content.OkVideo,
     ) : Screen
 
+    class LiveStream(
+        val blogUrl: String,
+        val streamId: String,
+        val postData: Content.OkVideo,
+    ) : Screen
+
 
     class Filter(
         val filter: ru.slartus.boostbuddy.components.filter.Filter,

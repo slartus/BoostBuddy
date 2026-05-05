@@ -73,6 +73,24 @@ internal fun ContentResponse.mapToContentOrNull(): Content? {
             timeCode = timeCode ?: 0
         )
 
+        "ok_stream" -> {
+            val streamVid = vid ?: return null
+            Content.OkVideo(
+                id = id ?: streamVid,
+                vid = streamVid,
+                title = title.orEmpty(),
+                playerUrls = playerUrls.orEmpty()
+                    .sortedBy { it.isLivePlayback() }
+                    .mapNotNull { it.mapToPlayerUrlOrNull() }
+                    .filter { it.quality.used }
+                    .distinctBy { it.quality }
+                    .sortedWith(playerUrlsComparator)
+                    .ifEmpty { return null },
+                previewUrl = preview ?: defaultPreview.orEmpty(),
+                timeCode = 0
+            )
+        }
+
         "video" -> Content.Video(
             url = url ?: return null,
         )
@@ -118,8 +136,12 @@ internal fun ContentResponse.mapToContentOrNull(): Content? {
 }
 
 private fun ContentResponse.PlayerUrl.mapToPlayerUrlOrNull(): PlayerUrl? {
-    return PlayerUrl(VideoQuality.of(type), url ?: return null)
+    val safeUrl = url?.takeIf { it.isNotBlank() } ?: return null
+    return PlayerUrl(VideoQuality.of(type), safeUrl)
 }
+
+private fun ContentResponse.PlayerUrl.isLivePlayback(): Boolean =
+    type?.startsWith("live_playback") == true
 
 val linkColor = Color(241, 95, 44)
 private fun PostDataTextContent.Style.toSpanStyle(): SpanStyle = when (this) {

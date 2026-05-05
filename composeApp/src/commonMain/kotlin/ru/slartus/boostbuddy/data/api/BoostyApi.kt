@@ -245,4 +245,23 @@ internal class BoostyApi(
     suspend fun blogTag(
         blog: String,
     ): RemoteBlogTagResponse = httpClient.get("v1/blog/$blog/post/tag/").body()
+
+    suspend fun videoStream(
+        blog: String,
+    ): HttpResponse = httpClient.get("v1/blog/$blog/video_stream")
+
+    suspend fun videoStreamHeartbeat(
+        blog: String,
+        stop: Boolean,
+    ): HttpResponse = httpClient.put("v1/blog/$blog/video_stream/heartbeat/viewer") {
+        if (stop) parameter("stop", true)
+    }
+
+    suspend fun videoStreamLike(
+        blog: String,
+    ): HttpResponse = httpClient.post("v1/blog/$blog/video_stream/like")
+
+    suspend fun videoStreamUnlike(
+        blog: String,
+    ): HttpResponse = httpClient.delete("v1/blog/$blog/video_stream/like")
 }
