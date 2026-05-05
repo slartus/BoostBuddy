@@ -54,12 +54,18 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.input.pointer.positionChanged
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.calculatePan
+import androidx.compose.foundation.gestures.calculateZoom
 import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.util.fastAny
+import androidx.compose.ui.util.fastForEach
 import ru.slartus.boostbuddy.ui.common.LocalPlatformConfiguration
 import ru.slartus.boostbuddy.utils.Platform
 import androidx.compose.ui.viewinterop.AndroidView
@@ -74,6 +80,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import ru.slartus.boostbuddy.ui.common.noRippleClickable
 import ru.slartus.boostbuddy.ui.theme.LightColorScheme
+import kotlin.math.roundToInt
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.DurationUnit
 
@@ -81,6 +88,19 @@ private val HIDE_CONTROLLER_DELAY = 5.seconds
 private val SEEK_INCREMENT = 5.seconds
 private val DOUBLE_TAP_SEEK = 10.seconds
 private val SEEK_FEEDBACK_TIMEOUT = 1.seconds
+
+// Pinch-in трактуем как «жест выхода» — любое уменьшение zoom относительно
+// начала pinch-сессии возвращает видео в дефолт (1f без смещения). Это даёт
+// предсказуемый способ выйти из любого «застрявшего» масштабированного/
+// смещённого состояния, особенно на эмуляторе, где Ctrl+drag даёт дёрганные
+// pointer-события и pinch-in редко доводит zoom до 1f сам по себе.
+// Если хочется тонкая подстройка zoom — это pinch-out от 1f, не in.
+private const val ZOOM_SNAP_THRESHOLD = 1.05f
+private const val PINCH_DECREASE_NOISE = 0.05f
+private const val ZOOM_MAX = 5f
+private const val ZOOM_BADGE_AUTOHIDE_MS = 1500L
+
+private fun Float.isZoomed(): Boolean = this > 1f
 
 private enum class SeekDirection { FORWARD, BACKWARD }
 
@@ -112,6 +132,32 @@ internal fun VideoPlayerChrome(
     var zoom by remember { mutableFloatStateOf(1f) }
     var offsetX by remember { mutableFloatStateOf(0f) }
     var offsetY by remember { mutableFloatStateOf(0f) }
+
+    val resetZoom = remember {
+        {
+            zoom = 1f
+            offsetX = 0f
+            offsetY = 0f
+        }
+    }
+
+    var zoomBadgeVisible by remember { mutableStateOf(false) }
+    var isInitialZoom by remember { mutableStateOf(true) }
+    LaunchedEffect(zoom) {
+        // Первая композиция стартует с zoom=1f — без визуального шума пропускаем.
+        if (isInitialZoom) {
+            isInitialZoom = false
+            return@LaunchedEffect
+        }
+        // После снапа к 1f бейдж не должен мигать «x1.0» — сразу прячем.
+        if (!zoom.isZoomed()) {
+            zoomBadgeVisible = false
+            return@LaunchedEffect
+        }
+        zoomBadgeVisible = true
+        delay(ZOOM_BADGE_AUTOHIDE_MS)
+        zoomBadgeVisible = false
+    }
 
     var seekFeedback by remember { mutableStateOf<SeekFeedback?>(null) }
     val seekFeedbackJobHolder = remember { JobHolder() }
@@ -218,29 +264,58 @@ internal fun VideoPlayerChrome(
                         Modifier
                             .onSizeChanged { playerSize = it }
                             .pointerInput(Unit) {
-                                detectTransformGestures { _, pan, gestureZoom, _ ->
-                                    // detectTransformGestures триггерится и одним пальцем,
-                                    // и на фантомных событиях при закрытии bottom sheet'а.
-                                    // Без зума и реального пинча — выходим, иначе видео
-                                    // тихо «раздувается» от случайных свайпов.
-                                    if (zoom == 1f && gestureZoom == 1f) {
-                                        return@detectTransformGestures
+                                // detectTransformGestures триггерится и на одиночных
+                                // касаниях/фантомных pointer-событиях (например при
+                                // закрытии ModalBottomSheet со слайдером скорости):
+                                // видео тихо «раздувается» и сдвигается. Поэтому
+                                // считаем пальцы вручную:
+                                //  • zoom == 1f и < 2 пальцев — игнорим (фантомы и
+                                //    случайные свайпы не должны масштабировать видео);
+                                //  • 2+ пальцев — полноценный pinch + pan;
+                                //  • zoom > 1f и 1 палец — pan уже зумнутого видео.
+                                awaitEachGesture {
+                                    awaitFirstDown(requireUnconsumed = false)
+                                    var pinchStartZoom: Float? = null
+                                    while (true) {
+                                        val event = awaitPointerEvent()
+                                        if (event.changes.none { it.pressed }) break
+                                        val pressedCount = event.changes.count { it.pressed }
+                                        // Pinch уже начался (≥2 пальцев) и один поднялся —
+                                        // завершаем жест целиком. Иначе оставшийся палец
+                                        // интерпретируется как single-finger pan, zoom
+                                        // фиксируется и pinch-in уже не доводит его до 1f.
+                                        if (pinchStartZoom != null && pressedCount < 2) break
+                                        if (pressedCount >= 2 && pinchStartZoom == null) {
+                                            pinchStartZoom = zoom
+                                        }
+                                        if (pressedCount < 2 && !zoom.isZoomed()) continue
+                                        if (!event.changes.fastAny { it.positionChanged() }) continue
+                                        val zoomChange =
+                                            if (pressedCount >= 2) event.calculateZoom() else 1f
+                                        val panChange = event.calculatePan()
+                                        val newZoom = (zoom * zoomChange).coerceIn(1f, ZOOM_MAX)
+                                        if (newZoom.isZoomed()) {
+                                            val maxOffsetX =
+                                                (playerSize.width * (newZoom - 1f)) / 2f
+                                            val maxOffsetY =
+                                                (playerSize.height * (newZoom - 1f)) / 2f
+                                            offsetX = (offsetX + panChange.x)
+                                                .coerceIn(-maxOffsetX, maxOffsetX)
+                                            offsetY = (offsetY + panChange.y)
+                                                .coerceIn(-maxOffsetY, maxOffsetY)
+                                        } else {
+                                            offsetX = 0f
+                                            offsetY = 0f
+                                        }
+                                        zoom = newZoom
+                                        event.changes.fastForEach { it.consume() }
                                     }
-                                    val newZoom = (zoom * gestureZoom).coerceIn(1f, 5f)
-                                    if (newZoom > 1f) {
-                                        val maxOffsetX =
-                                            (playerSize.width * (newZoom - 1f)) / 2f
-                                        val maxOffsetY =
-                                            (playerSize.height * (newZoom - 1f)) / 2f
-                                        offsetX =
-                                            (offsetX + pan.x).coerceIn(-maxOffsetX, maxOffsetX)
-                                        offsetY =
-                                            (offsetY + pan.y).coerceIn(-maxOffsetY, maxOffsetY)
-                                    } else {
-                                        offsetX = 0f
-                                        offsetY = 0f
+                                    val startZoom = pinchStartZoom
+                                    val zoomDecreased =
+                                        startZoom != null && zoom < startZoom - PINCH_DECREASE_NOISE
+                                    if (zoom < ZOOM_SNAP_THRESHOLD || zoomDecreased) {
+                                        resetZoom()
                                     }
-                                    zoom = newZoom
                                 }
                             }
                             .pointerInput(Unit) {
@@ -255,10 +330,12 @@ internal fun VideoPlayerChrome(
                                         }
                                     },
                                     onDoubleTap = { offset ->
-                                        if (zoom > 1f) {
-                                            zoom = 1f
-                                            offsetX = 0f
-                                            offsetY = 0f
+                                        // Любое нестандартное состояние (зум или
+                                        // случайно накопленный pan по уже зумнутому,
+                                        // потом сброшенному видео) — двойной тап
+                                        // сбрасывает. Дефолт — seek по половине.
+                                        if (zoom.isZoomed() || offsetX != 0f || offsetY != 0f) {
+                                            resetZoom()
                                         } else {
                                             applySeekTick(offset)
                                         }
@@ -308,16 +385,30 @@ internal fun VideoPlayerChrome(
             exit = fadeOut(),
         ) {
             Box(Modifier.fillMaxSize()) {
-                if (onSettingsClick != null) {
-                    PlayerQualityButton(
-                        modifier = Modifier
-                            .align(Alignment.TopEnd)
-                            .padding(16.dp),
-                        onClick = {
-                            controllerState.showWithAutoHide()
-                            onSettingsClick()
-                        },
-                    )
+                Row(
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    if (zoom.isZoomed()) {
+                        ZoomChip(
+                            zoom = zoom,
+                            onClick = {
+                                controllerState.showWithAutoHide()
+                                resetZoom()
+                            },
+                        )
+                    }
+                    if (onSettingsClick != null) {
+                        PlayerQualityButton(
+                            onClick = {
+                                controllerState.showWithAutoHide()
+                                onSettingsClick()
+                            },
+                        )
+                    }
                 }
 
                 PlayerPlayStateIcon(
@@ -364,6 +455,19 @@ internal fun VideoPlayerChrome(
                     }
                 )
             }
+        }
+
+        // Бейдж рисуется ПОСЛЕ controllerState, иначе fillMaxSize-overlay
+        // контроллера перехватывает клики по нему.
+        AnimatedVisibility(
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .padding(top = 16.dp),
+            visible = zoomBadgeVisible,
+            enter = fadeIn(),
+            exit = fadeOut(),
+        ) {
+            ZoomBadge(zoom = zoom, onClick = resetZoom)
         }
     }
 
@@ -483,6 +587,62 @@ private fun PlayerPlayStateIcon(
             contentDescription = "Play video icon"
         )
     }
+}
+
+@Composable
+private fun ZoomBadge(
+    zoom: Float,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Box(
+        modifier = modifier
+            .size(64.dp)
+            .background(
+                color = MaterialTheme.colorScheme.scrim.copy(alpha = 0.55f),
+                shape = CircleShape,
+            )
+            .noRippleClickable(onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = formatZoom(zoom),
+            color = LightColorScheme.background,
+            style = MaterialTheme.typography.titleMedium,
+        )
+    }
+}
+
+@Composable
+private fun ZoomChip(
+    zoom: Float,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Box(
+        modifier = modifier
+            .height(48.dp)
+            .background(
+                color = MaterialTheme.colorScheme.scrim.copy(alpha = 0.5f),
+                shape = CircleShape,
+            )
+            .clickable(onClick = onClick)
+            .padding(horizontal = 16.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = formatZoom(zoom),
+            color = LightColorScheme.background,
+            style = MaterialTheme.typography.bodyMedium,
+        )
+    }
+}
+
+private fun formatZoom(zoom: Float): String {
+    val tenths = (zoom * 10f).roundToInt()
+    val whole = tenths / 10
+    val rem = tenths % 10
+    return "x$whole.$rem"
 }
 
 @Composable
