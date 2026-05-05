@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -34,8 +35,7 @@ import ru.slartus.boostbuddy.ui.widgets.EmptyView
 import ru.slartus.boostbuddy.ui.widgets.ErrorView
 import ru.slartus.boostbuddy.ui.widgets.LoaderView
 
-private const val MY_BLOG_TITLE = "Мой блог"
-private const val SUBSCRIPTIONS_TITLE = "Подписки"
+private const val MY_BLOG_SUBTITLE = "мой блог"
 
 @Composable
 internal fun SubscribesScreen(component: SubscribesComponent) {
@@ -79,15 +79,15 @@ private fun SubscribesView(
             verticalArrangement = Arrangement.spacedBy(2.dp)
         ) {
             if (myBlog != null) {
-                item("my_blog_header") {
-                    SectionHeader(text = MY_BLOG_TITLE)
-                }
                 item("my_blog_${myBlog.blogUrl}") {
-                    BlogView(myBlog, onClick = { onMyBlogClicked(myBlog) })
+                    MyBlogView(myBlog, onClick = { onMyBlogClicked(myBlog) })
                 }
                 if (items.isNotEmpty()) {
-                    item("subscriptions_header") {
-                        SectionHeader(text = SUBSCRIPTIONS_TITLE)
+                    item("my_blog_divider") {
+                        HorizontalDivider(
+                            modifier = Modifier.padding(vertical = 4.dp),
+                            color = MaterialTheme.colorScheme.outlineVariant,
+                        )
                     }
                 }
             }
@@ -99,26 +99,50 @@ private fun SubscribesView(
 }
 
 @Composable
-private fun SectionHeader(
-    text: String,
-    modifier: Modifier = Modifier,
-) {
-    Text(
-        modifier = modifier
+private fun MyBlogView(blog: Blog, onClick: () -> Unit) {
+    Row(
+        modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp),
-        text = text,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        style = MaterialTheme.typography.labelLarge,
-    )
+            .background(MaterialTheme.colorScheme.onPrimary)
+            .clickable { onClick() }
+            .padding(horizontal = 16.dp, vertical = 4.dp),
+        verticalAlignment = CenterVertically
+    ) {
+        if (blog.owner.avatarUrl != null) {
+            Image(
+                modifier = Modifier.size(64.dp),
+                painter = rememberImagePainter(blog.owner.avatarUrl),
+                contentDescription = "avatar",
+            )
+            Spacer(modifier = Modifier.size(8.dp))
+        }
+
+        Column {
+            Text(
+                modifier = Modifier.fillMaxWidth(),
+                text = blog.title.ifEmpty { null } ?: blog.owner.name,
+                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                style = MaterialTheme.typography.titleMedium
+            )
+            Spacer(Modifier.height(2.dp))
+            Text(
+                modifier = Modifier.fillMaxWidth(),
+                text = MY_BLOG_SUBTITLE,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = MaterialTheme.typography.bodyMedium
+            )
+        }
+    }
 }
 
 @Composable
 private fun BlogView(blog: Blog, onClick: () -> Unit) {
     Row(
         modifier = Modifier
+            .fillMaxWidth()
             .background(MaterialTheme.colorScheme.onPrimary)
-            .clickable { onClick() }.padding(horizontal = 16.dp, vertical = 4.dp),
+            .clickable { onClick() }
+            .padding(horizontal = 16.dp, vertical = 4.dp),
         verticalAlignment = CenterVertically
     ) {
         if (blog.owner.avatarUrl != null) {

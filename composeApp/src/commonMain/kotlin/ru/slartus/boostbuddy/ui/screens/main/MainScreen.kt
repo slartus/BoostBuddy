@@ -1,11 +1,13 @@
 package ru.slartus.boostbuddy.ui.screens.main
 
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.RssFeed
 import androidx.compose.material.icons.filled.Subscriptions
 import androidx.compose.material3.DrawerValue
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.Scaffold
@@ -82,7 +84,9 @@ internal fun MainScreen(component: MainComponent) {
             drawerState = drawerState,
             drawerContent = {
                 ModalDrawerSheet(
-                    drawerShape = RoundedCornerShape(0.dp)
+                    drawerShape = RoundedCornerShape(0.dp),
+                    drawerContainerColor = MaterialTheme.colorScheme.surface,
+                    windowInsets = WindowInsets(0, 0, 0, 0),
                 ) {
                     SubscribesScreen(component.subscribesComponent)
                 }
