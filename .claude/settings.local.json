@@ -1,0 +1,36 @@
+{
+  "permissions": {
+    "allow": [
+      "Read",
+      "Edit",
+      "Write",
+      "Glob",
+      "Grep",
+      "Bash(./gradlew:*)",
+      "Bash(git:*)",
+      "Bash(grep:*)",
+      "Bash(find:*)",
+      "Bash(xargs:*)",
+      "Bash(ls:*)",
+      "Bash(kill:*)",
+      "Bash(sort:*)",
+      "Bash(cat:*)",
+      "Bash(jq:*)",
+      "Bash(mkdir:*)",
+      "Bash(rm:*)",
+      "Bash(mv:*)",
+      "Bash(cp:*)",
+      "Bash(sed:*)",
+      "Bash(python3:*)",
+      "Bash(echo:*)",
+      "mcp__ide__getDiagnostics",
+      "WebFetch(domain:boosty.to)",
+      "Bash(curl:*)",
+      "Bash(gunzip)",
+      "Bash(brew list:*)",
+      "Bash(brotli -d /tmp/boosty_app.br -o /tmp/boosty_app.js -f)",
+      "Bash(uuidgen)"
+    ],
+    "defaultMode": "bypassPermissions"
+  }
+}
