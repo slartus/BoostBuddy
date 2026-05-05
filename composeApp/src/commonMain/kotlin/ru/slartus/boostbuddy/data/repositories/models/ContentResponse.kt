@@ -80,7 +80,7 @@ internal fun ContentResponse.mapToContentOrNull(): Content? {
                 vid = streamVid,
                 title = title.orEmpty(),
                 playerUrls = playerUrls.orEmpty()
-                    .sortedBy { it.isLivePlayback() }
+                    .sortedByDescending { it.isLivePlayback() }
                     .mapNotNull { it.mapToPlayerUrlOrNull() }
                     .filter { it.quality.used }
                     .distinctBy { it.quality }
