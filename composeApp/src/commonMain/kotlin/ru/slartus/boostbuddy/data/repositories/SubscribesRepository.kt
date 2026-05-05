@@ -18,6 +18,33 @@ internal class SubscribesRepository(
             response.data?.mapNotNull { it.toSubscribeItemOrNull() } ?: emptyList()
         }
 
+    suspend fun getMyBlog(blogUrl: String): Result<Blog?> =
+        fetchOrError {
+            val info = boostyApi.blogInfo(blogUrl)
+            val title = info.title ?: return@fetchOrError null
+            val owner = info.owner ?: return@fetchOrError null
+            val ownerName = owner.name ?: return@fetchOrError null
+
+            val posts = boostyApi.blogPosts(
+                blog = blogUrl,
+                limit = 1,
+                offset = null,
+                commentsLimit = 0,
+                replyLimit = 0,
+                isOnlyAllowed = null,
+                fromDate = null,
+                toDate = null,
+                tagsIds = null,
+                onlyBought = null,
+            )
+            if (posts.data.isNullOrEmpty()) return@fetchOrError null
+
+            Blog(
+                title = title,
+                blogUrl = blogUrl,
+                owner = Owner(name = ownerName, avatarUrl = owner.avatarUrl),
+            )
+        }
 }
 
 private fun SubscribesResponse.Data.toSubscribeItemOrNull(): SubscribeItem? {

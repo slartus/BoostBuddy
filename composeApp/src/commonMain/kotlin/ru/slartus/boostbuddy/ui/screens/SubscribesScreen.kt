@@ -34,6 +34,9 @@ import ru.slartus.boostbuddy.ui.widgets.EmptyView
 import ru.slartus.boostbuddy.ui.widgets.ErrorView
 import ru.slartus.boostbuddy.ui.widgets.LoaderView
 
+private const val MY_BLOG_TITLE = "Мой блог"
+private const val SUBSCRIPTIONS_TITLE = "Подписки"
+
 @Composable
 internal fun SubscribesScreen(component: SubscribesComponent) {
     val state by component.viewStates.subscribeAsState()
@@ -52,7 +55,9 @@ internal fun SubscribesScreen(component: SubscribesComponent) {
 
             is SubscribesViewState.ProgressState.Loaded -> SubscribesView(
                 items = progressState.items,
-                onItemClicked = component::onItemClicked
+                myBlog = progressState.myBlog,
+                onItemClicked = component::onItemClicked,
+                onMyBlogClicked = component::onMyBlogClicked,
             )
         }
     }
@@ -62,20 +67,50 @@ internal fun SubscribesScreen(component: SubscribesComponent) {
 @Composable
 private fun SubscribesView(
     items: ImmutableList<SubscribeItem>,
-    onItemClicked: (SubscribeItem) -> Unit
+    myBlog: Blog?,
+    onItemClicked: (SubscribeItem) -> Unit,
+    onMyBlogClicked: (Blog) -> Unit,
 ) {
-    if (items.isEmpty()) {
+    if (items.isEmpty() && myBlog == null) {
         EmptyView()
     } else {
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
             verticalArrangement = Arrangement.spacedBy(2.dp)
         ) {
+            if (myBlog != null) {
+                item("my_blog_header") {
+                    SectionHeader(text = MY_BLOG_TITLE)
+                }
+                item("my_blog_${myBlog.blogUrl}") {
+                    BlogView(myBlog, onClick = { onMyBlogClicked(myBlog) })
+                }
+                if (items.isNotEmpty()) {
+                    item("subscriptions_header") {
+                        SectionHeader(text = SUBSCRIPTIONS_TITLE)
+                    }
+                }
+            }
             items(items) { item ->
                 BlogView(item.blog, onClick = { onItemClicked(item) })
             }
         }
     }
+}
+
+@Composable
+private fun SectionHeader(
+    text: String,
+    modifier: Modifier = Modifier,
+) {
+    Text(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        text = text,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        style = MaterialTheme.typography.labelLarge,
+    )
 }
 
 @Composable

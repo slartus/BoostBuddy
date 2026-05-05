@@ -14,7 +14,7 @@ internal class ProfileRepository(
 
             Profile(
                 id = response.id ?: error("wrong data"),
-                blogUrl = response.blogUrl
+                blogUrl = response.blogUrl,
             )
         }
 }
