@@ -1,0 +1,2759 @@
+openapi: 3.0.3
+
+# Источники:
+#   • web: https://static.boosty.to/js/app.BWlpFvlr.js + 127 чанков (декомпресс brotli)
+#   • android: boosty.apk (apktool d -> smali, retrofit2.http annotations Lbv/{a,b,c,e,f,i,o,p,s,t,u,y};)
+#   • существующий BoostyApi/PhoneAuthApi проекта (как референс верифицированных контрактов)
+#
+# Маппинг ProGuard-обфусцированных retrofit-аннотаций восстановлен сравнением с проектом:
+#   Lbv/a; = @Body, Lbv/b; = @DELETE, Lbv/c; = @Field, Lbv/e; = @FormUrlEncoded,
+#   Lbv/f; = @GET, Lbv/i; = @Header, Lbv/o; = @POST, Lbv/p; = @PUT,
+#   Lbv/s; = @Path, Lbv/t; = @Query, Lbv/u; = @QueryMap, Lbv/y; = @Url.
+#
+# Где параметры в исходниках не видны (только JS-константа пути), описаны базовые path-параметры
+# и оставлены TODO в description.
+
+info:
+  title: Boosty API (reverse-engineered)
+  version: "1.0.0-re"
+  description: |
+    Спецификация неофициального Boosty API, вытащенная из публичного web-бандла и Android APK.
+    Не является официальной документацией. Часть эндпоинтов может быть deprecated/staff-only/
+    web-only. Подтверждённые проектом BoostBuddy эндпоинты помечены тегом `existing`,
+    остальные — `discovered`.
+
+servers:
+  - url: https://api.boosty.to
+    description: Production API host (используется проектом)
+
+security:
+  - bearerAuth: [ ]
+
+tags:
+  - { name: existing,           description: "Уже используется в BoostyApi/PhoneAuthApi" }
+  - { name: discovered,         description: "Найдено в JS/APK, в проекте отсутствует" }
+  - { name: auth,               description: "Авторизация, OAuth, токены, телефон" }
+  - { name: user,               description: "Текущий пользователь, профиль, подписки" }
+  - { name: blog,               description: "Блог, посты, теги, обложка, агенты" }
+  - { name: posts,              description: "Посты, черновики, реакции, лайки, репорты" }
+  - { name: comments,           description: "Комментарии и реакции на них" }
+  - { name: feed,               description: "Лента и видеоленты" }
+  - { name: search,             description: "Поиск по блогам, лентам, тегам" }
+  - { name: subscription,       description: "Уровни подписки, апгрейд, промо, trial" }
+  - { name: payments,           description: "Биндинг карт, оплата, выплаты, FPS, Bank131, Yuno" }
+  - { name: payouts,            description: "Выплаты автору, история" }
+  - { name: stats,              description: "Статистика блога: данные, события, отчёты, выручка" }
+  - { name: dialog,             description: "Личные сообщения, broadcast, контакты" }
+  - { name: media,              description: "Загрузка/контейнеры video/audio/image/file/album" }
+  - { name: stream,             description: "Live-стримы: чат, модерация, рекорды, viewer heartbeat" }
+  - { name: notifications,      description: "Notification stream + настройки + транспорт" }
+  - { name: poll,               description: "Опросы (user-generated и unsubscribe reasons)" }
+  - { name: bundle,             description: "Бандлы постов: создание, публикация, оценка, продажи" }
+  - { name: showcase,           description: "Showcase витрина блога" }
+  - { name: target,             description: "Цели сбора (money/subscribers)" }
+  - { name: gift,               description: "Подарочные подписки и бандлы" }
+  - { name: smile,              description: "Кастомные эмодзи / стикер-паки уровня подписки" }
+  - { name: badge,              description: "Бейджи подписчиков" }
+  - { name: promo,              description: "Промо/акции автора и trial-промокоды" }
+  - { name: agent,              description: "Делегированный доступ к блогу" }
+  - { name: reaction,           description: "Реакции на посты/комменты" }
+  - { name: support,            description: "Жалобы, поддержка, чёрный список" }
+  - { name: catalog,            description: "Каталог success-stories, категории" }
+  - { name: external_apps,      description: "Telegram/Discord интеграции" }
+  - { name: ws,                 description: "WebSocket: connect/subscribe/refresh" }
+  - { name: mobile,             description: "Эндпоинты, видимые только в APK (mob/system, captcha и т.п.)" }
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    BlogUrl:
+      name: blog_url
+      in: path
+      required: true
+      schema: { type: string }
+      description: Идентификатор блога — slug владельца.
+    PostId:
+      name: post_id
+      in: path
+      required: true
+      schema: { type: string }
+    PostIdAlt:
+      name: postId
+      in: path
+      required: true
+      schema: { type: string }
+    CommentId:
+      name: comment_id
+      in: path
+      required: true
+      schema: { type: string }
+    DialogId:
+      name: dialog_id
+      in: path
+      required: true
+      schema: { type: string }
+    UserId:
+      name: user_id
+      in: path
+      required: true
+      schema: { type: string }
+    EventId:
+      name: event_id
+      in: path
+      required: true
+      schema: { type: string }
+    PollId:
+      name: poll_id
+      in: path
+      required: true
+      schema: { type: string }
+    LevelId:
+      name: levelId
+      in: path
+      required: true
+      schema: { type: string }
+    PromoId:
+      name: promoId
+      in: path
+      required: true
+      schema: { type: string }
+    BundleId:
+      name: bundleId
+      in: path
+      required: true
+      schema: { type: string }
+    MediaId:
+      name: media_id
+      in: path
+      required: true
+      schema: { type: string }
+    MediaType:
+      name: media_type
+      in: path
+      required: true
+      schema: { type: string, enum: [ video, audio, image, ok_video, file ] }
+    Limit:
+      name: limit
+      in: query
+      schema: { type: integer, format: int32, default: 20 }
+    Offset:
+      name: offset
+      in: query
+      schema: { type: string }
+    CommentsLimit:
+      name: comments_limit
+      in: query
+      schema: { type: integer, format: int32 }
+    ReplyLimit:
+      name: reply_limit
+      in: query
+      schema: { type: integer, format: int32 }
+    FromTs:
+      name: from_ts
+      in: query
+      schema: { type: integer, format: int64 }
+      description: Unix epoch seconds.
+    ToTs:
+      name: to_ts
+      in: query
+      schema: { type: integer, format: int64 }
+    TagsIds:
+      name: tags_ids
+      in: query
+      schema: { type: string }
+      description: CSV список tag-id.
+
+  headers:
+    XApp:
+      schema: { type: string, example: "web" }
+      description: Платформа клиента (web/android/ios).
+    XLocale:
+      schema: { type: string, example: "ru_RU" }
+    XFromId:
+      schema: { type: string }
+      description: Device-id, обязателен на phone-auth и refresh-token.
+
+  schemas:
+    OAuthTokenResponse:
+      type: object
+      properties:
+        access_token: { type: string }
+        refresh_token: { type: string }
+        expires_in: { type: integer, format: int64 }
+        token_type: { type: string, example: "bearer" }
+    Extra:
+      type: object
+      properties:
+        offset: { type: string, nullable: true }
+        isLast: { type: boolean, nullable: true }
+    User:
+      type: object
+      properties:
+        id: { type: string }
+        name: { type: string }
+        avatarUrl: { type: string, nullable: true }
+        blogUrl: { type: string, nullable: true }
+    Post:
+      type: object
+      description: |
+        В существующем проекте описано через RemotePostResponse.Post. Тут даны базовые поля.
+      properties:
+        id: { type: string }
+        title: { type: string, nullable: true }
+        createdAt: { type: integer, format: int64 }
+        signedQuery: { type: string, nullable: true }
+        int_id: { type: integer, format: int64 }
+        data: { type: array,   items: { $ref: '#/components/schemas/ContentBlock' } }
+        teaser: { type: array,   items: { $ref: '#/components/schemas/ContentBlock' } }
+        user: { $ref: '#/components/schemas/User' }
+        count: { $ref: '#/components/schemas/PostCount' }
+        poll: { $ref: '#/components/schemas/Poll' }
+        hasAccess: { type: boolean }
+    PostCount:
+      type: object
+      properties:
+        likes: { type: integer }
+        comments: { type: integer }
+    ContentBlock:
+      type: object
+      description: |
+        Дискриминируется по полю `type`: text, image, video, audio_file, file, link, ok_video,
+        smile, post_block, list, header, и т.д. Структура поля `content` варьируется по типу
+        (см. ContentResponse в проекте).
+      properties:
+        type: { type: string }
+        content: { type: string, nullable: true }
+        modificator: { type: string, nullable: true }
+    Poll:
+      type: object
+      properties:
+        id: { type: integer }
+        title: { type: array, items: { type: string } }
+        isMultiple: { type: boolean }
+        isFinished: { type: boolean }
+        counter: { type: integer }
+        answer: { type: array, items: { type: integer } }
+        options: { type: array, items: { $ref: '#/components/schemas/PollOption' } }
+    PollOption:
+      type: object
+      properties:
+        id: { type: integer }
+        text: { type: string }
+        counter: { type: integer }
+        fraction: { type: integer }
+    BlogInfo:
+      type: object
+      properties:
+        title: { type: string }
+        blogUrl: { type: string }
+        owner: { $ref: '#/components/schemas/User' }
+    Tag:
+      type: object
+      properties:
+        id: { type: string }
+        title: { type: string }
+    PageEnvelope:
+      type: object
+      properties:
+        data: { type: object }
+        extra: { $ref: '#/components/schemas/Extra' }
+    NotificationEvent:
+      type: object
+      description: см. EventsResponse.Event в проекте
+      properties:
+        id: { type: integer }
+        type: { type: string }
+        eventTime: { type: integer, format: int64 }
+        isRead: { type: boolean }
+        author: { type: object }
+        blog: { type: object }
+        aggregation: { type: object }
+    Empty:
+      type: object
+    StatusOk:
+      type: object
+      properties:
+        result: { type: string, example: "ok" }
+
+paths:
+
+  # =========================================================================
+  # AUTH / OAUTH
+  # =========================================================================
+
+  /oauth/token/:
+    post:
+      tags: [ auth, existing ]
+      summary: Получить/обновить токен (refresh_token, password, code)
+      description: |
+        Используется проектом для refresh_token. Также видится в APK как универсальная точка
+        выдачи токена. Помимо refresh поддерживает grant_type=password и code (через стандартный
+        OAuth flow) — в APK тот же путь применяется на разных провайдерах.
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required: [ device_id, grant_type, device_os ]
+              properties:
+                device_id: { type: string }
+                device_os: { type: string, enum: [ web, android, ios ] }
+                grant_type: { type: string, enum: [ refresh_token, password, authorization_code ] }
+                refresh_token: { type: string }
+                code: { type: string }
+                code_verifier: { type: string }
+                state: { type: string }
+                redirect_uri: { type: string }
+      responses:
+        "200":
+          description: OK
+          content: { application/json: { schema: { $ref: '#/components/schemas/OAuthTokenResponse' } } }
+
+  /oauth/token:
+    delete:
+      tags: [ auth, discovered ]
+      summary: Отзыв текущего токена (logout)
+      description: Источник — APK, Lbv/b; (DELETE) на `oauth/token`. Без trailing slash.
+      responses: { "204": { description: OK } }
+
+  /oauth/server/authorize:
+    get:
+      tags: [ auth, discovered ]
+      summary: OAuth-server authorize (для third-party app, выдающего код)
+      description: Найдено в app.js (OAUTH_SERVER_AUTHORIZE). Web-only flow.
+      responses: { "302": { description: Redirect } }
+
+  /oauth/server/check_app:
+    get:
+      tags: [ auth, discovered ]
+      summary: Проверка зарегистрированного OAuth-приложения
+      responses: { "200": { description: OK } }
+
+  /oauth/server/token:
+    post:
+      tags: [ auth, discovered ]
+      summary: Server-side token grant
+      responses: { "200": { description: OK } }
+
+  /oauth/device_token/:
+    post:
+      tags: [ auth, discovered, mobile ]
+      summary: Регистрация push-device-token
+      description: Источник — APK. Тело FormUrlEncoded.
+      requestBody:
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              properties:
+                device_id: { type: string }
+                device_token: { type: string }
+                device_os: { type: string }
+      responses: { "200": { description: OK } }
+
+  /oauth/fb/token:
+    get:
+      tags: [ auth, discovered ]
+      summary: OAuth Facebook — обмен кода на токен
+      description: Источник — APK, метод GET с code в query.
+      parameters:
+        - in: query
+          name: code
+          schema: { type: string }
+        - in: query
+          name: redirect_uri
+          schema: { type: string }
+      responses: { "200": { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/OAuthTokenResponse' } } } } }
+
+  /oauth/fb/token/standalone:
+    post:
+      tags: [ auth, discovered, mobile ]
+      summary: Facebook standalone-app токен
+      requestBody:
+        content:
+          application/x-www-form-urlencoded:
+            schema: { type: object, properties: { access_token: { type: string }, device_id: { type: string }, device_os: { type: string } } }
+      responses: { "200": { description: OK } }
+
+  /oauth/google/token:
+    get:
+      tags: [ auth, discovered ]
+      summary: OAuth Google — обмен кода на токен
+      parameters:
+        - in: query
+          name: code
+          schema: { type: string }
+      responses: { "200": { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/OAuthTokenResponse' } } } } }
+
+  /oauth/ok/token:
+    get:
+      tags: [ auth, discovered ]
+      summary: OAuth Одноклассники — обмен кода на токен
+      parameters: [ { in: query, name: code, schema: { type: string } } ]
+      responses: { "200": { description: OK } }
+
+  /oauth/mr/token:
+    get:
+      tags: [ auth, discovered ]
+      summary: OAuth Mail.ru — обмен кода на токен
+      parameters: [ { in: query, name: code, schema: { type: string } } ]
+      responses: { "200": { description: OK } }
+
+  /oauth/twitch/token:
+    get:
+      tags: [ auth, discovered ]
+      summary: OAuth Twitch — обмен кода на токен
+      parameters: [ { in: query, name: code, schema: { type: string } } ]
+      responses: { "200": { description: OK } }
+
+  /oauth/vk_id/token:
+    get:
+      tags: [ auth, discovered ]
+      summary: OAuth VK ID — обмен кода на токен
+      description: |
+        В app.js видно специальную обработку: PKCE через code_verifier из localStorage и
+        state в формате `${randomUuid}--${clientId}`. APK обращается тем же GET.
+      parameters:
+        - in: query
+          name: code
+          schema: { type: string }
+        - in: query
+          name: device_id
+          schema: { type: string }
+        - in: query
+          name: code_verifier
+          schema: { type: string }
+        - in: query
+          name: state
+          schema: { type: string }
+      responses: { "200": { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/OAuthTokenResponse' } } } } }
+
+  /auth/phone/verification_code/send:
+    post:
+      tags: [ auth, existing ]
+      summary: Отправить SMS/звонок с кодом подтверждения по номеру
+      description: Используется проектом (PhoneAuthApi.sendPhoneVerificationCode).
+      parameters:
+        - in: header
+          name: X-From-Id
+          required: true
+          schema: { type: string }
+      requestBody:
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required: [ phone, device_id, device_os ]
+              properties:
+                phone: { type: string }
+                device_id: { type: string }
+                device_os: { type: string, enum: [ web, android, ios ] }
+                transport: { type: string, enum: [ sms, call, push ] }
+      responses: { "200": { description: OK } }
+
+  /auth/phone/verification_code/confirm:
+    put:
+      tags: [ auth, existing ]
+      summary: Подтвердить SMS-код по номеру и получить токены
+      description: Используется проектом (PhoneAuthApi.confirmPhoneVerificationCode).
+      parameters:
+        - in: header
+          name: X-From-Id
+          required: true
+          schema: { type: string }
+      requestBody:
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required: [ phone, code, sms_code, device_id, device_os ]
+              properties:
+                phone: { type: string }
+                code: { type: string, description: "challenge code из ответа на send" }
+                sms_code: { type: string, description: "код, введённый пользователем" }
+                device_id: { type: string }
+                device_os: { type: string }
+      responses:
+        "200":
+          description: OK
+          content: { application/json: { schema: { $ref: '#/components/schemas/OAuthTokenResponse' } } }
+
+  /auth/phone/mobile_captcha/send:
+    post:
+      tags: [ auth, discovered, mobile ]
+      summary: Запросить отправку капчи перед отправкой SMS
+      description: Источник — APK. Только мобильные клиенты, пред-шаг к verification_code/send.
+      requestBody:
+        content:
+          application/x-www-form-urlencoded:
+            schema: { type: object, properties: { phone: { type: string }, device_id: { type: string } } }
+      responses: { "200": { description: OK } }
+
+  # ========== app email auth (web) ==========
+  /user/auth/email:
+    post:
+      tags: [ auth, discovered ]
+      summary: Регистрация по e-mail/паролю
+      responses: { "200": { description: OK } }
+  /user/auth/email/token:
+    post:
+      tags: [ auth, discovered ]
+      summary: Sign-in по e-mail/паролю — выдача токена
+      responses: { "200": { description: OK } }
+  /user/auth/email/password:
+    put:
+      tags: [ auth, discovered ]
+      summary: Смена пароля текущего пользователя
+      responses: { "200": { description: OK } }
+  /user/auth/email/password/restore/send:
+    post:
+      tags: [ auth, discovered ]
+      summary: Запросить письмо для восстановления пароля
+      responses: { "200": { description: OK } }
+  /user/auth/email/password/restore:
+    post:
+      tags: [ auth, discovered ]
+      summary: Восстановить пароль по коду из письма
+      responses: { "200": { description: OK } }
+  /user/auth/email/change/send_code:
+    post:
+      tags: [ auth, discovered ]
+      summary: Отправить код подтверждения смены e-mail
+      responses: { "200": { description: OK } }
+  /user/auth/email/change/confirm:
+    post:
+      tags: [ auth, discovered ]
+      summary: Подтвердить смену e-mail
+      responses: { "200": { description: OK } }
+  /user/auth/email/current/send_code:
+    post:
+      tags: [ auth, discovered ]
+      summary: Отправить код подтверждения текущего e-mail
+      responses: { "200": { description: OK } }
+  /user/auth/email/current/confirm:
+    post:
+      tags: [ auth, discovered ]
+      summary: Подтвердить текущий e-mail
+      responses: { "200": { description: OK } }
+  /user/auth_link/{type}:
+    get:
+      tags: [ auth, discovered ]
+      summary: Получить magic-link на e-mail для type-операции
+      parameters:
+        - in: path
+          name: type
+          required: true
+          schema: { type: string }
+      responses: { "200": { description: OK } }
+  /user/email/check_need_confirm_current:
+    get:
+      tags: [ auth, discovered ]
+      summary: Нужно ли подтвердить текущий e-mail
+      responses: { "200": { description: OK } }
+  /v1/user/email/confirm/{code}:
+    get:
+      tags: [ auth, discovered ]
+      summary: Подтвердить e-mail по коду из письма
+      parameters: [ { in: path, name: code, required: true, schema: { type: string } } ]
+      responses: { "200": { description: OK } }
+
+  # =========================================================================
+  # USER
+  # =========================================================================
+
+  /v1/user/current:
+    get:
+      tags: [ user, existing ]
+      summary: Текущий пользователь
+      responses:
+        "200":
+          description: OK
+          content: { application/json: { schema: { $ref: '#/components/schemas/User' } } }
+    put:
+      tags: [ user, discovered ]
+      summary: Обновить поля профиля текущего пользователя
+      responses: { "200": { description: OK } }
+
+  /v1/user/subscriptions:
+    get:
+      tags: [ user, existing ]
+      summary: Подписки текущего пользователя
+      parameters:
+        - { $ref: '#/components/parameters/Limit' }
+        - in: query
+          name: with_follow
+          schema: { type: boolean }
+      responses: { "200": { description: OK } }
+
+  /v1/user/following/:
+    get:
+      tags: [ user, discovered ]
+      summary: Список тех, на кого подписан текущий пользователь
+      responses: { "200": { description: OK } }
+
+  /v1/user/locale:
+    post:
+      tags: [ user, discovered ]
+      summary: Установить язык/локаль пользователя
+      requestBody:
+        content:
+          application/x-www-form-urlencoded:
+            schema: { type: object, properties: { locale: { type: string, example: "ru_RU" } } }
+      responses: { "200": { description: OK } }
+
+  /v1/user/login:
+    get:
+      tags: [ user, discovered ]
+      summary: Лог-ин (web/legacy)
+      responses: { "200": { description: OK } }
+
+  /v1/user/dialog_settings:
+    post:
+      tags: [ user, discovered ]
+      summary: Настройки диалогов пользователя (кто может писать, шумы)
+      responses: { "200": { description: OK } }
+
+  /v1/user/info_messages:
+    get:
+      tags: [ user, discovered ]
+      summary: Пуши/сервисные сообщения "info" в шапке
+      responses: { "200": { description: OK } }
+  /v1/user/info_messages/{id}:
+    delete:
+      tags: [ user, discovered ]
+      summary: Удалить info-сообщение
+      parameters: [ { in: path, name: id, required: true, schema: { type: string } } ]
+      responses: { "204": { description: OK } }
+
+  /v1/user/alerts:
+    get:
+      tags: [ user, discovered ]
+      summary: Marketing-alerts (баннеры, акции)
+      responses: { "200": { description: OK } }
+  /v1/user/alerts/{alertId}/skip:
+    post:
+      tags: [ user, discovered ]
+      summary: Скрыть marketing-alert
+      parameters: [ { in: path, name: alertId, required: true, schema: { type: string } } ]
+      responses: { "204": { description: OK } }
+
+  /v1/user/current/avatar:
+    post:
+      tags: [ user, discovered ]
+      summary: Загрузить аватар
+      requestBody: { content: { multipart/form-data: { schema: { type: object, properties: { file: { type: string, format: binary } } } } } }
+      responses: { "200": { description: OK } }
+  /v1/user/current/nick:
+    put:
+      tags: [ user, discovered ]
+      summary: Сменить никнейм
+      responses: { "200": { description: OK } }
+  /v1/user/current/flag/{flag}:
+    put:
+      tags: [ user, discovered ]
+      summary: Переключить пользовательский флаг
+      parameters: [ { in: path, name: flag, required: true, schema: { type: string } } ]
+      responses: { "200": { description: OK } }
+  /v1/user/current/finish_tutorial:
+    post:
+      tags: [ user, discovered ]
+      summary: Отметить, что онбординг пройден
+      responses: { "200": { description: OK } }
+  /v1/user/current/privacy:
+    put:
+      tags: [ user, discovered ]
+      summary: Согласие на обработку персональных данных
+      responses: { "200": { description: OK } }
+  /v1/user/current/ref_conv:
+    put:
+      tags: [ user, discovered ]
+      summary: Согласие реферальной политики
+      responses: { "200": { description: OK } }
+  /v1/user/current/email:
+    post:
+      tags: [ user, discovered ]
+      summary: Перепослать письмо подтверждения e-mail
+      responses: { "200": { description: OK } }
+  /v1/user/current/phone:
+    get:
+      tags: [ user, discovered ]
+      summary: Текущий привязанный телефон
+      responses: { "200": { description: OK } }
+  /v1/user/current/scheduled_deletion:
+    put:
+      tags: [ user, discovered ]
+      summary: Запланировать удаление аккаунта
+      responses: { "200": { description: OK } }
+    delete:
+      tags: [ user, discovered ]
+      summary: Отменить запланированное удаление аккаунта
+      responses: { "204": { description: OK } }
+
+  /v1/user/phone:
+    put:
+      tags: [ user, discovered ]
+      summary: Изменить номер телефона текущего пользователя
+      responses: { "200": { description: OK } }
+  /v1/user/phone/can_add:
+    get:
+      tags: [ user, discovered ]
+      summary: Можно ли добавить телефон (квоты, бан)
+      responses: { "200": { description: OK } }
+  /v1/user/phone/approve:
+    post:
+      tags: [ user, discovered ]
+      summary: Подтверждение номера телефона
+      responses: { "200": { description: OK } }
+  /v1/user/phone/check_current:
+    post:
+      tags: [ user, discovered ]
+      summary: Проверка текущего номера
+      responses: { "200": { description: OK } }
+  /v1/user/phone/verify_old:
+    post:
+      tags: [ user, discovered ]
+      summary: Подтверждение старого номера при смене
+      responses: { "200": { description: OK } }
+  /v1/user/phone/verify_delete:
+    post:
+      tags: [ user, discovered ]
+      summary: Подтверждение отвязки номера
+      responses: { "200": { description: OK } }
+  /v1/user/notify_settings/{notificationType}:
+    put:
+      tags: [ user, notifications, discovered ]
+      summary: Legacy-настройки уведомлений по типу
+      parameters: [ { in: path, name: notificationType, required: true, schema: { type: string } } ]
+      responses: { "200": { description: OK } }
+  /v1/user/session/:
+    get:
+      tags: [ user, discovered ]
+      summary: Список активных сессий пользователя
+      responses: { "200": { description: OK } }
+  /v1/users:
+    get:
+      tags: [ user, discovered ]
+      summary: Поиск/листинг пользователей (admin/agent)
+      responses: { "200": { description: OK } }
+  /v1/user/{id}:
+    get:
+      tags: [ user, discovered ]
+      summary: Публичный профиль пользователя по id
+      parameters: [ { in: path, name: id, required: true, schema: { type: string } } ]
+      responses: { "200": { description: OK } }
+
+  # =========================================================================
+  # BLOG
+  # =========================================================================
+
+  /v1/blog/:
+    post:
+      tags: [ blog, discovered ]
+      summary: Создать новый блог у текущего пользователя
+      responses: { "200": { description: OK } }
+
+  /v1/blog/{blog_url}:
+    parameters: [ { $ref: '#/components/parameters/BlogUrl' } ]
+    get:
+      tags: [ blog, existing ]
+      summary: Информация о блоге
+      responses: { "200": { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/BlogInfo' } } } } }
+
+  /v1/blog/{blog_url}/follow:
+    parameters: [ { $ref: '#/components/parameters/BlogUrl' } ]
+    post:
+      tags: [ blog, discovered ]
+      summary: Подписаться (follow) на блог без оплаты
+      responses: { "200": { description: OK } }
+
+  /v1/blog/{blog_url}/unsubscribe:
+    parameters: [ { $ref: '#/components/parameters/BlogUrl' } ]
+    post:
+      tags: [ blog, discovered ]
+      summary: Отписаться от блога
+      responses: { "200": { description: OK } }
+
+  /v1/blog/{blog_url}/pause:
+    parameters: [ { $ref: '#/components/parameters/BlogUrl' } ]
+    post:
+      tags: [ blog, discovered ]
+      summary: Поставить подписку на паузу
+      responses: { "200": { description: OK } }
+
+  /v1/blog/{blog_url}/cover:
+    parameters: [ { $ref: '#/components/parameters/BlogUrl' } ]
+    post:
+      tags: [ blog, discovered ]
+      summary: Заменить обложку блога
+      requestBody: { content: { multipart/form-data: { schema: { type: object } } } }
+      responses: { "200": { description: OK } }
+
+  /v1/blog/{blog_url}/social_links:
+    parameters: [ { $ref: '#/components/parameters/BlogUrl' } ]
+    put:
+      tags: [ blog, discovered ]
+      summary: Обновить ссылки на соцсети блога
+      responses: { "200": { description: OK } }
+
+  /v1/blog/{blog_url}/tax_id:
+    parameters: [ { $ref: '#/components/parameters/BlogUrl' } ]
+    put:
+      tags: [ blog, discovered ]
+      summary: ИНН/налоговый идентификатор блога
+      responses: { "200": { description: OK } }
+
+  /v1/blog/{blog_url}/flag/{flag}:
+    parameters:
+      - { $ref: '#/components/parameters/BlogUrl' }
+      - in: path
+        name: flag
+        required: true
+        schema: { type: string }
+    put:
+      tags: [ blog, discovered ]
+      summary: Переключить feature-flag блога
+      responses: { "200": { description: OK } }
+
+  /v1/blog/{blog_url}/complain/:
+    parameters: [ { $ref: '#/components/parameters/BlogUrl' } ]
+    post:
+      tags: [ blog, support, discovered ]
+      summary: Пожаловаться на блог
+      responses: { "200": { description: OK } }
+
+  /v1/blog/{blog_url}/search:
+    parameters: [ { $ref: '#/components/parameters/BlogUrl' } ]
+    get:
+      tags: [ blog, search, discovered ]
+      summary: Поиск пользователей внутри блога (для модерации/приглашений)
+      responses: { "200": { description: OK } }
+
+  /v1/blog/{blog_url}/agent/:
+    parameters: [ { $ref: '#/components/parameters/BlogUrl' } ]
+    get:
+      tags: [ agent, discovered ]
+      summary: Список агентов блога
+      responses: { "200": { description: OK } }
+  /v1/blog/{blog_url}/agent:
+    parameters: [ { $ref: '#/components/parameters/BlogUrl' } ]
+    post:
+      tags: [ agent, discovered ]
+      summary: Назначить агента блогу
+      responses: { "200": { description: OK } }
+  /v1/blog/{blog_url}/agent/{user_id}:
+    parameters:
+      - { $ref: '#/components/parameters/BlogUrl' }
+      - { $ref: '#/components/parameters/UserId' }
+    delete:
+      tags: [ agent, discovered ]
+      summary: Снять агента
+      responses: { "204": { description: OK } }
+  /v1/agent/blogs:
+    get:
+      tags: [ agent, discovered ]
+      summary: Блоги, в которых я агент
+      responses: { "200": { description: OK } }
+
+  /v1/blog/{blog_url}/rss/url:
+    parameters: [ { $ref: '#/components/parameters/BlogUrl' } ]
+    get:
+      tags: [ blog, discovered ]
+      summary: Получить персональный RSS-URL
+      responses: { "200": { description: OK } }
+  /v1/blog/{blog_url}/rss/settings:
+    parameters: [ { $ref: '#/components/parameters/BlogUrl' } ]
+    put:
+      tags: [ blog, discovered ]
+      summary: Настройки RSS-фида блога
+      responses: { "200": { description: OK } }
+
+  /v1/channel/{blog_url}/cover_type:
+    parameters: [ { $ref: '#/components/parameters/BlogUrl' } ]
+    put:
+      tags: [ blog, discovered ]
+      summary: Тип обложки канала
+      responses: { "200": { description: OK } }
+
+  /v1/blog/{blog_url}/ref:
+    parameters: [ { $ref: '#/components/parameters/BlogUrl' } ]
+    get:
+      tags: [ blog, discovered ]
+      summary: Реферальная ссылка блога
+      responses: { "200": { description: OK } }
+
+  # =========================================================================
+  # BLACKLIST
+  # =========================================================================
+
+  /v1/blacklist/:
+    get:
+      tags: [ blog, support, discovered ]
+      summary: Чёрный список текущего пользователя/блога
+      responses: { "200": { description: OK } }
+  /v1/blacklist/{user_id}:
+    parameters: [ { $ref: '#/components/parameters/UserId' } ]
+    put:
+      tags: [ blog, support, discovered ]
+      summary: Добавить пользователя в ЧС
+      responses: { "200": { description: OK } }
+    delete:
+      tags: [ blog, support, discovered ]
+      summary: Убрать из ЧС
+      responses: { "204": { description: OK } }
+
+  # =========================================================================
+  # POSTS
+  # =========================================================================
+
+  /v1/blog/{blog_url}/post/:
+    parameters: [ { $ref: '#/components/parameters/BlogUrl' } ]
+    get:
+      tags: [ posts, existing ]
+      summary: Лента постов блога
+      parameters:
+        - { $ref: '#/components/parameters/Limit' }
+        - { $ref: '#/components/parameters/Offset' }
+        - { $ref: '#/components/parameters/CommentsLimit' }
+        - { $ref: '#/components/parameters/ReplyLimit' }
+        - in: query
+          name: is_only_allowed
+          schema: { type: boolean }
+        - in: query
+          name: only_bought
+          schema: { type: boolean }
+        - { $ref: '#/components/parameters/FromTs' }
+        - { $ref: '#/components/parameters/ToTs' }
+        - { $ref: '#/components/parameters/TagsIds' }
+      responses: { "200": { description: OK } }
+    post:
+      tags: [ posts, discovered ]
+      summary: Создать пост в блоге
+      responses: { "200": { description: OK } }
+
+  /v1/blog/{blog_url}/post/{postId}:
+    parameters:
+      - { $ref: '#/components/parameters/BlogUrl' }
+      - { $ref: '#/components/parameters/PostIdAlt' }
+    get:
+      tags: [ posts, existing ]
+      summary: Один пост (с тизерами/контентом)
+      parameters:
+        - { $ref: '#/components/parameters/CommentsLimit' }
+        - { $ref: '#/components/parameters/ReplyLimit' }
+      responses: { "200": { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Post' } } } } }
+    put:
+      tags: [ posts, discovered ]
+      summary: Редактировать пост
+      responses: { "200": { description: OK } }
+    delete:
+      tags: [ posts, discovered ]
+      summary: Удалить пост
+      responses: { "204": { description: OK } }
+
+  /v1/blog/{blog_url}/post_draft:
+    parameters: [ { $ref: '#/components/parameters/BlogUrl' } ]
+    get:
+      tags: [ posts, discovered ]
+      summary: Получить черновик поста
+      responses: { "200": { description: OK } }
+    put:
+      tags: [ posts, discovered ]
+      summary: Обновить черновик
+      responses: { "200": { description: OK } }
+  /v1/blog/{blog_url}/post_draft/publish/:
+    parameters: [ { $ref: '#/components/parameters/BlogUrl' } ]
+    post:
+      tags: [ posts, discovered ]
+      summary: Опубликовать черновик
+      responses: { "200": { description: OK } }
+
+  /v1/blog/{blog_url}/post/{post_id}/pin:
+    parameters:
+      - { $ref: '#/components/parameters/BlogUrl' }
+      - { $ref: '#/components/parameters/PostId' }
+    put:
+      tags: [ posts, discovered ]
+      summary: Закрепить пост
+      responses: { "200": { description: OK } }
+    delete:
+      tags: [ posts, discovered ]
+      summary: Открепить пост
+      responses: { "204": { description: OK } }
+
+  /v1/blog/{blog_url}/post/{postId}/like:
+    parameters:
+      - { $ref: '#/components/parameters/BlogUrl' }
+      - { $ref: '#/components/parameters/PostIdAlt' }
+    post:
+      tags: [ posts, reaction, discovered ]
+      summary: Лайк поста (legacy)
+      responses: { "200": { description: OK } }
+
+  /v1/blog/{blog_url}/post/{postId}/reaction:
+    parameters:
+      - { $ref: '#/components/parameters/BlogUrl' }
+      - { $ref: '#/components/parameters/PostIdAlt' }
+    post:
+      tags: [ posts, reaction, discovered ]
+      summary: Поставить реакцию на пост
+      responses: { "200": { description: OK } }
+    delete:
+      tags: [ posts, reaction, discovered ]
+      summary: Убрать реакцию с поста
+      responses: { "204": { description: OK } }
+
+  /v1/blog/{blog_url}/post/{postId}/deferred_access:
+    parameters:
+      - { $ref: '#/components/parameters/BlogUrl' }
+      - { $ref: '#/components/parameters/PostIdAlt' }
+    get:
+      tags: [ posts, discovered ]
+      summary: Получить отложенный доступ к посту (по таймеру / уровню)
+      responses: { "200": { description: OK } }
+    put:
+      tags: [ posts, discovered ]
+      summary: Обновить отложенный доступ
+      responses: { "200": { description: OK } }
+    delete:
+      tags: [ posts, discovered ]
+      summary: Снять отложенный доступ
+      responses: { "204": { description: OK } }
+
+  /v1/blog/{blog_url}/post/{post_id}/complain/:
+    parameters:
+      - { $ref: '#/components/parameters/BlogUrl' }
+      - { $ref: '#/components/parameters/PostId' }
+    post:
+      tags: [ posts, support, discovered ]
+      summary: Жалоба на пост
+      responses: { "200": { description: OK } }
+
+  /v1/blog/{blog_url}/post/tag/:
+    parameters: [ { $ref: '#/components/parameters/BlogUrl' } ]
+    get:
+      tags: [ posts, existing ]
+      summary: Теги, используемые в блоге
+      responses: { "200": { description: OK, content: { application/json: { schema: { type: object, properties: { data: { type: array, items: { $ref: '#/components/schemas/Tag' } } } } } } } }
+
+  # =========================================================================
+  # COMMENTS
+  # =========================================================================
+
+  /v1/blog/{blog_url}/post/{post_id}/comment/:
+    parameters:
+      - { $ref: '#/components/parameters/BlogUrl' }
+      - { $ref: '#/components/parameters/PostId' }
+    get:
+      tags: [ comments, existing ]
+      summary: Список комментариев к посту
+      parameters:
+        - { $ref: '#/components/parameters/Limit' }
+        - { $ref: '#/components/parameters/ReplyLimit' }
+        - in: query
+          name: order
+          schema: { type: string, enum: [ top, new ] }
+        - in: query
+          name: offset
+          schema: { type: integer }
+        - in: query
+          name: parent_id
+          schema: { type: integer }
+      responses: { "200": { description: OK } }
+    post:
+      tags: [ comments, discovered ]
+      summary: Оставить комментарий / ответ
+      requestBody: { content: { application/x-www-form-urlencoded: { schema: { type: object, properties: { content: { type: string }, parent_id: { type: integer } } } } } }
+      responses: { "200": { description: OK } }
+
+  /v1/blog/{blog_url}/post/{post_id}/comment/{comment_id}:
+    parameters:
+      - { $ref: '#/components/parameters/BlogUrl' }
+      - { $ref: '#/components/parameters/PostId' }
+      - { $ref: '#/components/parameters/CommentId' }
+    put:
+      tags: [ comments, discovered ]
+      summary: Редактировать комментарий
+      responses: { "200": { description: OK } }
+    delete:
+      tags: [ comments, discovered ]
+      summary: Удалить комментарий
+      responses: { "204": { description: OK } }
+
+  /v1/blog/{blog_url}/post/{post_id}/comment/{comment_id}/restore:
+    parameters:
+      - { $ref: '#/components/parameters/BlogUrl' }
+      - { $ref: '#/components/parameters/PostId' }
+      - { $ref: '#/components/parameters/CommentId' }
+    put:
+      tags: [ comments, discovered ]
+      summary: Восстановить удалённый комментарий
+      responses: { "200": { description: OK } }
+
+  /v1/blog/{blog_url}/post/{post_id}/comment/{comment_id}/reaction:
+    parameters:
+      - { $ref: '#/components/parameters/BlogUrl' }
+      - { $ref: '#/components/parameters/PostId' }
+      - { $ref: '#/components/parameters/CommentId' }
+    post:
+      tags: [ comments, reaction, discovered ]
+      summary: Поставить реакцию на комментарий
+      responses: { "200": { description: OK } }
+    delete:
+      tags: [ comments, reaction, discovered ]
+      summary: Убрать реакцию с комментария
+      responses: { "204": { description: OK } }
+
+  /v1/blog/{blog_url}/post/{post_id}/comment/{comment_id}/complain/:
+    parameters:
+      - { $ref: '#/components/parameters/BlogUrl' }
+      - { $ref: '#/components/parameters/PostId' }
+      - { $ref: '#/components/parameters/CommentId' }
+    post:
+      tags: [ comments, support, discovered ]
+      summary: Жалоба на комментарий
+      responses: { "200": { description: OK } }
+
+  # =========================================================================
+  # FEED & SEARCH
+  # =========================================================================
+
+  /v1/feed/post/:
+    get:
+      tags: [ feed, existing ]
+      summary: Лента постов "следишь за"
+      parameters:
+        - { $ref: '#/components/parameters/Limit' }
+        - { $ref: '#/components/parameters/Offset' }
+        - { $ref: '#/components/parameters/CommentsLimit' }
+        - { $ref: '#/components/parameters/ReplyLimit' }
+        - in: query
+          name: only_allowed
+          schema: { type: boolean }
+        - in: query
+          name: only_bought
+          schema: { type: boolean }
+        - { $ref: '#/components/parameters/TagsIds' }
+        - { $ref: '#/components/parameters/FromTs' }
+        - { $ref: '#/components/parameters/ToTs' }
+      responses: { "200": { description: OK } }
+
+  /v1/feed/video_stream/:
+    get:
+      tags: [ feed, stream, discovered ]
+      summary: Лента live-стримов
+      responses: { "200": { description: OK } }
+
+  /v1/feed/session/created_at:
+    get:
+      tags: [ feed, discovered ]
+      summary: Время старта сессии "лента"
+      responses: { "200": { description: OK } }
+
+  /v1/search/blog/:
+    get:
+      tags: [ search, discovered ]
+      summary: Поиск блогов
+      parameters:
+        - in: query
+          name: search_query
+          schema: { type: string }
+        - { $ref: '#/components/parameters/Limit' }
+        - { $ref: '#/components/parameters/Offset' }
+      responses: { "200": { description: OK } }
+
+  /v1/search/blog/post/:
+    get:
+      tags: [ search, existing ]
+      summary: Поиск постов в одном блоге
+      parameters:
+        - in: query
+          name: blog_url
+          schema: { type: string }
+        - in: query
+          name: search_query
+          schema: { type: string }
+        - { $ref: '#/components/parameters/Limit' }
+        - { $ref: '#/components/parameters/Offset' }
+        - { $ref: '#/components/parameters/CommentsLimit' }
+        - { $ref: '#/components/parameters/ReplyLimit' }
+      responses: { "200": { description: OK } }
+
+  /v1/search/blog/suggest/:
+    get:
+      tags: [ search, discovered ]
+      summary: Подсказки/автодополнение по блогам
+      responses: { "200": { description: OK } }
+
+  /v1/search/feed/post/:
+    get:
+      tags: [ search, existing ]
+      summary: Поиск по всей ленте подписок
+      parameters:
+        - in: query
+          name: search_query
+          schema: { type: string }
+        - { $ref: '#/components/parameters/Limit' }
+        - { $ref: '#/components/parameters/Offset' }
+        - { $ref: '#/components/parameters/CommentsLimit' }
+        - { $ref: '#/components/parameters/ReplyLimit' }
+      responses: { "200": { description: OK } }
+
+  /v1/search/feed/tag/:
+    get:
+      tags: [ search, existing ]
+      summary: Поиск тегов в общей ленте
+      parameters:
+        - { $ref: '#/components/parameters/Limit' }
+        - { $ref: '#/components/parameters/Offset' }
+      responses: { "200": { description: OK } }
+
+  # =========================================================================
+  # SUBSCRIPTION LEVELS / PROMO / TRIAL
+  # =========================================================================
+
+  /v1/blog/{blog_url}/subscription_level/:
+    parameters: [ { $ref: '#/components/parameters/BlogUrl' } ]
+    get:
+      tags: [ subscription, discovered ]
+      summary: Уровни подписки блога
+      responses: { "200": { description: OK } }
+
+  /v1/blog/{blog_url}/subscription/level:
+    parameters: [ { $ref: '#/components/parameters/BlogUrl' } ]
+    post:
+      tags: [ subscription, discovered ]
+      summary: Создать новый уровень подписки
+      responses: { "200": { description: OK } }
+  /v1/blog/{blog_url}/subscription/level/{levelId}:
+    parameters:
+      - { $ref: '#/components/parameters/BlogUrl' }
+      - { $ref: '#/components/parameters/LevelId' }
+    put:
+      tags: [ subscription, discovered ]
+      summary: Изменить уровень
+      responses: { "200": { description: OK } }
+    delete:
+      tags: [ subscription, discovered ]
+      summary: Удалить уровень
+      responses: { "204": { description: OK } }
+
+  /v1/blog/{blog_url}/subscription/level/{levelId}/promo/:
+    parameters:
+      - { $ref: '#/components/parameters/BlogUrl' }
+      - { $ref: '#/components/parameters/LevelId' }
+    get:
+      tags: [ subscription, promo, discovered ]
+      summary: Промокоды уровня
+      responses: { "200": { description: OK } }
+
+  /v1/blog/{blog_url}/subscription/level/promo/:
+    parameters: [ { $ref: '#/components/parameters/BlogUrl' } ]
+    get:
+      tags: [ subscription, promo, discovered ]
+      summary: Все промо подписки блога
+      responses: { "200": { description: OK } }
+  /v1/blog/{blog_url}/subscription/level/promo/{promoId}/finish:
+    parameters:
+      - { $ref: '#/components/parameters/BlogUrl' }
+      - { $ref: '#/components/parameters/PromoId' }
+    put:
+      tags: [ subscription, promo, discovered ]
+      summary: Завершить промо досрочно
+      responses: { "200": { description: OK } }
+  /v1/blog/{blog_url}/subscription/level/promo/link/{linkId}:
+    parameters:
+      - { $ref: '#/components/parameters/BlogUrl' }
+      - in: path
+        name: linkId
+        required: true
+        schema: { type: string }
+    get:
+      tags: [ subscription, promo, discovered ]
+      summary: Trial-ссылка по идентификатору
+      responses: { "200": { description: OK } }
+
+  /v1/blog/{blog_url}/subscribe/{levelId}/trial/{promoId}:
+    parameters:
+      - { $ref: '#/components/parameters/BlogUrl' }
+      - { $ref: '#/components/parameters/LevelId' }
+      - { $ref: '#/components/parameters/PromoId' }
+    post:
+      tags: [ subscription, promo, discovered ]
+      summary: Активировать trial-подписку через промо
+      responses: { "200": { description: OK } }
+
+  /v1/blog/{blog_url}/subscription/downgrade/{levelId}:
+    parameters:
+      - { $ref: '#/components/parameters/BlogUrl' }
+      - { $ref: '#/components/parameters/LevelId' }
+    put:
+      tags: [ subscription, discovered ]
+      summary: Понизить уровень подписки
+      responses: { "200": { description: OK } }
+  /v1/blog/{blog_url}/subscription/revert_changes:
+    parameters: [ { $ref: '#/components/parameters/BlogUrl' } ]
+    post:
+      tags: [ subscription, discovered ]
+      summary: Откат изменения подписки до коммита
+      responses: { "200": { description: OK } }
+  /v1/blog/{blog_url}/subscription/price_change/confirm:
+    parameters: [ { $ref: '#/components/parameters/BlogUrl' } ]
+    post:
+      tags: [ subscription, discovered ]
+      summary: Подтверждение изменения цены подписки
+      responses: { "200": { description: OK } }
+  /v1/blog/{blog_url}/subscription/price_change/decline:
+    parameters: [ { $ref: '#/components/parameters/BlogUrl' } ]
+    post:
+      tags: [ subscription, discovered ]
+      summary: Отказ от изменения цены подписки
+      responses: { "200": { description: OK } }
+
+  /v1/blog/{blog_url}/payment_info/{levelId}:
+    parameters:
+      - { $ref: '#/components/parameters/BlogUrl' }
+      - { $ref: '#/components/parameters/LevelId' }
+    get:
+      tags: [ subscription, payments, discovered ]
+      summary: Сводка по платежу за уровень (цена, валюта, fee)
+      responses: { "200": { description: OK } }
+  /v1/blog/{blog_url}/payment_info/{levelId}/gift:
+    parameters:
+      - { $ref: '#/components/parameters/BlogUrl' }
+      - { $ref: '#/components/parameters/LevelId' }
+    get:
+      tags: [ subscription, gift, payments, discovered ]
+      summary: Сводка по подарочному платежу за уровень
+      responses: { "200": { description: OK } }
+
+  /v1/blog/{blog_url}/additional_payment/{levelId}:
+    parameters:
+      - { $ref: '#/components/parameters/BlogUrl' }
+      - { $ref: '#/components/parameters/LevelId' }
+    post:
+      tags: [ subscription, payments, discovered ]
+      summary: Доп. платёж к подписке
+      responses: { "200": { description: OK } }
+
+  # =========================================================================
+  # PAYMENTS
+  # =========================================================================
+
+  /v1/payment/bind/list:
+    get:
+      tags: [ payments, discovered ]
+      summary: Список привязанных карт
+      responses: { "200": { description: OK } }
+  /v1/payment/bind/{bind_id}:
+    parameters:
+      - in: path
+        name: bind_id
+        required: true
+        schema: { type: string }
+    delete:
+      tags: [ payments, discovered ]
+      summary: Отвязать карту
+      responses: { "204": { description: OK } }
+
+  /v1/payment/create/bind:
+    post:
+      tags: [ payments, discovered ]
+      summary: Создать привязку карты (BindOnly)
+      responses: { "200": { description: OK } }
+  /v1/payment/url/bind:
+    get:
+      tags: [ payments, discovered ]
+      summary: URL платёжной формы только для биндинга
+      responses: { "200": { description: OK } }
+  /v1/payment/pay/bind:
+    post:
+      tags: [ payments, discovered ]
+      summary: Оплата с уже привязанной карты
+      responses: { "200": { description: OK } }
+  /v1/payment/pay:
+    post:
+      tags: [ payments, discovered ]
+      summary: Универсальный pay-callback
+      responses: { "200": { description: OK } }
+  /v1/payment/pay/progress:
+    get:
+      tags: [ payments, discovered ]
+      summary: Статус процесса оплаты
+      responses: { "200": { description: OK } }
+  /v1/payment/render/result:
+    get:
+      tags: [ payments, discovered ]
+      summary: HTML страницы результата оплаты (web)
+      responses: { "200": { description: OK } }
+  /v1/payment/result:
+    get:
+      tags: [ payments, discovered ]
+      summary: JSON статуса оплаты
+      responses: { "200": { description: OK } }
+  /v1/payment/{paymentId}/transaction/status:
+    parameters:
+      - in: path
+        name: paymentId
+        required: true
+        schema: { type: string }
+    get:
+      tags: [ payments, discovered ]
+      summary: Статус транзакции
+      responses: { "200": { description: OK } }
+  /v1/payment/check/{paymentId}:
+    parameters:
+      - in: path
+        name: paymentId
+        required: true
+        schema: { type: string }
+    get:
+      tags: [ payments, discovered ]
+      summary: Проверить состояние платежа
+      responses: { "200": { description: OK } }
+  /v1/payment/cancel/{paymentId}:
+    parameters:
+      - in: path
+        name: paymentId
+        required: true
+        schema: { type: string }
+    post:
+      tags: [ payments, discovered ]
+      summary: Отменить платёж
+      responses: { "200": { description: OK } }
+  /v1/payment/{blog_url}/last_payment/cancel:
+    parameters: [ { $ref: '#/components/parameters/BlogUrl' } ]
+    post:
+      tags: [ payments, discovered ]
+      summary: Отменить последний платёж по блогу
+      responses: { "200": { description: OK } }
+  /v1/payment/{blog_url}/suspended_subscription/restore:
+    parameters: [ { $ref: '#/components/parameters/BlogUrl' } ]
+    post:
+      tags: [ payments, discovered ]
+      summary: Восстановить подписку после fail-charge
+      responses: { "200": { description: OK } }
+  /v1/payment/{blog_url}/fee/info:
+    parameters: [ { $ref: '#/components/parameters/BlogUrl' } ]
+    get:
+      tags: [ payments, discovered ]
+      summary: Информация о комиссии для блога/региона
+      responses: { "200": { description: OK } }
+  /v1/payment/default_currency:
+    get:
+      tags: [ payments, discovered ]
+      summary: Дефолтная валюта пользователя/региона
+      responses: { "200": { description: OK } }
+
+  /v1/payment/url/{levelId}:
+    parameters: [ { $ref: '#/components/parameters/LevelId' } ]
+    get:
+      tags: [ payments, subscription, discovered ]
+      summary: URL платёжной формы для подписки на уровень
+      responses: { "200": { description: OK } }
+  /v1/payment/url/{levelId}/gift:
+    parameters: [ { $ref: '#/components/parameters/LevelId' } ]
+    get:
+      tags: [ payments, gift, discovered ]
+      summary: URL формы для подарочной подписки
+      responses: { "200": { description: OK } }
+  /v1/payment/url/message/{messageId}:
+    parameters:
+      - in: path
+        name: messageId
+        required: true
+        schema: { type: string }
+    get:
+      tags: [ payments, dialog, discovered ]
+      summary: URL формы для платного сообщения
+      responses: { "200": { description: OK } }
+  /v1/payment/url/{blog_url}/post/{postId}:
+    parameters:
+      - { $ref: '#/components/parameters/BlogUrl' }
+      - { $ref: '#/components/parameters/PostIdAlt' }
+    get:
+      tags: [ payments, posts, discovered ]
+      summary: URL формы для покупки поста
+      responses: { "200": { description: OK } }
+  /v1/payment/url/{blog_url}/donation/{type}:
+    parameters:
+      - { $ref: '#/components/parameters/BlogUrl' }
+      - in: path
+        name: type
+        required: true
+        schema: { type: string }
+    get:
+      tags: [ payments, discovered ]
+      summary: URL формы для доната
+      responses: { "200": { description: OK } }
+  /v1/payment/pay/{levelId}:
+    parameters: [ { $ref: '#/components/parameters/LevelId' } ]
+    post:
+      tags: [ payments, subscription, discovered ]
+      summary: Оплатить подписку с привязанной карты
+      responses: { "200": { description: OK } }
+  /v1/payment/pay/{levelId}/gift:
+    parameters: [ { $ref: '#/components/parameters/LevelId' } ]
+    post:
+      tags: [ payments, gift, discovered ]
+      summary: Подарочная подписка с привязанной карты
+      responses: { "200": { description: OK } }
+  /v1/payment/pay/message/{messageId}:
+    parameters:
+      - in: path
+        name: messageId
+        required: true
+        schema: { type: string }
+    post:
+      tags: [ payments, dialog, discovered ]
+      summary: Оплата платного сообщения с карты
+      responses: { "200": { description: OK } }
+  /v1/payment/pay/{blog_url}/post/{postId}:
+    parameters:
+      - { $ref: '#/components/parameters/BlogUrl' }
+      - { $ref: '#/components/parameters/PostIdAlt' }
+    post:
+      tags: [ payments, posts, discovered ]
+      summary: Оплата поста с карты
+      responses: { "200": { description: OK } }
+  /v1/payment/pay/{blog_url}/donation/{type}:
+    parameters:
+      - { $ref: '#/components/parameters/BlogUrl' }
+      - in: path
+        name: type
+        required: true
+        schema: { type: string }
+    post:
+      tags: [ payments, discovered ]
+      summary: Донат с карты
+      responses: { "200": { description: OK } }
+
+  # ---- партнёрские платёжные интеграции ----
+  /v1/payment/{partner}/bind/:
+    parameters: [ { in: path, name: partner, required: true, schema: { type: string } } ]
+    post:
+      tags: [ payments, discovered ]
+      summary: Биндинг карты у конкретного партнёра (yuno/bank131/...)
+      responses: { "200": { description: OK } }
+  /v1/payment/{partner}/blog/{blog_url}/subscription/{levelId}/widget/:
+    parameters:
+      - in: path
+        name: partner
+        required: true
+        schema: { type: string }
+      - { $ref: '#/components/parameters/BlogUrl' }
+      - { $ref: '#/components/parameters/LevelId' }
+    get:
+      tags: [ payments, subscription, discovered ]
+      summary: Виджет/токен для оплаты подписки
+      responses: { "200": { description: OK } }
+  /v1/payment/{partner}/blog/{blog_url}/subscription/{levelId}/bind/{bindId}/:
+    parameters:
+      - in: path
+        name: partner
+        required: true
+        schema: { type: string }
+      - { $ref: '#/components/parameters/BlogUrl' }
+      - { $ref: '#/components/parameters/LevelId' }
+      - in: path
+        name: bindId
+        required: true
+        schema: { type: string }
+    post:
+      tags: [ payments, subscription, discovered ]
+      summary: Оплата подписки через partner+bind
+      responses: { "200": { description: OK } }
+  /v1/payment/partner/bank131/bind/fps/:
+    post:
+      tags: [ payments, discovered ]
+      summary: Bank131 СБП — биндинг
+      responses: { "200": { description: OK } }
+  /v1/payment/partner/bank131/blog/{blog_url}/subscription/{levelId}/fps/:
+    parameters:
+      - { $ref: '#/components/parameters/BlogUrl' }
+      - { $ref: '#/components/parameters/LevelId' }
+    post:
+      tags: [ payments, subscription, discovered ]
+      summary: Bank131 СБП — оплата подписки
+      responses: { "200": { description: OK } }
+  /v1/payment/partner/yuno/{paymentId}/one_time_token/pay/:
+    parameters: [ { in: path, name: paymentId, required: true, schema: { type: string } } ]
+    post:
+      tags: [ payments, discovered ]
+      summary: Yuno — оплата OTT
+      responses: { "200": { description: OK } }
+
+  # =========================================================================
+  # PAYOUTS (выплаты автору)
+  # =========================================================================
+
+  /v1/blog/{blog_url}/payout/:
+    parameters: [ { $ref: '#/components/parameters/BlogUrl' } ]
+    get:
+      tags: [ payouts, discovered ]
+      summary: Активные методы выплат блога
+      responses: { "200": { description: OK } }
+  /v1/blog/{blog_url}/payout/history/:
+    parameters: [ { $ref: '#/components/parameters/BlogUrl' } ]
+    get:
+      tags: [ payouts, discovered ]
+      summary: История выплат
+      responses: { "200": { description: OK } }
+  /v1/blog/payout/{systemId}:
+    parameters: [ { in: path, name: systemId, required: true, schema: { type: string } } ]
+    post:
+      tags: [ payouts, discovered ]
+      summary: Создать метод выплат для системы
+      responses: { "200": { description: OK } }
+  /v1/blog/payout/{payoutId}:
+    parameters: [ { in: path, name: payoutId, required: true, schema: { type: string } } ]
+    put:
+      tags: [ payouts, discovered ]
+      summary: Обновить метод выплат
+      responses: { "200": { description: OK } }
+    delete:
+      tags: [ payouts, discovered ]
+      summary: Удалить метод выплат
+      responses: { "204": { description: OK } }
+  /v1/blog/payout/widget_token:
+    get:
+      tags: [ payouts, discovered ]
+      summary: Токен виджета для биндинга карты выплат
+      responses: { "200": { description: OK } }
+  /v1/blog/payout/binding/widget/:
+    get:
+      tags: [ payouts, discovered ]
+      summary: URL виджета для биндинга
+      responses: { "200": { description: OK } }
+  /v1/blog/payout/card_frame:
+    get:
+      tags: [ payouts, discovered ]
+      summary: HTML-фрейм для ввода карты выплат
+      responses: { "200": { description: OK } }
+  /v1/payout/methods:
+    get:
+      tags: [ payouts, discovered ]
+      summary: Доступные системы выплат
+      responses: { "200": { description: OK } }
+
+  # =========================================================================
+  # DIALOG / MESSAGES
+  # =========================================================================
+
+  /v1/dialog/:
+    get:
+      tags: [ dialog, discovered ]
+      summary: Список диалогов
+      responses: { "200": { description: OK } }
+    post:
+      tags: [ dialog, discovered ]
+      summary: Создать диалог
+      responses: { "200": { description: OK } }
+  /v1/dialog:
+    get:
+      tags: [ dialog, discovered ]
+      summary: Найти диалог по userId (через query)
+      parameters: [ { in: query, name: user_id, schema: { type: string } } ]
+      responses: { "200": { description: OK } }
+  /v1/dialog/contacts:
+    get:
+      tags: [ dialog, discovered ]
+      summary: Контакты для нового диалога
+      responses: { "200": { description: OK } }
+  /v1/dialog/read:
+    post:
+      tags: [ dialog, discovered ]
+      summary: Прочитать все диалоги
+      responses: { "200": { description: OK } }
+  /v1/dialog/{dialog_id}:
+    parameters: [ { $ref: '#/components/parameters/DialogId' } ]
+    get:
+      tags: [ dialog, discovered ]
+      summary: Один диалог
+      responses: { "200": { description: OK } }
+  /v1/dialog/{dialog_id}/short:
+    parameters: [ { $ref: '#/components/parameters/DialogId' } ]
+    get:
+      tags: [ dialog, discovered ]
+      summary: Короткое представление диалога
+      responses: { "200": { description: OK } }
+  /v1/dialog/{dialog_id}/token:
+    parameters: [ { $ref: '#/components/parameters/DialogId' } ]
+    get:
+      tags: [ dialog, ws, discovered ]
+      summary: WS-токен для конкретного диалога
+      responses: { "200": { description: OK } }
+  /v1/dialog/{dialog_id}/message:
+    parameters: [ { $ref: '#/components/parameters/DialogId' } ]
+    post:
+      tags: [ dialog, discovered ]
+      summary: Отправить сообщение в диалог
+      responses: { "200": { description: OK } }
+    delete:
+      tags: [ dialog, discovered ]
+      summary: Очистить переписку
+      responses: { "204": { description: OK } }
+  /v1/dialog/{dialog_id}/message/:
+    parameters: [ { $ref: '#/components/parameters/DialogId' } ]
+    get:
+      tags: [ dialog, discovered ]
+      summary: История сообщений в диалоге
+      parameters:
+        - { $ref: '#/components/parameters/Limit' }
+        - { $ref: '#/components/parameters/Offset' }
+      responses: { "200": { description: OK } }
+  /v1/dialog/message/{message_id}:
+    parameters: [ { in: path, name: message_id, required: true, schema: { type: string } } ]
+    get:
+      tags: [ dialog, discovered ]
+      summary: Одно сообщение
+      responses: { "200": { description: OK } }
+  /v1/dialog/message/{message_id}/read:
+    parameters: [ { in: path, name: message_id, required: true, schema: { type: string } } ]
+    post:
+      tags: [ dialog, discovered ]
+      summary: Отметить сообщение прочитанным
+      responses: { "200": { description: OK } }
+
+  /v1/dialog/{blog_url}/can_write_whith_donation:
+    parameters: [ { $ref: '#/components/parameters/BlogUrl' } ]
+    get:
+      tags: [ dialog, discovered ]
+      summary: Можно ли написать автору с донатом (опечатка `whith` — оставлена как в API)
+      responses: { "200": { description: OK } }
+
+  # ---- broadcast (рассылка автора по подписчикам) ----
+  /v1/dialog/blog/{blog_url}/broadcast/contact/:
+    parameters: [ { $ref: '#/components/parameters/BlogUrl' } ]
+    get:
+      tags: [ dialog, discovered ]
+      summary: Список адресатов broadcast'а
+      responses: { "200": { description: OK } }
+  /v1/dialog/blog/{blog_url}/broadcast/message/:
+    parameters: [ { $ref: '#/components/parameters/BlogUrl' } ]
+    post:
+      tags: [ dialog, discovered ]
+      summary: Создать broadcast-сообщение подписчикам
+      responses: { "200": { description: OK } }
+
+  # =========================================================================
+  # NOTIFICATIONS
+  # =========================================================================
+
+  /v1/notification/standalone/event/:
+    get:
+      tags: [ notifications, existing ]
+      summary:
+        Колокольчик: список событий
+      responses: { "200": { description: OK } }
+  /v1/notification/standalone/event/{event_id}:
+    parameters: [ { $ref: '#/components/parameters/EventId' } ]
+    delete:
+      tags: [ notifications, discovered ]
+      summary: Удалить уведомление
+      responses: { "204": { description: OK } }
+  /v1/notification/standalone/read/:
+    put:
+      tags: [ notifications, discovered ]
+      summary: Пометить все уведомления прочитанными
+      responses: { "200": { description: OK } }
+
+  /v1/notification/settings/:
+    get:
+      tags: [ notifications, discovered ]
+      summary: Настройки нотификаций (по транспорту/категории)
+      responses: { "200": { description: OK } }
+  /v1/notification/settings/{transport}/{switch}:
+    parameters:
+      - in: path
+        name: transport
+        required: true
+        schema: { type: string, enum: [ push, email, sms ] }
+      - in: path
+        name: switch
+        required: true
+        schema: { type: string, enum: [ 'on', 'off' ] }
+    put:
+      tags: [ notifications, discovered ]
+      summary: Включить/выключить транспорт уведомлений
+      responses: { "200": { description: OK } }
+  /v1/notification/settings/unsubscribe:
+    post:
+      tags: [ notifications, discovered ]
+      summary: Отписаться от всех писем
+      responses: { "200": { description: OK } }
+
+  # =========================================================================
+  # POLL
+  # =========================================================================
+
+  /v1/blog/{blog_url}/poll/{poll_id}:
+    parameters:
+      - { $ref: '#/components/parameters/BlogUrl' }
+      - { $ref: '#/components/parameters/PollId' }
+    get:
+      tags: [ poll, existing ]
+      summary: Получить опрос
+      responses: { "200": { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Poll' } } } } }
+    put:
+      tags: [ poll, discovered ]
+      summary: Обновить опрос (только автор)
+      responses: { "200": { description: OK } }
+
+  /v1/blog/{blog_url}/poll/:
+    parameters: [ { $ref: '#/components/parameters/BlogUrl' } ]
+    post:
+      tags: [ poll, discovered ]
+      summary: Создать user-generated опрос
+      requestBody:
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required: [ title, options ]
+              properties:
+                title: { type: string }
+                options: { type: string, description: "JSON-массив вариантов" }
+                is_multiple: { type: boolean }
+                finish_time: { type: integer, format: int64 }
+                has_other: { type: boolean }
+      responses: { "200": { description: OK } }
+
+  /v1/poll/{poll_id}/vote:
+    parameters: [ { $ref: '#/components/parameters/PollId' } ]
+    post:
+      tags: [ poll, existing ]
+      summary: Голосование
+      requestBody: { content: { application/x-www-form-urlencoded: { schema: { type: object, properties: { answer: { type: string, description: "CSV id-ов" } } } } } }
+      responses: { "200": { description: OK } }
+    delete:
+      tags: [ poll, existing ]
+      summary: Снять свой голос
+      responses: { "204": { description: OK } }
+  /v1/blog/{blog_url}/poll/{poll_id}/vote/:
+    parameters:
+      - { $ref: '#/components/parameters/BlogUrl' }
+      - { $ref: '#/components/parameters/PollId' }
+    get:
+      tags: [ poll, discovered ]
+      summary: Список проголосовавших (для автора)
+      responses: { "200": { description: OK } }
+
+  /v1/poll/unsubscribe_reasons:
+    get:
+      tags: [ poll, discovered ]
+      summary: Список причин для отписки (опрос)
+      responses: { "200": { description: OK } }
+  /v1/poll/unsubscribe_reasons/vote:
+    post:
+      tags: [ poll, discovered ]
+      summary: Проголосовать причиной отписки
+      responses: { "200": { description: OK } }
+  /v1/blog/{blog_url}/unsubscribe_reasons/:
+    parameters: [ { $ref: '#/components/parameters/BlogUrl' } ]
+    get:
+      tags: [ poll, discovered ]
+      summary: Голоса по причинам отписки от блога (для автора)
+      responses: { "200": { description: OK } }
+
+  # =========================================================================
+  # MEDIA
+  # =========================================================================
+
+  /v1/media_data/image/:
+    post:
+      tags: [ media, discovered ]
+      summary: Загрузить изображение в пост/комментарий
+      requestBody: { content: { multipart/form-data: { schema: { type: object } } } }
+      responses: { "200": { description: OK } }
+  /v1/media_data/file/:
+    post:
+      tags: [ media, discovered ]
+      summary: Создать контейнер для произвольного файла
+      responses: { "200": { description: OK } }
+  /v1/media_data/audio/:
+    post:
+      tags: [ media, discovered ]
+      summary: Создать аудио-контейнер
+      responses: { "200": { description: OK } }
+  /v1/media_data/ok_video/:
+    post:
+      tags: [ media, discovered ]
+      summary: Создать контейнер OK-Video (через mail.ru cloud)
+      responses: { "200": { description: OK } }
+  /v1/media_data/video/upload_url:
+    get:
+      tags: [ media, discovered ]
+      summary: Получить URL для multipart-загрузки видео
+      responses: { "200": { description: OK } }
+  /v1/media_data/video/{id}/finish:
+    parameters: [ { in: path, name: id, required: true, schema: { type: string } } ]
+    post:
+      tags: [ media, discovered ]
+      summary: Завершить загрузку видео
+      responses: { "200": { description: OK } }
+  /v1/media_data/video/bunny:
+    get:
+      tags: [ media, discovered ]
+      summary: BunnyCDN-параметры для прямой раздачи
+      responses: { "200": { description: OK } }
+  /v1/media_data/check_access:
+    post:
+      tags: [ media, discovered ]
+      summary: Проверить доступ к медиаобъекту перед воспроизведением
+      responses: { "200": { description: OK } }
+
+  /v1/upload/{file_id}:
+    parameters: [ { in: path, name: file_id, required: true, schema: { type: string } } ]
+    post:
+      tags: [ media, discovered ]
+      summary: Чанк multipart-загрузки
+      responses: { "200": { description: OK } }
+  /v1/upload/{file_id}/complete:
+    parameters: [ { in: path, name: file_id, required: true, schema: { type: string } } ]
+    post:
+      tags: [ media, discovered ]
+      summary: Завершить multipart-загрузку
+      responses: { "200": { description: OK } }
+  /v1/{file_type}:
+    parameters: [ { in: path, name: file_type, required: true, schema: { type: string } } ]
+    post:
+      tags: [ media, discovered ]
+      summary: Старт multipart-загрузки по типу файла
+      responses: { "200": { description: OK } }
+
+  /v1/blog/{blog_url}/media_album/:
+    parameters: [ { $ref: '#/components/parameters/BlogUrl' } ]
+    get:
+      tags: [ media, discovered ]
+      summary: Альбомы медиа-вкладки блога
+      parameters:
+        - in: query
+          name: media_type
+          schema: { type: string }
+        - { $ref: '#/components/parameters/Limit' }
+        - { $ref: '#/components/parameters/Offset' }
+      responses: { "200": { description: OK } }
+  /v1/blog/{blog_url}/media_album/counters/:
+    parameters: [ { $ref: '#/components/parameters/BlogUrl' } ]
+    get:
+      tags: [ media, discovered ]
+      summary: Счётчики по типам медиа в блоге
+      responses: { "200": { description: OK } }
+
+  /v1/viewstat/{media_type}/{media_id}/timecode/:
+    parameters:
+      - { $ref: '#/components/parameters/MediaType' }
+      - { $ref: '#/components/parameters/MediaId' }
+    put:
+      tags: [ media, existing ]
+      summary: Сохранить позицию воспроизведения
+      description: |
+        В проекте используется только для `media_type=video`. APK подтверждает, что путь
+        универсальный для всех типов медиа.
+      requestBody: { content: { application/x-www-form-urlencoded: { schema: { type: object, properties: { time_code: { type: integer, format: int64 } } } } } }
+      responses: { "200": { description: OK } }
+  /v1/viewstat/{media_type}/timecodes/:
+    parameters: [ { $ref: '#/components/parameters/MediaType' } ]
+    post:
+      tags: [ media, discovered ]
+      summary: Батч-апдейт таймкодов
+      responses: { "200": { description: OK } }
+
+  # =========================================================================
+  # STREAM (live)
+  # =========================================================================
+
+  /v1/blog/{blog_url}/video_stream:
+    parameters: [ { $ref: '#/components/parameters/BlogUrl' } ]
+    get:
+      tags: [ stream, discovered ]
+      summary: Текущий стрим блога (если активен)
+      responses: { "200": { description: OK } }
+  /v1/blog/{blog_url}/video_stream/credentials:
+    parameters: [ { $ref: '#/components/parameters/BlogUrl' } ]
+    get:
+      tags: [ stream, discovered ]
+      summary: RTMP-creds для трансляции (только автор)
+      responses: { "200": { description: OK } }
+  /v1/blog/{blog_url}/video_stream/notify:
+    parameters: [ { $ref: '#/components/parameters/BlogUrl' } ]
+    post:
+      tags: [ stream, discovered ]
+      summary: Разослать уведомление о начале стрима
+      responses: { "200": { description: OK } }
+  /v1/blog/{blog_url}/video_stream/record:
+    parameters: [ { $ref: '#/components/parameters/BlogUrl' } ]
+    get:
+      tags: [ stream, discovered ]
+      summary: Запись стрима (vod)
+      responses: { "200": { description: OK } }
+  /v1/blog/{blog_url}/video_stream/heartbeat/viewer:
+    parameters: [ { $ref: '#/components/parameters/BlogUrl' } ]
+    put:
+      tags: [ stream, discovered ]
+      summary: Heartbeat зрителя стрима
+      parameters:
+        - in: query
+          name: stop
+          schema: { type: boolean }
+          description: "true — финальный heartbeat при выходе"
+      responses: { "200": { description: OK } }
+  /v1/blog/{blog_url}/video_stream/like:
+    parameters: [ { $ref: '#/components/parameters/BlogUrl' } ]
+    post:
+      tags: [ stream, reaction, discovered ]
+      summary: Поставить лайк стриму
+      responses: { "200": { description: OK } }
+    delete:
+      tags: [ stream, reaction, discovered ]
+      summary: Убрать лайк со стрима
+      responses: { "204": { description: OK } }
+  /v1/blog/{blog_url}/video_stream/complain/:
+    parameters: [ { $ref: '#/components/parameters/BlogUrl' } ]
+    post:
+      tags: [ stream, support, discovered ]
+      summary: Жалоба на стрим
+      responses: { "200": { description: OK } }
+  /v1/blog/{blog_url}/video_stream/chat:
+    parameters: [ { $ref: '#/components/parameters/BlogUrl' } ]
+    get:
+      tags: [ stream, discovered ]
+      summary: История чата стрима
+      responses: { "200": { description: OK } }
+    post:
+      tags: [ stream, discovered ]
+      summary: Отправить сообщение в чат стрима
+      responses: { "200": { description: OK } }
+  /v1/blog/{blog_url}/video_stream/chat/{messageId}:
+    parameters:
+      - { $ref: '#/components/parameters/BlogUrl' }
+      - in: path
+        name: messageId
+        required: true
+        schema: { type: string }
+    delete:
+      tags: [ stream, discovered ]
+      summary: Удалить сообщение в чате
+      responses: { "204": { description: OK } }
+  /v1/blog/{blog_url}/video_stream/chat/token:
+    parameters: [ { $ref: '#/components/parameters/BlogUrl' } ]
+    get:
+      tags: [ stream, ws, discovered ]
+      summary: WS-токен для подключения к чату стрима
+      responses: { "200": { description: OK } }
+  /v1/blog/{blog_url}/video_stream/chat/stat:
+    parameters: [ { $ref: '#/components/parameters/BlogUrl' } ]
+    get:
+      tags: [ stream, stats, discovered ]
+      summary: Статистика чата стрима
+      responses: { "200": { description: OK } }
+  /v1/blog/{blog_url}/video_stream/chat/stop_word:
+    parameters: [ { $ref: '#/components/parameters/BlogUrl' } ]
+    post:
+      tags: [ stream, discovered ]
+      summary: Добавить стоп-слово в чат
+      responses: { "200": { description: OK } }
+  /v1/blog/{blog_url}/video_stream/chat/user/:
+    parameters: [ { $ref: '#/components/parameters/BlogUrl' } ]
+    get:
+      tags: [ stream, discovered ]
+      summary: Список пользователей в чате
+      responses: { "200": { description: OK } }
+  /v1/blog/{blog_url}/video_stream/chat/user/search/:
+    parameters: [ { $ref: '#/components/parameters/BlogUrl' } ]
+    get:
+      tags: [ stream, search, discovered ]
+      summary: Поиск пользователя в чате
+      responses: { "200": { description: OK } }
+  /v1/blog/{blog_url}/video_stream/ban:
+    parameters: [ { $ref: '#/components/parameters/BlogUrl' } ]
+    post:
+      tags: [ stream, discovered ]
+      summary: Бан пользователя в чате стрима
+      responses: { "200": { description: OK } }
+  /v1/blog/{blog_url}/video_stream/moderator:
+    parameters: [ { $ref: '#/components/parameters/BlogUrl' } ]
+    post:
+      tags: [ stream, discovered ]
+      summary: Назначить модератора
+      responses: { "200": { description: OK } }
+  /v1/blog/{blog_url}/video_stream/moderator/{user_id}:
+    parameters:
+      - { $ref: '#/components/parameters/BlogUrl' }
+      - { $ref: '#/components/parameters/UserId' }
+    delete:
+      tags: [ stream, discovered ]
+      summary: Снять модератора
+      responses: { "204": { description: OK } }
+  /v1/blog/{blog_url}/chat/clean:
+    parameters: [ { $ref: '#/components/parameters/BlogUrl' } ]
+    post:
+      tags: [ stream, discovered ]
+      summary: Очистить чат стрима
+      responses: { "200": { description: OK } }
+
+  # =========================================================================
+  # STATS / EXPORTS
+  # =========================================================================
+
+  /v1/blog/stat/{blog_url}/current:
+    parameters: [ { $ref: '#/components/parameters/BlogUrl' } ]
+    get:
+      tags: [ stats, discovered ]
+      summary: Текущая сводка стат блога
+      responses: { "200": { description: OK } }
+  /v1/blog/stat/{blog_url}/metrics:
+    parameters: [ { $ref: '#/components/parameters/BlogUrl' } ]
+    get:
+      tags: [ stats, discovered ]
+      summary: Метрики блога (timeseries)
+      responses: { "200": { description: OK } }
+  /v1/blog/stat/{blog_url}/visits:
+    parameters: [ { $ref: '#/components/parameters/BlogUrl' } ]
+    get:
+      tags: [ stats, discovered ]
+      summary: Визиты на блог
+      responses: { "200": { description: OK } }
+  /v1/blog/stat/{blog_url}/payments/analytics:
+    parameters: [ { $ref: '#/components/parameters/BlogUrl' } ]
+    get:
+      tags: [ stats, payments, discovered ]
+      summary: Аналитика платежей блога
+      responses: { "200": { description: OK } }
+  /v1/blog/stat/{blog_url}/events:
+    parameters: [ { $ref: '#/components/parameters/BlogUrl' } ]
+    get:
+      tags: [ stats, discovered ]
+      summary: События блога
+      responses: { "200": { description: OK } }
+  /v1/blog/stat/{blog_url}/events/constants:
+    parameters: [ { $ref: '#/components/parameters/BlogUrl' } ]
+    get:
+      tags: [ stats, discovered ]
+      summary: Справочник типов событий
+      responses: { "200": { description: OK } }
+  /v1/blog/stat/{blog_url}/search:
+    parameters: [ { $ref: '#/components/parameters/BlogUrl' } ]
+    get:
+      tags: [ stats, search, discovered ]
+      summary: Поиск по статам
+      responses: { "200": { description: OK } }
+  /v1/blog/stat/{blog_url}/csv/{dataType}:
+    parameters:
+      - { $ref: '#/components/parameters/BlogUrl' }
+      - in: path
+        name: dataType
+        required: true
+        schema: { type: string }
+    get:
+      tags: [ stats, discovered ]
+      summary: Скачать отчёт CSV
+      responses: { "200": { description: OK, content: { text/csv: { } } } }
+  /v1/blog/stat/{blog_url}/csv/{dataType}/info:
+    parameters:
+      - { $ref: '#/components/parameters/BlogUrl' }
+      - in: path
+        name: dataType
+        required: true
+        schema: { type: string }
+    get:
+      tags: [ stats, discovered ]
+      summary: Метаданные отчёта (статус готовности)
+      responses: { "200": { description: OK } }
+  /v1/blog/{blog_url}/stat/data:
+    parameters: [ { $ref: '#/components/parameters/BlogUrl' } ]
+    get:
+      tags: [ stats, discovered ]
+      summary: Сырые данные графиков
+      responses: { "200": { description: OK } }
+  /v1/blog/{blog_url}/stat/subscriptions:
+    parameters: [ { $ref: '#/components/parameters/BlogUrl' } ]
+    get:
+      tags: [ stats, subscription, discovered ]
+      summary: Стат подписок (active/canceled/etc.)
+      responses: { "200": { description: OK } }
+  /v1/blog/stat/{blog_url}/post/{postId}:
+    parameters:
+      - { $ref: '#/components/parameters/BlogUrl' }
+      - { $ref: '#/components/parameters/PostIdAlt' }
+    get:
+      tags: [ stats, posts, discovered ]
+      summary: Стат конкретного поста
+      responses: { "200": { description: OK } }
+  /v1/blog/stat/post/:
+    post:
+      tags: [ stats, posts, discovered ]
+      summary: Регистрация события "пост просмотрен"
+      responses: { "200": { description: OK } }
+  /v1/stat/founder_client_info/:
+    post:
+      tags: [ stats, discovered ]
+      summary: Send-beacon с client info
+      responses: { "204": { description: OK } }
+  /v1/stat/founder_logs/:
+    post:
+      tags: [ stats, discovered ]
+      summary: Логи фронтенд-ошибок (sentry-like)
+      responses: { "204": { description: OK } }
+  /v1/graphite/{metric}/:
+    parameters: [ { in: path, name: metric, required: true, schema: { type: string } } ]
+    post:
+      tags: [ stats, discovered ]
+      summary: Custom-метрика в графит
+      responses: { "204": { description: OK } }
+
+  /v1/blog/{blog_url}/sales/post/:
+    parameters: [ { $ref: '#/components/parameters/BlogUrl' } ]
+    get:
+      tags: [ stats, posts, discovered ]
+      summary: Список продаж постов
+      responses: { "200": { description: OK } }
+  /v1/blog/{blog_url}/sales/donation/:
+    parameters: [ { $ref: '#/components/parameters/BlogUrl' } ]
+    get:
+      tags: [ stats, payments, discovered ]
+      summary: Список донатов блога
+      responses: { "200": { description: OK } }
+  /v1/blog/{blog_url}/sales/hold/:
+    parameters: [ { $ref: '#/components/parameters/BlogUrl' } ]
+    get:
+      tags: [ stats, payments, discovered ]
+      summary: Захолдированные платежи
+      responses: { "200": { description: OK } }
+  /v1/blog/{blog_url}/sales/bundle/:
+    parameters: [ { $ref: '#/components/parameters/BlogUrl' } ]
+    get:
+      tags: [ stats, bundle, discovered ]
+      summary: Продажи бандлов
+      responses: { "200": { description: OK } }
+  /v1/blog/{blog_url}/sales/dialog_broadcast_message/:
+    parameters: [ { $ref: '#/components/parameters/BlogUrl' } ]
+    get:
+      tags: [ stats, dialog, discovered ]
+      summary: Стат рассылок
+      responses: { "200": { description: OK } }
+  /v1/blog/{blog_url}/post/paid/by_date:
+    parameters: [ { $ref: '#/components/parameters/BlogUrl' } ]
+    get:
+      tags: [ stats, posts, discovered ]
+      summary: Платные посты по дате
+      responses: { "200": { description: OK } }
+  /v1/blog/{blog_url}/post/paid/days:
+    parameters: [ { $ref: '#/components/parameters/BlogUrl' } ]
+    get:
+      tags: [ stats, posts, discovered ]
+      summary: Дни с платными постами в месяце
+      responses: { "200": { description: OK } }
+  /v1/blog/{blog_url}/bundle/paid/by_date:
+    parameters: [ { $ref: '#/components/parameters/BlogUrl' } ]
+    get:
+      tags: [ stats, bundle, discovered ]
+      summary: Платные бандлы по дате
+      responses: { "200": { description: OK } }
+  /v1/blog/{blog_url}/bundle/paid/days:
+    parameters: [ { $ref: '#/components/parameters/BlogUrl' } ]
+    get:
+      tags: [ stats, bundle, discovered ]
+      summary: Дни с платными бандлами
+      responses: { "200": { description: OK } }
+
+  /v1/blog/referral/{blog_url}/stat/:
+    parameters: [ { $ref: '#/components/parameters/BlogUrl' } ]
+    get:
+      tags: [ stats, discovered ]
+      summary: Реферальная статистика блога
+      responses: { "200": { description: OK } }
+  /v1/blog/referral/{blog_url}/user/:
+    parameters: [ { $ref: '#/components/parameters/BlogUrl' } ]
+    get:
+      tags: [ stats, discovered ]
+      summary: Пользователи, пришедшие по рефке
+      responses: { "200": { description: OK } }
+  /v1/blog/{blog_url}/ref:
+    parameters: [ { $ref: '#/components/parameters/BlogUrl' } ]
+    get:
+      tags: [ stats, discovered ]
+      summary: Реферальная ссылка
+      responses: { "200": { description: OK } }
+
+  # =========================================================================
+  # SUBSCRIBERS / PROFILE NOTES
+  # =========================================================================
+
+  /v1/blog/{blog_url}/subscribers:
+    parameters: [ { $ref: '#/components/parameters/BlogUrl' } ]
+    get:
+      tags: [ stats, subscription, discovered ]
+      summary: Список подписчиков блога (для автора)
+      responses: { "200": { description: OK } }
+  /v1/blog/{blog_url}/subscriber/{user_id}/profile:
+    parameters:
+      - { $ref: '#/components/parameters/BlogUrl' }
+      - { $ref: '#/components/parameters/UserId' }
+    get:
+      tags: [ stats, subscription, discovered ]
+      summary: Профиль конкретного подписчика для автора
+      responses: { "200": { description: OK } }
+  /v1/blog/{blog_url}/subscriber/{user_id}/profile/note/:
+    parameters:
+      - { $ref: '#/components/parameters/BlogUrl' }
+      - { $ref: '#/components/parameters/UserId' }
+    put:
+      tags: [ stats, subscription, discovered ]
+      summary: Заметка автора о подписчике
+      responses: { "200": { description: OK } }
+
+  # =========================================================================
+  # GIFT / BUNDLE / SHOWCASE / TARGET / PROMO / SMILE / BADGE
+  # =========================================================================
+
+  /v1/gift/:
+    get:
+      tags: [ gift, discovered ]
+      summary: Список доступных подарков (получатель)
+      responses: { "200": { description: OK } }
+  /v1/gift/{giftKey}:
+    parameters: [ { in: path, name: giftKey, required: true, schema: { type: string } } ]
+    get:
+      tags: [ gift, discovered ]
+      summary: Информация о подарке
+      responses: { "200": { description: OK } }
+  /v1/gift/{giftKey}/accept:
+    parameters: [ { in: path, name: giftKey, required: true, schema: { type: string } } ]
+    post:
+      tags: [ gift, discovered ]
+      summary: Принять подарок
+      responses: { "200": { description: OK } }
+  /v1/gift/{giftKey}/send:
+    parameters: [ { in: path, name: giftKey, required: true, schema: { type: string } } ]
+    post:
+      tags: [ gift, discovered ]
+      summary: Отправить подарок
+      responses: { "200": { description: OK } }
+  /v1/gift/bundle/{bundleId}:
+    parameters: [ { $ref: '#/components/parameters/BundleId' } ]
+    post:
+      tags: [ gift, bundle, discovered ]
+      summary: Подарить бандл
+      responses: { "200": { description: OK } }
+
+  /v1/blog/{blog_url}/bundle/:
+    parameters: [ { $ref: '#/components/parameters/BlogUrl' } ]
+    get:
+      tags: [ bundle, discovered ]
+      summary: Бандлы блога
+      responses: { "200": { description: OK } }
+  /v1/blog/{blog_url}/bundle/{bundleId}:
+    parameters:
+      - { $ref: '#/components/parameters/BlogUrl' }
+      - { $ref: '#/components/parameters/BundleId' }
+    get:
+      tags: [ bundle, discovered ]
+      summary: Бандл
+      responses: { "200": { description: OK } }
+  /v1/blog/{blog_url}/bundle/{bundleId}/post/:
+    parameters:
+      - { $ref: '#/components/parameters/BlogUrl' }
+      - { $ref: '#/components/parameters/BundleId' }
+    get:
+      tags: [ bundle, discovered ]
+      summary: Посты в бандле
+      responses: { "200": { description: OK } }
+  /v1/blog/{blog_url}/bundle/{bundleId}/post/{postId}:
+    parameters:
+      - { $ref: '#/components/parameters/BlogUrl' }
+      - { $ref: '#/components/parameters/BundleId' }
+      - { $ref: '#/components/parameters/PostIdAlt' }
+    put:
+      tags: [ bundle, discovered ]
+      summary: Изменить пост в бандле
+      responses: { "200": { description: OK } }
+    delete:
+      tags: [ bundle, discovered ]
+      summary: Удалить пост из бандла
+      responses: { "204": { description: OK } }
+  /v1/blog/{blog_url}/bundle/{bundleId}/post/suggest/:
+    parameters:
+      - { $ref: '#/components/parameters/BlogUrl' }
+      - { $ref: '#/components/parameters/BundleId' }
+    get:
+      tags: [ bundle, discovered ]
+      summary: Подсказки постов для бандла
+      responses: { "200": { description: OK } }
+  /v1/blog/{blog_url}/bundle/{bundleId}/publish:
+    parameters:
+      - { $ref: '#/components/parameters/BlogUrl' }
+      - { $ref: '#/components/parameters/BundleId' }
+    post:
+      tags: [ bundle, discovered ]
+      summary: Публикация бандла
+      responses: { "200": { description: OK } }
+  /v1/blog/{blog_url}/bundle/{bundleId}/reset_draft:
+    parameters:
+      - { $ref: '#/components/parameters/BlogUrl' }
+      - { $ref: '#/components/parameters/BundleId' }
+    post:
+      tags: [ bundle, discovered ]
+      summary: Сбросить драфт бандла
+      responses: { "200": { description: OK } }
+  /v1/blog/{blog_url}/bundle/{bundleId}/estimate_price:
+    parameters:
+      - { $ref: '#/components/parameters/BlogUrl' }
+      - { $ref: '#/components/parameters/BundleId' }
+    get:
+      tags: [ bundle, discovered ]
+      summary: Прикинуть цену бандла
+      responses: { "200": { description: OK } }
+
+  /v1/blog/{blog_url}/showcase/:
+    parameters: [ { $ref: '#/components/parameters/BlogUrl' } ]
+    get:
+      tags: [ showcase, discovered ]
+      summary: Витрина блога (showcase)
+      responses: { "200": { description: OK } }
+  /v1/blog/{blog_url}/showcase:
+    parameters: [ { $ref: '#/components/parameters/BlogUrl' } ]
+    post:
+      tags: [ showcase, discovered ]
+      summary: Создать витрину
+      responses: { "200": { description: OK } }
+  /v1/blog/{blog_url}/showcase/items/:
+    parameters: [ { $ref: '#/components/parameters/BlogUrl' } ]
+    put:
+      tags: [ showcase, discovered ]
+      summary: Заменить items витрины
+      responses: { "200": { description: OK } }
+  /v1/blog/{blog_url}/showcase/{id}/position:
+    parameters:
+      - { $ref: '#/components/parameters/BlogUrl' }
+      - in: path
+        name: id
+        required: true
+        schema: { type: string }
+    put:
+      tags: [ showcase, discovered ]
+      summary: Изменить позицию item
+      responses: { "200": { description: OK } }
+  /v1/blog/{blog_url}/showcase/status:
+    parameters: [ { $ref: '#/components/parameters/BlogUrl' } ]
+    get:
+      tags: [ showcase, discovered ]
+      summary: Статус витрины
+      responses: { "200": { description: OK } }
+
+  /v1/target/{blog_url}/:
+    parameters: [ { $ref: '#/components/parameters/BlogUrl' } ]
+    get:
+      tags: [ target, discovered ]
+      summary: Список целей сбора блога
+      responses: { "200": { description: OK } }
+  /v1/target/money:
+    post:
+      tags: [ target, discovered ]
+      summary: Создать денежную цель
+      responses: { "200": { description: OK } }
+  /v1/target/subscribers:
+    post:
+      tags: [ target, discovered ]
+      summary: Создать цель по подписчикам
+      responses: { "200": { description: OK } }
+  /v1/target/{targetId}:
+    parameters: [ { in: path, name: targetId, required: true, schema: { type: string } } ]
+    put:
+      tags: [ target, discovered ]
+      summary: Обновить цель
+      responses: { "200": { description: OK } }
+    delete:
+      tags: [ target, discovered ]
+      summary: Удалить цель
+      responses: { "204": { description: OK } }
+
+  /v1/blog/{blog_url}/smile_level/:
+    parameters: [ { $ref: '#/components/parameters/BlogUrl' } ]
+    get:
+      tags: [ smile, discovered ]
+      summary: Список стикер-паков по уровням
+      responses: { "200": { description: OK } }
+  /v1/blog/{blog_url}/smile_level/{levelId}:
+    parameters:
+      - { $ref: '#/components/parameters/BlogUrl' }
+      - { $ref: '#/components/parameters/LevelId' }
+    get:
+      tags: [ smile, discovered ]
+      summary: Стикеры конкретного уровня
+      responses: { "200": { description: OK } }
+  /v1/blog/{blog_url}/smile_level/{levelId}/order:
+    parameters:
+      - { $ref: '#/components/parameters/BlogUrl' }
+      - { $ref: '#/components/parameters/LevelId' }
+    put:
+      tags: [ smile, discovered ]
+      summary: Порядок стикеров на уровне
+      responses: { "200": { description: OK } }
+  /v1/blog/{blog_url}/smile/:
+    parameters: [ { $ref: '#/components/parameters/BlogUrl' } ]
+    post:
+      tags: [ smile, discovered ]
+      summary: Загрузить новый стикер
+      responses: { "200": { description: OK } }
+  /v1/blog/{blog_url}/smile/{smileId}:
+    parameters:
+      - { $ref: '#/components/parameters/BlogUrl' }
+      - in: path
+        name: smileId
+        required: true
+        schema: { type: string }
+    put:
+      tags: [ smile, discovered ]
+      summary: Обновить стикер
+      responses: { "200": { description: OK } }
+    delete:
+      tags: [ smile, discovered ]
+      summary: Удалить стикер
+      responses: { "204": { description: OK } }
+  /v1/blog/{blog_url}/smile/name:
+    parameters: [ { $ref: '#/components/parameters/BlogUrl' } ]
+    get:
+      tags: [ smile, discovered ]
+      summary: Проверить уникальность имени стикера
+      responses: { "200": { description: OK } }
+  /v1/smile/:
+    post:
+      tags: [ smile, discovered ]
+      summary: Установить набор стикеров пользователю
+      responses: { "200": { description: OK } }
+  /v1/smile/{smileId}:
+    parameters: [ { in: path, name: smileId, required: true, schema: { type: string } } ]
+    get:
+      tags: [ smile, discovered ]
+      summary: Информация о стикере
+      responses: { "200": { description: OK } }
+
+  /v1/blog/{blog_url}/badge/:
+    parameters: [ { $ref: '#/components/parameters/BlogUrl' } ]
+    post:
+      tags: [ badge, discovered ]
+      summary: Создать бейдж
+      responses: { "200": { description: OK } }
+  /v1/blog/{blog_url}/badge/subscription/:
+    parameters: [ { $ref: '#/components/parameters/BlogUrl' } ]
+    get:
+      tags: [ badge, discovered ]
+      summary: Бейджи по уровням подписки
+      responses: { "200": { description: OK } }
+  /v1/blog/{blog_url}/badge/{badgeId}:
+    parameters:
+      - { $ref: '#/components/parameters/BlogUrl' }
+      - in: path
+        name: badgeId
+        required: true
+        schema: { type: string }
+    put:
+      tags: [ badge, discovered ]
+      summary: Изменить бейдж
+      responses: { "200": { description: OK } }
+    delete:
+      tags: [ badge, discovered ]
+      summary: Удалить бейдж
+      responses: { "204": { description: OK } }
+
+  /v1/blog/{blog_url}/reaction/available:
+    parameters: [ { $ref: '#/components/parameters/BlogUrl' } ]
+    get:
+      tags: [ reaction, discovered ]
+      summary: Доступные типы реакций
+      responses: { "200": { description: OK } }
+  /v1/blog/{blog_url}/reaction/enable:
+    parameters: [ { $ref: '#/components/parameters/BlogUrl' } ]
+    put:
+      tags: [ reaction, discovered ]
+      summary: Включить/выключить реакции в блоге
+      responses: { "200": { description: OK } }
+
+  # =========================================================================
+  # SEARCH HISTORY / SUGGEST  (web)
+  # =========================================================================
+
+  # =========================================================================
+  # SUPPORT / COMPLAIN / CATALOG
+  # =========================================================================
+
+  /v1/complaint/:
+    post:
+      tags: [ support, discovered ]
+      summary: Отправить жалобу
+      responses: { "200": { description: OK } }
+  /v1/support/:
+    post:
+      tags: [ support, discovered ]
+      summary: Тикет в поддержку
+      responses: { "200": { description: OK } }
+
+  /v1/catalog/category/:
+    get:
+      tags: [ catalog, discovered ]
+      summary: Категории каталога
+      responses: { "200": { description: OK } }
+  /v1/catalog/success-stories/:
+    get:
+      tags: [ catalog, discovered ]
+      summary: Success stories каталога
+      responses: { "200": { description: OK } }
+
+  # =========================================================================
+  # EXTERNAL APPS — TELEGRAM / DISCORD
+  # =========================================================================
+
+  /v1/external_app/{appId}:
+    parameters: [ { in: path, name: appId, required: true, schema: { type: string } } ]
+    get:
+      tags: [ external_apps, discovered ]
+      summary: Внешние подключения (telegram/discord) одной записи
+      responses: { "200": { description: OK } }
+  /v1/discord/bot:
+    get:
+      tags: [ external_apps, discovered ]
+      summary: Состояние Discord-бота автора
+      responses: { "200": { description: OK } }
+  /v1/discord/bot_link:
+    get:
+      tags: [ external_apps, discovered ]
+      summary: Линк-токен для Discord-бота
+      responses: { "200": { description: OK } }
+  /v1/discord/role/:
+    get:
+      tags: [ external_apps, discovered ]
+      summary: Роли Discord по уровням
+      responses: { "200": { description: OK } }
+  /v1/telegram/login/url:
+    get:
+      tags: [ external_apps, discovered ]
+      summary: Login-URL для Telegram-бота
+      responses: { "200": { description: OK } }
+  /v1/telegram/{blog_url}/groups:
+    parameters: [ { $ref: '#/components/parameters/BlogUrl' } ]
+    get:
+      tags: [ external_apps, discovered ]
+      summary: Telegram-группы блога
+      responses: { "200": { description: OK } }
+
+  # =========================================================================
+  # WEBSOCKET / RTM
+  # =========================================================================
+
+  /v1/ws/connect:
+    get:
+      tags: [ ws, discovered ]
+      summary: Получить URL для подключения к WS (центрифуго/centrifugo)
+      responses: { "200": { description: OK } }
+  /v1/ws/subscribe:
+    post:
+      tags: [ ws, discovered ]
+      summary: Запросить токен на приватный канал WS
+      responses: { "200": { description: OK } }
+  /v1/ws/refresh:
+    post:
+      tags: [ ws, discovered ]
+      summary: Обновить WS-токен
+      responses: { "200": { description: OK } }
+
+  # =========================================================================
+  # MOBILE-ONLY (видны только в APK)
+  # =========================================================================
+
+  /v1/mob/system/blog/android/config:
+    get:
+      tags: [ mobile, discovered ]
+      summary: Remote-config Android-клиента (feature flags, токены сторонних SDK)
+      responses: { "200": { description: OK } }
+  /v1//mob/stat/{category}/:
+    parameters: [ { in: path, name: category, required: true, schema: { type: string } } ]
+    post:
+      tags: [ mobile, stats, discovered ]
+      summary: Mobile-stat ивент (двойной слэш — баг в их API, оставлен как в коде)
+      description: |
+        В smali указано буквально `v1//mob/stat/{category}/`. Это похоже на баг с двойным слэшом
+        в коде Android-клиента, но эндпоинт существует и обрабатывается сервером.
+      responses: { "204": { description: OK } }
+
+  # =========================================================================
+  # MISC
+  # =========================================================================
+
+  /v1/legal/docs:
+    get:
+      tags: [ discovered ]
+      summary: Список юр.документов (privacy, cookie, terms-of-use, payment-policy)
+      responses: { "200": { description: OK } }
+
+  /v1/x/icons:
+    get:
+      tags: [ discovered ]
+      summary: Сервисный SVG-спрайт иконок
+      responses: { "200": { description: OK, content: { image/svg+xml: { } } } }
+  /v1/x/uikit:
+    get:
+      tags: [ discovered ]
+      summary: Сервисная UI-kit страница
+      responses: { "200": { description: OK } }
+
+  /v1/dev/v1/user/token:
+    get:
+      tags: [ discovered ]
+      summary: Dev-only — служебная выдача токена
+      responses: { "200": { description: OK } }
+  /v1/client/register:
+    post:
+      tags: [ discovered ]
+      summary: Регистрация OAuth-клиента (developer console)
+      responses: { "200": { description: OK } }
+  /v1/client/register/:
+    get:
+      tags: [ discovered ]
+      summary: Список своих OAuth-клиентов
+      responses: { "200": { description: OK } }
+  /v1/client/register/reset_secret:
+    post:
+      tags: [ discovered ]
+      summary: Сбросить secret OAuth-клиента
+      responses: { "200": { description: OK } }
+
+  /v1/blog/{blog_url}/verification/status:
+    parameters: [ { $ref: '#/components/parameters/BlogUrl' } ]
+    get:
+      tags: [ discovered ]
+      summary: Статус верификации блога
+      responses: { "200": { description: OK } }
+  /v1/blog/{blog_url}/verification/{verificationLevel}/access_token/:
+    parameters:
+      - { $ref: '#/components/parameters/BlogUrl' }
+      - in: path
+        name: verificationLevel
+        required: true
+        schema: { type: string }
+    get:
+      tags: [ discovered ]
+      summary: Access-token для KYC-провайдера
+      responses: { "200": { description: OK } }
+  /v1/blog/{blog_url}/verification/{verificationLevel}/{verificationReviewId}/access_token/:
+    parameters:
+      - { $ref: '#/components/parameters/BlogUrl' }
+      - in: path
+        name: verificationLevel
+        required: true
+        schema: { type: string }
+      - in: path
+        name: verificationReviewId
+        required: true
+        schema: { type: string }
+    get:
+      tags: [ discovered ]
+      summary: Access-token конкретной KYC-сессии
+      responses: { "200": { description: OK } }
+
