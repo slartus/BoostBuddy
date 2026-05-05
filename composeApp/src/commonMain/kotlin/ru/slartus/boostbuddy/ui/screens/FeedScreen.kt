@@ -1,6 +1,8 @@
 package ru.slartus.boostbuddy.ui.screens
 
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -12,6 +14,7 @@ import ru.slartus.boostbuddy.ui.widgets.ErrorView
 import ru.slartus.boostbuddy.ui.widgets.FeedBox
 import ru.slartus.boostbuddy.ui.widgets.LoaderView
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun FeedScreen(
     component: FeedComponent,
@@ -33,31 +36,37 @@ internal fun FeedScreen(
             ProgressState.Loading -> LoaderView()
 
             is ProgressState.Loaded ->
-                PostsView(
-                    items = state.items,
-                    showBlogInfo = true,
-                    canLoadMore = state.hasMore,
-                    onVideoItemClick = { post, data ->
-                        component.onVideoItemClicked(
-                            post.post,
-                            data
-                        )
-                    },
-                    onScrolledToEnd = { component.onScrolledToEnd() },
-                    onErrorItemClick = { component.onErrorItemClicked() },
-                    onCommentsClick = { component.onCommentsClicked(it) },
-                    onPollOptionClick = { post, poll, option ->
-                        component.onPollOptionClicked(post, poll, option)
-                    },
-                    onVoteClick = { post, poll -> component.onVoteClicked(post, poll) },
-                    onDeleteVoteClick = { post, poll ->
-                        component.onDeleteVoteClicked(
-                            post,
-                            poll
-                        )
-                    },
-                    onBlogClick = { post -> component.onBlogClicked(post) }
-                )
+                PullToRefreshBox(
+                    modifier = Modifier.fillMaxSize(),
+                    isRefreshing = state.isRefreshing,
+                    onRefresh = { component.onPullToRefresh() },
+                ) {
+                    PostsView(
+                        items = state.items,
+                        showBlogInfo = true,
+                        canLoadMore = state.hasMore,
+                        onVideoItemClick = { post, data ->
+                            component.onVideoItemClicked(
+                                post.post,
+                                data
+                            )
+                        },
+                        onScrolledToEnd = { component.onScrolledToEnd() },
+                        onErrorItemClick = { component.onErrorItemClicked() },
+                        onCommentsClick = { component.onCommentsClicked(it) },
+                        onPollOptionClick = { post, poll, option ->
+                            component.onPollOptionClicked(post, poll, option)
+                        },
+                        onVoteClick = { post, poll -> component.onVoteClicked(post, poll) },
+                        onDeleteVoteClick = { post, poll ->
+                            component.onDeleteVoteClicked(
+                                post,
+                                poll
+                            )
+                        },
+                        onBlogClick = { post -> component.onBlogClicked(post) }
+                    )
+                }
         }
     }
 }

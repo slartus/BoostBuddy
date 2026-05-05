@@ -67,6 +67,8 @@ abstract class PostsFeedComponent<State : Any, Action>(
         extra: Extra? = null
     )
 
+    protected open fun onIsRefreshingChanged(isRefreshing: Boolean) = Unit
+
     private fun fetchData() {
         onProgressStateChanged(ProgressState.Loading)
         scope.launch {
@@ -133,6 +135,26 @@ abstract class PostsFeedComponent<State : Any, Action>(
         scope.launch {
             settingsRepository.getAccessToken() ?: unauthorizedError()
             fetchData()
+        }
+    }
+
+    fun onPullToRefresh() {
+        scope.launch {
+            settingsRepository.getAccessToken() ?: unauthorizedError()
+            onIsRefreshingChanged(true)
+            try {
+                val response = fetch(null)
+                if (response.isSuccess) {
+                    val data = response.getOrNull()
+                    val newItems = data?.items.orEmpty()
+                        .map { FeedPostItem.PostItem(it) }
+                        .toImmutableList()
+                    onNewItems(items = newItems, extra = data?.extra)
+                    onProgressStateChanged(ProgressState.Loaded)
+                }
+            } finally {
+                onIsRefreshingChanged(false)
+            }
         }
     }
 

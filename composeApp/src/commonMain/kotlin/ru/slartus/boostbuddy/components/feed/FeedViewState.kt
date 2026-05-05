@@ -12,6 +12,7 @@ data class FeedViewState(
     val progressState: ProgressState = ProgressState.Init,
     val filter: Filter = Filter(),
     val searchQuery: String = "",
+    val isRefreshing: Boolean = false,
 ) {
     val hasMore: Boolean = extra?.isLast == false
 }

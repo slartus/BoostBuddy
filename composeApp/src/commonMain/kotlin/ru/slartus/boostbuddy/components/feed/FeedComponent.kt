@@ -20,6 +20,7 @@ interface FeedComponent {
     val viewStates: Value<FeedViewState>
     val filter: Filter
     fun refresh()
+    fun onPullToRefresh()
     fun onVideoItemClicked(post: Post, postData: Content.OkVideo)
     fun onScrolledToEnd()
     fun onRepeatClicked()
@@ -72,6 +73,10 @@ class FeedComponentImpl(
 
     override fun onNewItems(items: ImmutableList<FeedPostItem>, extra: Extra?) {
         viewState = viewState.copy(items = items, extra = extra)
+    }
+
+    override fun onIsRefreshingChanged(isRefreshing: Boolean) {
+        viewState = viewState.copy(isRefreshing = isRefreshing)
     }
 
     override fun onScrolledToEnd() {
