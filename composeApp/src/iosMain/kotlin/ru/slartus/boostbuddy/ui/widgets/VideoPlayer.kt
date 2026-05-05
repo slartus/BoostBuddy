@@ -27,6 +27,7 @@ actual fun VideoPlayer(
     title: String,
     position: Long,
     playbackSpeed: Float,
+    isLive: Boolean,
     onVideoStateChange: (VideoState) -> Unit,
     onContentPositionChange: (Long) -> Unit,
     onStopClick: () -> Unit,

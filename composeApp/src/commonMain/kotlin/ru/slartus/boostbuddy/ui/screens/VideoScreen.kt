@@ -92,6 +92,7 @@ internal fun VideoScreen(component: VideoComponent) {
                 title = postData.title,
                 position = postData.timeCodeMs,
                 playbackSpeed = state.playbackSpeed,
+                isLive = state.isLive,
                 onVideoStateChange = component::onVideoStateChanged,
                 onContentPositionChange = component::onContentPositionChange,
                 onStopClick = component::onStopClicked,
