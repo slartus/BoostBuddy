@@ -49,6 +49,7 @@ data class VideoViewState(
     val settingsSheetVisible: Boolean = false,
     val playbackSpeed: Float = 1f,
     val isLive: Boolean = false,
+    val streamEnded: Boolean = false,
 )
 
 val Content.OkVideo.timeCodeMs: Long get() = timeCode * 1000
@@ -117,8 +118,15 @@ internal class VideoComponentImpl(
             Idle -> viewState = viewState.copy(loading = true)
             Buffering -> viewState = viewState.copy(loading = true)
             Ready -> viewState = viewState.copy(loading = false)
-            Ended -> Unit
+            Ended -> handlePlaybackEnded()
         }
+    }
+
+    private fun handlePlaybackEnded() {
+        val blogUrl = liveBlogUrl ?: return
+        if (viewState.streamEnded) return
+        viewState = viewState.copy(streamEnded = true, loading = false)
+        stopHeartbeat(blogUrl)
     }
 
     override fun onContentPositionChange(position: Long) {

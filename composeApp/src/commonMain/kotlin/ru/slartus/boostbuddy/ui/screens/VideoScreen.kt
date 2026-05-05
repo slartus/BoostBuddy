@@ -2,6 +2,7 @@ package ru.slartus.boostbuddy.ui.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -25,6 +26,7 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material3.AssistChip
+import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
@@ -111,10 +113,50 @@ internal fun VideoScreen(component: VideoComponent) {
             }
         }
 
-        if (state.loading) {
+        if (state.loading && !state.streamEnded) {
             CircularProgressIndicator(
                 modifier = Modifier.align(Alignment.Center).size(58.dp)
             )
+        }
+
+        if (state.streamEnded) {
+            StreamEndedOverlay(
+                modifier = Modifier.fillMaxSize(),
+                onCloseClick = component::onStopClicked,
+            )
+        }
+    }
+}
+
+@Composable
+private fun StreamEndedOverlay(
+    onCloseClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    Box(
+        modifier = modifier
+            .background(Color.Black.copy(alpha = 0.85f))
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                onClick = {},
+            ),
+        contentAlignment = Alignment.Center,
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            Text(
+                text = "Стрим завершён",
+                color = Color.White,
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold,
+            )
+            Button(onClick = onCloseClick) {
+                Text(text = "Закрыть")
+            }
         }
     }
 }
