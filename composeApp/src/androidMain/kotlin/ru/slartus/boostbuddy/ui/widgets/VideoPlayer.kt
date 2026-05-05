@@ -73,7 +73,11 @@ actual fun VideoPlayer(
     DisposableEffect(exoPlayer) {
         exoPlayer.apply {
             setMediaSource(mediaId = vid, title = title, playerUrl = playerUrl)
-            seekTo(position)
+            if (isLive && position <= 0L) {
+                seekToDefaultPosition()
+            } else {
+                seekTo(position)
+            }
             playWhenReady = true
             prepare()
         }

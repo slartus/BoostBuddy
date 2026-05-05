@@ -87,7 +87,7 @@ internal fun ContentResponse.mapToContentOrNull(): Content? {
                     .sortedWith(playerUrlsComparator)
                     .ifEmpty { return null },
                 previewUrl = preview ?: defaultPreview.orEmpty(),
-                timeCode = 0
+                timeCode = timeCode ?: 0
             )
         }
 

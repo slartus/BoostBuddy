@@ -88,6 +88,7 @@ internal class VideoComponentImpl(
     init {
         if (liveBlogUrl != null) {
             viewState = viewState.copy(postData = postData, loading = false)
+            timeCodeManager.setContentId(postData.id)
             startHeartbeat(liveBlogUrl)
             lifecycle.doOnDestroy {
                 if (!heartbeatStopped) {
@@ -132,7 +133,7 @@ internal class VideoComponentImpl(
     }
 
     override fun onContentPositionChange(position: Long) {
-        if (liveBlogUrl != null) return
+        if (liveBlogUrl != null && viewState.isAtLiveEdge) return
         timeCodeManager.onPositionChanged(position)
     }
 
@@ -149,6 +150,9 @@ internal class VideoComponentImpl(
     override fun onStopClicked() {
         if (liveBlogUrl != null) {
             stopHeartbeat(liveBlogUrl)
+            if (!viewState.isAtLiveEdge) {
+                timeCodeManager.putLastPosition()
+            }
         } else {
             timeCodeManager.putLastPosition()
         }
