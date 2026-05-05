@@ -126,6 +126,7 @@ internal fun VideoPlayerChrome(
     playingPosition: Long,
     isEnded: Boolean,
     isLive: Boolean,
+    onLiveEdgeChanged: (Boolean) -> Unit,
     onStopClick: () -> Unit,
     onSettingsClick: (() -> Unit)? = null,
 ) {
@@ -172,11 +173,16 @@ internal fun VideoPlayerChrome(
     val seekFeedbackJobHolder = remember { JobHolder() }
 
     var isAtLiveEdge by remember { mutableStateOf(true) }
+    val currentOnLiveEdgeChanged by rememberUpdatedState(onLiveEdgeChanged)
     LaunchedEffect(isLive, exoPlayer) {
         if (!isLive) return@LaunchedEffect
         while (isActive) {
             val offset = exoPlayer.currentLiveOffset
-            isAtLiveEdge = offset == C.TIME_UNSET || offset < LIVE_EDGE_THRESHOLD_MS
+            val newValue = offset == C.TIME_UNSET || offset < LIVE_EDGE_THRESHOLD_MS
+            if (newValue != isAtLiveEdge) {
+                isAtLiveEdge = newValue
+                currentOnLiveEdgeChanged(newValue)
+            }
             delay(LIVE_EDGE_POLL_INTERVAL_MS)
         }
     }

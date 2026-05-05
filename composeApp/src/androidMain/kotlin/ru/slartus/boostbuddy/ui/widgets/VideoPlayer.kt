@@ -42,6 +42,7 @@ actual fun VideoPlayer(
     isLive: Boolean,
     onVideoStateChange: (VideoState) -> Unit,
     onContentPositionChange: (Long) -> Unit,
+    onLiveEdgeChanged: (Boolean) -> Unit,
     onStopClick: () -> Unit,
     onSettingsClick: (() -> Unit)?
 ) {
@@ -104,6 +105,7 @@ actual fun VideoPlayer(
         playingPosition = playingPosition,
         isEnded = isEnded,
         isLive = isLive,
+        onLiveEdgeChanged = onLiveEdgeChanged,
         onStopClick = onStopClick,
         onSettingsClick = onSettingsClick,
     )

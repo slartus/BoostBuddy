@@ -14,6 +14,7 @@ expect fun VideoPlayer(
     isLive: Boolean,
     onVideoStateChange: (VideoState) -> Unit,
     onContentPositionChange: (Long) -> Unit,
+    onLiveEdgeChanged: (Boolean) -> Unit,
     onStopClick: () -> Unit,
     onSettingsClick: (() -> Unit)?
 )

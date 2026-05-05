@@ -34,6 +34,7 @@ interface VideoComponent {
     val viewStates: Value<VideoViewState>
     fun onVideoStateChanged(videoState: VideoState)
     fun onContentPositionChange(position: Long)
+    fun onLiveEdgeChanged(atEdge: Boolean)
     fun onStopClicked()
     fun onSettingsClicked()
     fun onSettingsSheetDismissed()
@@ -49,6 +50,7 @@ data class VideoViewState(
     val settingsSheetVisible: Boolean = false,
     val playbackSpeed: Float = 1f,
     val isLive: Boolean = false,
+    val isAtLiveEdge: Boolean = true,
     val streamEnded: Boolean = false,
 )
 
@@ -132,6 +134,16 @@ internal class VideoComponentImpl(
     override fun onContentPositionChange(position: Long) {
         if (liveBlogUrl != null) return
         timeCodeManager.onPositionChanged(position)
+    }
+
+    override fun onLiveEdgeChanged(atEdge: Boolean) {
+        if (viewState.isAtLiveEdge == atEdge) return
+        viewState = viewState.copy(isAtLiveEdge = atEdge)
+        if (atEdge && viewState.playbackSpeed != 1f) {
+            scope.launch {
+                settingsRepository.setPreferredPlaybackSpeed(1f)
+            }
+        }
     }
 
     override fun onStopClicked() {
