@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
@@ -49,6 +50,21 @@ import ru.slartus.boostbuddy.ui.screens.blog.FocusableBox
 import ru.slartus.boostbuddy.ui.screens.blog.PollView
 import ru.slartus.boostbuddy.ui.widgets.FeedBox
 
+private const val HEADER_NEAR_TOP_INDEX_THRESHOLD = 1
+
+@Composable
+private fun ScrollToHeaderOnAppearEffect(
+    hasHeader: Boolean,
+    listScrollState: LazyListState,
+) {
+    LaunchedEffect(hasHeader) {
+        if (hasHeader &&
+            listScrollState.firstVisibleItemIndex <= HEADER_NEAR_TOP_INDEX_THRESHOLD
+        ) {
+            listScrollState.scrollToItem(0)
+        }
+    }
+}
 
 @Composable
 internal fun PostsView(
@@ -78,6 +94,7 @@ internal fun PostsView(
             }
         } else {
             val listScrollState = rememberLazyListState()
+            val hasHeader = header != null
 
             val endOfListReached = remember {
                 derivedStateOf {
@@ -119,6 +136,10 @@ internal fun PostsView(
                     onScrolledToEnd()
                 }
             }
+            ScrollToHeaderOnAppearEffect(
+                hasHeader = hasHeader,
+                listScrollState = listScrollState,
+            )
         }
     }
 }

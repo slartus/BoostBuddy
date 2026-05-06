@@ -28,6 +28,8 @@ actual fun VideoPlayer(
     position: Long,
     playbackSpeed: Float,
     isLive: Boolean,
+    isAtLiveEdge: Boolean,
+    retryToken: Int,
     onVideoStateChange: (VideoState) -> Unit,
     onContentPositionChange: (Long) -> Unit,
     onLiveEdgeChanged: (Boolean) -> Unit,

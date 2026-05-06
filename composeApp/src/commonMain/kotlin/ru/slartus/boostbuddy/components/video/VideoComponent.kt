@@ -4,19 +4,13 @@ import androidx.compose.runtime.Stable
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.essenty.lifecycle.doOnDestroy
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.NonCancellable
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import ru.slartus.boostbuddy.components.BaseComponent
 import ru.slartus.boostbuddy.components.video.VideoState.Buffering
 import ru.slartus.boostbuddy.components.video.VideoState.Ended
+import ru.slartus.boostbuddy.components.video.VideoState.Error
 import ru.slartus.boostbuddy.components.video.VideoState.Idle
 import ru.slartus.boostbuddy.components.video.VideoState.Ready
 import ru.slartus.boostbuddy.components.blog.text
@@ -41,6 +35,7 @@ interface VideoComponent {
     fun onQualityItemClicked(playerUrl: PlayerUrl)
     fun onPlaybackSpeedSelected(speed: Float)
     fun onDownloadQualitySelected(playerUrl: PlayerUrl)
+    fun onRetryClicked()
 }
 
 data class VideoViewState(
@@ -52,12 +47,14 @@ data class VideoViewState(
     val isLive: Boolean = false,
     val isAtLiveEdge: Boolean = true,
     val streamEnded: Boolean = false,
+    val playbackError: Boolean = false,
+    val retryToken: Int = 0,
 )
 
 val Content.OkVideo.timeCodeMs: Long get() = timeCode * 1000
 
 enum class VideoState {
-    Idle, Buffering, Ready, Ended
+    Idle, Buffering, Ready, Ended, Error
 }
 
 internal class VideoComponentImpl(
@@ -66,7 +63,7 @@ internal class VideoComponentImpl(
     postId: String,
     postData: Content.OkVideo,
     playerUrl: PlayerUrl,
-    private val liveBlogUrl: String? = null,
+    liveBlogUrl: String? = null,
     private val onStopClicked: () -> Unit
 ) : BaseComponent<VideoViewState, Any>(
     componentContext,
@@ -82,19 +79,21 @@ internal class VideoComponentImpl(
         scope = scope,
         videoRepository = videoRepository,
     )
-    private var heartbeatJob: Job? = null
-    private var heartbeatStopped: Boolean = false
+    private val liveStreamModel: LiveStreamComponentModel? = liveBlogUrl?.let { url ->
+        LiveStreamComponentModel(
+            scope = scope,
+            streamRepository = streamRepository,
+            blogUrl = url,
+            postData = postData,
+        )
+    }
 
     init {
-        if (liveBlogUrl != null) {
+        if (liveStreamModel != null) {
             viewState = viewState.copy(postData = postData, loading = false)
             timeCodeManager.setContentId(postData.id)
-            startHeartbeat(liveBlogUrl)
-            lifecycle.doOnDestroy {
-                if (!heartbeatStopped) {
-                    stopHeartbeat(liveBlogUrl)
-                }
-            }
+            liveStreamModel.startHeartbeat()
+            lifecycle.doOnDestroy { liveStreamModel.stopHeartbeat() }
         } else {
             refreshData(
                 blogUrl = blogUrl,
@@ -118,29 +117,75 @@ internal class VideoComponentImpl(
 
     override fun onVideoStateChanged(videoState: VideoState) {
         when (videoState) {
-            Idle -> viewState = viewState.copy(loading = true)
+            Idle -> if (!viewState.playbackError) viewState = viewState.copy(loading = true)
             Buffering -> viewState = viewState.copy(loading = true)
-            Ready -> viewState = viewState.copy(loading = false)
+            Ready -> {
+                viewState = viewState.copy(loading = false, playbackError = false)
+                liveStreamModel?.resetDvrFallbackAttempts()
+            }
             Ended -> handlePlaybackEnded()
+            Error -> {
+                if (tryDvrToLiveEdgeFallback()) return
+                viewState = viewState.copy(playbackError = true, loading = false)
+            }
         }
     }
 
+    /**
+     * Если плеер упал в DVR-режиме (например, OK CDN отдал 404 на `_offset_p`
+     * URL потому, что DVR-буфер ещё не накопился), автоматически возвращаемся
+     * на live edge URL вместо показа экрана ошибки. Сбрасываем live-edge
+     * трекинг, чтобы post-fallback `false` события снова считались шумом
+     * догоняния буфера. Лимит попыток предотвращает infinite swap loop, если
+     * post-fallback controller успеет re-arm флаг до первого Ready.
+     */
+    private fun tryDvrToLiveEdgeFallback(): Boolean {
+        val model = liveStreamModel ?: return false
+        if (viewState.isAtLiveEdge) return false
+        if (!model.shouldAttemptDvrFallback()) return false
+        val liveEdgeUrl =
+            model.playerUrlForMode(atEdge = true, quality = viewState.playerUrl.quality)
+                ?: return false
+        model.resetLiveEdgeTracking()
+        viewState = viewState.copy(
+            isAtLiveEdge = true,
+            playerUrl = liveEdgeUrl,
+            playbackError = false,
+            loading = true,
+        )
+        return true
+    }
+
+    override fun onRetryClicked() {
+        viewState = viewState.copy(
+            playbackError = false,
+            loading = true,
+            retryToken = viewState.retryToken + 1,
+        )
+    }
+
     private fun handlePlaybackEnded() {
-        val blogUrl = liveBlogUrl ?: return
+        val model = liveStreamModel ?: return
         if (viewState.streamEnded) return
         viewState = viewState.copy(streamEnded = true, loading = false)
-        stopHeartbeat(blogUrl)
+        model.stopHeartbeat()
     }
 
     override fun onContentPositionChange(position: Long) {
-        if (liveBlogUrl != null && viewState.isAtLiveEdge) return
+        if (liveStreamModel != null && viewState.isAtLiveEdge) return
         timeCodeManager.onPositionChanged(position)
     }
 
     override fun onLiveEdgeChanged(atEdge: Boolean) {
-        if (viewState.isAtLiveEdge == atEdge) return
-        viewState = viewState.copy(isAtLiveEdge = atEdge)
-        if (atEdge && viewState.playbackSpeed != 1f) {
+        val model = liveStreamModel ?: return
+        val effectiveAtEdge = model.processLiveEdgeChange(atEdge) ?: return
+        if (viewState.isAtLiveEdge == effectiveAtEdge) return
+        val swapped = model.playerUrlForMode(effectiveAtEdge, viewState.playerUrl.quality)
+        viewState = viewState.copy(
+            isAtLiveEdge = effectiveAtEdge,
+            playerUrl = swapped ?: viewState.playerUrl,
+        )
+        if (effectiveAtEdge && viewState.playbackSpeed != 1f) {
             scope.launch {
                 settingsRepository.setPreferredPlaybackSpeed(1f)
             }
@@ -148,8 +193,8 @@ internal class VideoComponentImpl(
     }
 
     override fun onStopClicked() {
-        if (liveBlogUrl != null) {
-            stopHeartbeat(liveBlogUrl)
+        if (liveStreamModel != null) {
+            liveStreamModel.stopHeartbeat()
             if (!viewState.isAtLiveEdge) {
                 timeCodeManager.putLastPosition()
             }
@@ -171,7 +216,22 @@ internal class VideoComponentImpl(
         scope.launch {
             settingsRepository.setPreferredQuality(playerUrl.quality)
         }
-        viewState = viewState.copy(playerUrl = playerUrl, settingsSheetVisible = false)
+        val model = liveStreamModel
+        val swapped = model?.playerUrlForMode(
+            atEdge = viewState.isAtLiveEdge,
+            quality = playerUrl.quality,
+        )
+        // DVR есть, но для выбранной quality URL не нашёлся — фолбэчимся на live edge,
+        // чтобы не рассинхронизировать isAtLiveEdge с реальным URL.
+        val fallbackToLiveEdge = model != null &&
+                model.hasDvrSupport &&
+                swapped == null &&
+                !viewState.isAtLiveEdge
+        viewState = viewState.copy(
+            playerUrl = swapped ?: playerUrl,
+            isAtLiveEdge = fallbackToLiveEdge || viewState.isAtLiveEdge,
+            settingsSheetVisible = false,
+        )
     }
 
     override fun onPlaybackSpeedSelected(speed: Float) {
@@ -215,34 +275,5 @@ internal class VideoComponentImpl(
             timeCodeManager.setContentId(refreshData.id)
             viewState = viewState.copy(postData = refreshData, loading = false)
         }
-    }
-
-    private fun startHeartbeat(blogUrl: String) {
-        heartbeatJob?.cancel()
-        heartbeatJob = scope.launch {
-            while (isActive) {
-                streamRepository.heartbeat(blogUrl, stop = false)
-                delay(HEARTBEAT_INTERVAL_MS)
-            }
-        }
-    }
-
-    private fun stopHeartbeat(blogUrl: String) {
-        if (heartbeatStopped) return
-        heartbeatStopped = true
-        heartbeatJob?.cancel()
-        heartbeatJob = null
-        sendStopHeartbeat(blogUrl)
-    }
-
-    private fun sendStopHeartbeat(blogUrl: String) {
-        externalHeartbeatScope.launch(NonCancellable) {
-            streamRepository.heartbeat(blogUrl, stop = true)
-        }
-    }
-
-    private companion object {
-        private const val HEARTBEAT_INTERVAL_MS = 30_000L
-        private val externalHeartbeatScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     }
 }

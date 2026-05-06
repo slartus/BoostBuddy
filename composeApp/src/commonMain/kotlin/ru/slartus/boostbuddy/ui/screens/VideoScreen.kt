@@ -93,6 +93,8 @@ internal fun VideoScreen(component: VideoComponent) {
                 position = postData.timeCodeMs,
                 playbackSpeed = state.playbackSpeed,
                 isLive = state.isLive,
+                isAtLiveEdge = state.isAtLiveEdge,
+                retryToken = state.retryToken,
                 onVideoStateChange = component::onVideoStateChanged,
                 onContentPositionChange = component::onContentPositionChange,
                 onLiveEdgeChanged = component::onLiveEdgeChanged,
@@ -115,7 +117,7 @@ internal fun VideoScreen(component: VideoComponent) {
             }
         }
 
-        if (state.loading && !state.streamEnded) {
+        if (state.loading && !state.streamEnded && !state.playbackError) {
             CircularProgressIndicator(
                 modifier = Modifier.align(Alignment.Center).size(58.dp)
             )
@@ -124,6 +126,14 @@ internal fun VideoScreen(component: VideoComponent) {
         if (state.streamEnded) {
             StreamEndedOverlay(
                 modifier = Modifier.fillMaxSize(),
+                onCloseClick = component::onStopClicked,
+            )
+        }
+
+        if (state.playbackError) {
+            PlaybackErrorOverlay(
+                modifier = Modifier.fillMaxSize(),
+                onRetryClick = component::onRetryClicked,
                 onCloseClick = component::onStopClicked,
             )
         }
@@ -158,6 +168,46 @@ private fun StreamEndedOverlay(
             )
             Button(onClick = onCloseClick) {
                 Text(text = "Закрыть")
+            }
+        }
+    }
+}
+
+@Composable
+private fun PlaybackErrorOverlay(
+    onRetryClick: () -> Unit,
+    onCloseClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    Box(
+        modifier = modifier
+            .background(Color.Black.copy(alpha = 0.85f))
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                onClick = {},
+            ),
+        contentAlignment = Alignment.Center,
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            Text(
+                text = "Не удалось воспроизвести видео",
+                color = Color.White,
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold,
+                textAlign = TextAlign.Center,
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                Button(onClick = onRetryClick) {
+                    Text(text = "Повторить")
+                }
+                Button(onClick = onCloseClick) {
+                    Text(text = "Закрыть")
+                }
             }
         }
     }

@@ -26,7 +26,8 @@ sealed class Content {
         val title: String,
         val playerUrls: List<PlayerUrl>,
         val previewUrl: String,
-        val timeCode: Long
+        val timeCode: Long,
+        val dvrPlayerUrls: List<PlayerUrl> = emptyList(),
     ) : Content()
 
     @Serializable

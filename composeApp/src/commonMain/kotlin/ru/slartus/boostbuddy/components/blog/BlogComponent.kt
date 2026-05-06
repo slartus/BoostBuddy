@@ -305,6 +305,6 @@ class BlogComponentImpl(
     }
 
     private companion object {
-        private const val SCHEDULE_POLL_INTERVAL_MS = 90_000L
+        private const val SCHEDULE_POLL_INTERVAL_MS = 30_000L
     }
 }

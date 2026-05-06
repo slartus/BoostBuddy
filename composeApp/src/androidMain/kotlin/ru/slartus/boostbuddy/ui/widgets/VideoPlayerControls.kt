@@ -68,11 +68,7 @@ import androidx.compose.ui.util.fastAny
 import androidx.compose.ui.util.fastForEach
 import ru.slartus.boostbuddy.ui.common.LocalPlatformConfiguration
 import ru.slartus.boostbuddy.utils.Platform
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color as ComposeColor
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.viewinterop.AndroidView
-import androidx.media3.common.C
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.AspectRatioFrameLayout
@@ -81,7 +77,6 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import ru.slartus.boostbuddy.ui.common.noRippleClickable
 import ru.slartus.boostbuddy.ui.theme.LightColorScheme
@@ -104,9 +99,6 @@ private const val ZOOM_SNAP_THRESHOLD = 1.05f
 private const val PINCH_DECREASE_NOISE = 0.05f
 private const val ZOOM_MAX = 5f
 private const val ZOOM_BADGE_AUTOHIDE_MS = 1500L
-private const val LIVE_EDGE_THRESHOLD_MS = 5_000L
-private const val LIVE_EDGE_POLL_INTERVAL_MS = 1_000L
-private val LIVE_RED = ComposeColor(0xFFE53935)
 
 private fun Float.isZoomed(): Boolean = this > 1f
 
@@ -126,6 +118,7 @@ internal fun VideoPlayerChrome(
     playingPosition: Long,
     isEnded: Boolean,
     isLive: Boolean,
+    isAtLiveEdge: Boolean,
     onLiveEdgeChanged: (Boolean) -> Unit,
     onStopClick: () -> Unit,
     onSettingsClick: (() -> Unit)? = null,
@@ -171,21 +164,6 @@ internal fun VideoPlayerChrome(
 
     var seekFeedback by remember { mutableStateOf<SeekFeedback?>(null) }
     val seekFeedbackJobHolder = remember { JobHolder() }
-
-    var isAtLiveEdge by remember { mutableStateOf(true) }
-    val currentOnLiveEdgeChanged by rememberUpdatedState(onLiveEdgeChanged)
-    LaunchedEffect(isLive, exoPlayer) {
-        if (!isLive) return@LaunchedEffect
-        while (isActive) {
-            val offset = exoPlayer.currentLiveOffset
-            val newValue = offset == C.TIME_UNSET || offset < LIVE_EDGE_THRESHOLD_MS
-            if (newValue != isAtLiveEdge) {
-                isAtLiveEdge = newValue
-                currentOnLiveEdgeChanged(newValue)
-            }
-            delay(LIVE_EDGE_POLL_INTERVAL_MS)
-        }
-    }
 
     val applySeekTick by rememberUpdatedState<(Offset) -> Unit> { offset ->
         val width = playerSize.width
@@ -496,12 +474,14 @@ internal fun VideoPlayerChrome(
         }
 
         if (isLive) {
-            LiveBadge(
+            LiveEdgeController(
+                exoPlayer = exoPlayer,
+                isAtLiveEdge = isAtLiveEdge,
+                isControllerVisible = controllerState.isVisible,
+                onLiveEdgeChanged = onLiveEdgeChanged,
                 modifier = Modifier
                     .align(Alignment.TopStart)
                     .padding(16.dp),
-                isAtLiveEdge = isAtLiveEdge,
-                onGoLiveClick = { exoPlayer.seekToDefaultPosition() },
             )
         }
     }
@@ -620,38 +600,6 @@ private fun PlayerPlayStateIcon(
             tint = LightColorScheme.background,
             imageVector = if (playing) Icons.Filled.Pause else Icons.Filled.PlayArrow,
             contentDescription = "Play video icon"
-        )
-    }
-}
-
-@Composable
-private fun LiveBadge(
-    isAtLiveEdge: Boolean,
-    onGoLiveClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val containerColor = if (isAtLiveEdge) {
-        LIVE_RED
-    } else {
-        MaterialTheme.colorScheme.scrim.copy(alpha = 0.6f)
-    }
-    val contentColor = if (isAtLiveEdge) {
-        ComposeColor.White
-    } else {
-        ComposeColor.White.copy(alpha = 0.85f)
-    }
-    Box(
-        modifier = modifier
-            .clip(RoundedCornerShape(6.dp))
-            .background(containerColor)
-            .clickable(enabled = !isAtLiveEdge, onClick = onGoLiveClick)
-            .padding(horizontal = 10.dp, vertical = 4.dp),
-    ) {
-        Text(
-            text = "LIVE",
-            color = contentColor,
-            style = MaterialTheme.typography.labelMedium,
-            fontWeight = FontWeight.Bold,
         )
     }
 }
