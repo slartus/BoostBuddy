@@ -39,15 +39,6 @@ import ru.slartus.boostbuddy.data.repositories.models.VideoQuality
 import java.io.IOException
 
 private const val SEEK_UPDATE_INTERVAL_MS = 1000L
-private const val OK_DVR_PATH_MARKER = "_offset_p"
-
-// `live_*` (sliding window) и `live_playback_*` (`_offset_p`, абсолютный timeline)
-// у OK CDN используют разные timeline-якоря. Сохранённая позиция из одного
-// манифеста почти наверняка окажется вне seekable range другого и вызовет
-// Source error при seek — поэтому при пересечении этой границы переключаемся
-// на seekToDefaultPosition нового источника.
-private fun isOkLiveDvrSwap(previousUrl: String, newUrl: String): Boolean =
-    previousUrl.contains(OK_DVR_PATH_MARKER) != newUrl.contains(OK_DVR_PATH_MARKER)
 
 private class PlayerUrlHolder(var value: PlayerUrl)
 
@@ -59,11 +50,10 @@ actual fun VideoPlayer(
     position: Long,
     playbackSpeed: Float,
     isLive: Boolean,
-    isAtLiveEdge: Boolean,
+    liveStartedAtSeconds: Long?,
     retryToken: Int,
     onVideoStateChange: (VideoState) -> Unit,
     onContentPositionChange: (Long) -> Unit,
-    onLiveEdgeChanged: (Boolean) -> Unit,
     onStopClick: () -> Unit,
     onSettingsClick: (() -> Unit)?
 ) {
@@ -110,20 +100,13 @@ actual fun VideoPlayer(
     val lastPlayerUrl = remember(exoPlayer) { PlayerUrlHolder(playerUrl) }
     LaunchedEffect(exoPlayer, playerUrl) {
         if (playerUrl == lastPlayerUrl.value) return@LaunchedEffect
-        val previousUrl = lastPlayerUrl.value.url
         lastPlayerUrl.value = playerUrl
         val savedPosition = exoPlayer.currentPosition
         val wasPlaying = exoPlayer.playWhenReady
-        val crossesLiveDvrBoundary = isOkLiveDvrSwap(previousUrl, playerUrl.url)
         exoPlayer.stop()
         exoPlayer.clearMediaItems()
         exoPlayer.setMediaSource(mediaId = vid, title = title, playerUrl = playerUrl)
-        if (crossesLiveDvrBoundary) {
-            // OK CDN: live_* (sliding window) и live_playback_* (`_offset_p`,
-            // абсолютный timeline) — разные timeline-якоря. savedPosition из
-            // одного манифеста легко окажется вне seekable range другого
-            // и вызовет Source error. Стартуем новый источник на его default
-            // position (live edge для live URL, начало seekable окна для DVR).
+        if (isLive) {
             exoPlayer.seekToDefaultPosition()
         } else {
             exoPlayer.seekTo(savedPosition)
@@ -140,14 +123,15 @@ actual fun VideoPlayer(
         if (retryToken > 0 && exoPlayer.playbackState == Player.STATE_IDLE) exoPlayer.prepare()
     }
 
+    val playbackMode = remember(isLive, liveStartedAtSeconds) {
+        if (isLive) PlaybackMode.Live(liveStartedAtSeconds) else PlaybackMode.Vod
+    }
     VideoPlayerChrome(
         exoPlayer = exoPlayer,
         title = title,
         playingPosition = playingPosition,
         isEnded = isEnded,
-        isLive = isLive,
-        isAtLiveEdge = isAtLiveEdge,
-        onLiveEdgeChanged = onLiveEdgeChanged,
+        playbackMode = playbackMode,
         onStopClick = onStopClick,
         onSettingsClick = onSettingsClick,
     )

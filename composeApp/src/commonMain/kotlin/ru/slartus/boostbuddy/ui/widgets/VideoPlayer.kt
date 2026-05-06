@@ -12,11 +12,10 @@ expect fun VideoPlayer(
     position: Long,
     playbackSpeed: Float,
     isLive: Boolean,
-    isAtLiveEdge: Boolean,
+    liveStartedAtSeconds: Long?,
     retryToken: Int,
     onVideoStateChange: (VideoState) -> Unit,
     onContentPositionChange: (Long) -> Unit,
-    onLiveEdgeChanged: (Boolean) -> Unit,
     onStopClick: () -> Unit,
     onSettingsClick: (() -> Unit)?
 )

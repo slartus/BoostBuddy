@@ -4,6 +4,8 @@ import androidx.compose.runtime.Stable
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.essenty.lifecycle.doOnDestroy
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
@@ -28,7 +30,6 @@ interface VideoComponent {
     val viewStates: Value<VideoViewState>
     fun onVideoStateChanged(videoState: VideoState)
     fun onContentPositionChange(position: Long)
-    fun onLiveEdgeChanged(atEdge: Boolean)
     fun onStopClicked()
     fun onSettingsClicked()
     fun onSettingsSheetDismissed()
@@ -45,7 +46,7 @@ data class VideoViewState(
     val settingsSheetVisible: Boolean = false,
     val playbackSpeed: Float = 1f,
     val isLive: Boolean = false,
-    val isAtLiveEdge: Boolean = true,
+    val liveStartedAtSeconds: Long? = null,
     val streamEnded: Boolean = false,
     val playbackError: Boolean = false,
     val retryToken: Int = 0,
@@ -64,10 +65,16 @@ internal class VideoComponentImpl(
     postData: Content.OkVideo,
     playerUrl: PlayerUrl,
     liveBlogUrl: String? = null,
+    liveStartedAtSeconds: Long? = null,
     private val onStopClicked: () -> Unit
 ) : BaseComponent<VideoViewState, Any>(
     componentContext,
-    VideoViewState(postData = null, playerUrl = playerUrl, isLive = liveBlogUrl != null)
+    VideoViewState(
+        postData = null,
+        playerUrl = playerUrl,
+        isLive = liveBlogUrl != null,
+        liveStartedAtSeconds = liveStartedAtSeconds,
+    )
 ), VideoComponent {
 
     private val videoRepository by Inject.lazy<VideoRepository>()
@@ -84,9 +91,9 @@ internal class VideoComponentImpl(
             scope = scope,
             streamRepository = streamRepository,
             blogUrl = url,
-            postData = postData,
         )
     }
+    private var bufferingDebounceJob: Job? = null
 
     init {
         if (liveStreamModel != null) {
@@ -111,49 +118,61 @@ internal class VideoComponentImpl(
                 .distinctUntilChanged()
                 .collect { speed ->
                     viewState = viewState.copy(playbackSpeed = speed)
+                    enforceLiveSpeed()
                 }
+        }
+    }
+
+    // Live-стрим всегда играет на 1x. Sync state update + async settings write —
+    // иначе round-trip через settings flow даёт лаг ~100-300ms, юзер видит 3x
+    // (унаследовано из VOD-сессии) до сброса.
+    private fun enforceLiveSpeed() {
+        liveStreamModel ?: return
+        if (viewState.playbackSpeed == 1f) return
+        viewState = viewState.copy(playbackSpeed = 1f)
+        scope.launch {
+            settingsRepository.setPreferredPlaybackSpeed(1f)
         }
     }
 
     override fun onVideoStateChanged(videoState: VideoState) {
         when (videoState) {
-            Idle -> if (!viewState.playbackError) viewState = viewState.copy(loading = true)
-            Buffering -> viewState = viewState.copy(loading = true)
-            Ready -> {
-                viewState = viewState.copy(loading = false, playbackError = false)
-                liveStreamModel?.resetDvrFallbackAttempts()
+            Idle -> {
+                cancelLoadingDebounce()
+                if (!viewState.playbackError) viewState = viewState.copy(loading = true)
             }
-            Ended -> handlePlaybackEnded()
+
+            Buffering -> showBufferingLoadingDebounced()
+            Ready -> {
+                cancelLoadingDebounce()
+                viewState = viewState.copy(loading = false, playbackError = false)
+            }
+
+            Ended -> {
+                cancelLoadingDebounce()
+                handlePlaybackEnded()
+            }
             Error -> {
-                if (tryDvrToLiveEdgeFallback()) return
+                cancelLoadingDebounce()
                 viewState = viewState.copy(playbackError = true, loading = false)
             }
         }
     }
 
-    /**
-     * Если плеер упал в DVR-режиме (например, OK CDN отдал 404 на `_offset_p`
-     * URL потому, что DVR-буфер ещё не накопился), автоматически возвращаемся
-     * на live edge URL вместо показа экрана ошибки. Сбрасываем live-edge
-     * трекинг, чтобы post-fallback `false` события снова считались шумом
-     * догоняния буфера. Лимит попыток предотвращает infinite swap loop, если
-     * post-fallback controller успеет re-arm флаг до первого Ready.
-     */
-    private fun tryDvrToLiveEdgeFallback(): Boolean {
-        val model = liveStreamModel ?: return false
-        if (viewState.isAtLiveEdge) return false
-        if (!model.shouldAttemptDvrFallback()) return false
-        val liveEdgeUrl =
-            model.playerUrlForMode(atEdge = true, quality = viewState.playerUrl.quality)
-                ?: return false
-        model.resetLiveEdgeTracking()
-        viewState = viewState.copy(
-            isAtLiveEdge = true,
-            playerUrl = liveEdgeUrl,
-            playbackError = false,
-            loading = true,
-        )
-        return true
+    // Тонкий буфер у HLS live даёт частые короткие BUFFERING→READY циклы между
+    // сегментами — без дебаунса лоадер мигает на каждом сегменте.
+    private fun showBufferingLoadingDebounced() {
+        if (viewState.loading) return
+        bufferingDebounceJob?.cancel()
+        bufferingDebounceJob = scope.launch {
+            delay(LOADING_DEBOUNCE_MS)
+            viewState = viewState.copy(loading = true)
+        }
+    }
+
+    private fun cancelLoadingDebounce() {
+        bufferingDebounceJob?.cancel()
+        bufferingDebounceJob = null
     }
 
     override fun onRetryClicked() {
@@ -172,32 +191,13 @@ internal class VideoComponentImpl(
     }
 
     override fun onContentPositionChange(position: Long) {
-        if (liveStreamModel != null && viewState.isAtLiveEdge) return
+        if (liveStreamModel != null) return
         timeCodeManager.onPositionChanged(position)
-    }
-
-    override fun onLiveEdgeChanged(atEdge: Boolean) {
-        val model = liveStreamModel ?: return
-        val effectiveAtEdge = model.processLiveEdgeChange(atEdge) ?: return
-        if (viewState.isAtLiveEdge == effectiveAtEdge) return
-        val swapped = model.playerUrlForMode(effectiveAtEdge, viewState.playerUrl.quality)
-        viewState = viewState.copy(
-            isAtLiveEdge = effectiveAtEdge,
-            playerUrl = swapped ?: viewState.playerUrl,
-        )
-        if (effectiveAtEdge && viewState.playbackSpeed != 1f) {
-            scope.launch {
-                settingsRepository.setPreferredPlaybackSpeed(1f)
-            }
-        }
     }
 
     override fun onStopClicked() {
         if (liveStreamModel != null) {
             liveStreamModel.stopHeartbeat()
-            if (!viewState.isAtLiveEdge) {
-                timeCodeManager.putLastPosition()
-            }
         } else {
             timeCodeManager.putLastPosition()
         }
@@ -216,20 +216,8 @@ internal class VideoComponentImpl(
         scope.launch {
             settingsRepository.setPreferredQuality(playerUrl.quality)
         }
-        val model = liveStreamModel
-        val swapped = model?.playerUrlForMode(
-            atEdge = viewState.isAtLiveEdge,
-            quality = playerUrl.quality,
-        )
-        // DVR есть, но для выбранной quality URL не нашёлся — фолбэчимся на live edge,
-        // чтобы не рассинхронизировать isAtLiveEdge с реальным URL.
-        val fallbackToLiveEdge = model != null &&
-                model.hasDvrSupport &&
-                swapped == null &&
-                !viewState.isAtLiveEdge
         viewState = viewState.copy(
-            playerUrl = swapped ?: playerUrl,
-            isAtLiveEdge = fallbackToLiveEdge || viewState.isAtLiveEdge,
+            playerUrl = playerUrl,
             settingsSheetVisible = false,
         )
     }
@@ -275,5 +263,9 @@ internal class VideoComponentImpl(
             timeCodeManager.setContentId(refreshData.id)
             viewState = viewState.copy(postData = refreshData, loading = false)
         }
+    }
+
+    private companion object {
+        private const val LOADING_DEBOUNCE_MS = 500L
     }
 }

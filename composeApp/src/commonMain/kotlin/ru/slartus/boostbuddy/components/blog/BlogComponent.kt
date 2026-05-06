@@ -230,7 +230,8 @@ class BlogComponentImpl(
     override fun onLiveStreamClicked() {
         val stream = viewState.liveStream ?: return
         val video = stream.video
-        if (stream.status is LiveStream.Status.Live &&
+        val liveStatus = stream.status as? LiveStream.Status.Live
+        if (liveStatus != null &&
             stream.hasAccess &&
             video != null &&
             video.playerUrls.isNotEmpty()
@@ -240,6 +241,7 @@ class BlogComponentImpl(
                     blogUrl = blog.blogUrl,
                     streamId = stream.id,
                     postData = video,
+                    startedAtSeconds = liveStatus.startedAt,
                 )
             )
             return

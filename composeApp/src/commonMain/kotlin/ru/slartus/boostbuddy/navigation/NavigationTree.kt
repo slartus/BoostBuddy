@@ -33,6 +33,7 @@ object NavigationTree {
         val blogUrl: String,
         val streamId: String,
         val postData: Content.OkVideo,
+        val startedAtSeconds: Long?,
     ) : Screen
 
 

@@ -225,6 +225,7 @@ class RootComponentImpl(
                 blogUrl = screen.blogUrl,
                 streamId = screen.streamId,
                 postData = screen.postData,
+                startedAtSeconds = screen.startedAtSeconds,
             )
 
             is NavigationTree.Filter -> {
@@ -506,6 +507,7 @@ class RootComponentImpl(
         blogUrl: String,
         streamId: String,
         postData: Content.OkVideo,
+        startedAtSeconds: Long?,
     ) {
         scope.launch {
             val settings = settingsRepository.getSettings()
@@ -519,6 +521,7 @@ class RootComponentImpl(
                     postData = postData,
                     playerUrl = playerUrl,
                     liveBlogUrl = blogUrl,
+                    liveStartedAtSeconds = startedAtSeconds,
                 )
             )
         }
@@ -535,6 +538,7 @@ class RootComponentImpl(
             postData = config.postData,
             playerUrl = config.playerUrl,
             liveBlogUrl = config.liveBlogUrl,
+            liveStartedAtSeconds = config.liveStartedAtSeconds,
             onStopClicked = { navigation.popWhile { it == config } }
         )
 
@@ -620,6 +624,7 @@ class RootComponentImpl(
             val postData: Content.OkVideo,
             val playerUrl: PlayerUrl,
             val liveBlogUrl: String? = null,
+            val liveStartedAtSeconds: Long? = null,
             val id: String = Uuid.random().toString()
         ) : Config
 

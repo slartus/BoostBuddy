@@ -75,33 +75,26 @@ internal fun ContentResponse.mapToContentOrNull(): Content? {
 
         "ok_stream" -> {
             val streamVid = vid ?: return null
-            val mapped = playerUrls.orEmpty().mapNotNull { entry ->
-                val playerUrl = entry.mapToPlayerUrlOrNull() ?: return@mapNotNull null
-                if (!playerUrl.quality.used) return@mapNotNull null
-                playerUrl to entry.isDvrVariant()
-            }
-            val (dvrPairs, liveEdgePairs) = mapped.partition { (_, isDvr) -> isDvr }
-            val liveEdgeUrls = liveEdgePairs
-                .map { (url, _) -> url }
+            // MVP: для live-стримов используем только live-edge URL. DVR-вариант
+            // (`live_playback_*`, путь `_offset_p`) отфильтровываем — отматывание
+            // отключено в UI, и DVR-URL на cold start CDN всё равно 404-ит.
+            val liveEdgeUrls = playerUrls.orEmpty()
+                .mapNotNull { entry ->
+                    if (entry.type?.startsWith("live_playback") == true) return@mapNotNull null
+                    val playerUrl = entry.mapToPlayerUrlOrNull() ?: return@mapNotNull null
+                    if (!playerUrl.quality.used) return@mapNotNull null
+                    playerUrl
+                }
                 .distinctBy { it.quality }
                 .sortedWith(playerUrlsComparator)
-            val dvrUrls = dvrPairs
-                .map { (url, _) -> url }
-                .distinctBy { it.quality }
-                .sortedWith(playerUrlsComparator)
-            // Live-edge URL — безопасный default: на cold start у CDN нет DVR-буфера,
-            // и live_playback_* отдаст пустой манифест (Source error в плеере).
-            // На fallback (только DVR доступен) играем DVR как base без свапа.
-            val basePlayerUrls = liveEdgeUrls.ifEmpty { dvrUrls }
-            if (basePlayerUrls.isEmpty()) return null
+            if (liveEdgeUrls.isEmpty()) return null
             Content.OkVideo(
                 id = id ?: streamVid,
                 vid = streamVid,
                 title = title.orEmpty(),
-                playerUrls = basePlayerUrls,
+                playerUrls = liveEdgeUrls,
                 previewUrl = preview ?: defaultPreview.orEmpty(),
                 timeCode = timeCode ?: 0,
-                dvrPlayerUrls = if (liveEdgeUrls.isNotEmpty()) dvrUrls else emptyList(),
             )
         }
 
@@ -153,11 +146,6 @@ private fun ContentResponse.PlayerUrl.mapToPlayerUrlOrNull(): PlayerUrl? {
     val safeUrl = url?.takeIf { it.isNotBlank() } ?: return null
     return PlayerUrl(VideoQuality.of(type), safeUrl)
 }
-
-// Префикс `live_playback_*` — DVR-вариант OK CDN (путь `_offset_p`,
-// абсолютный timeline), а не «обычный» live URL.
-private fun ContentResponse.PlayerUrl.isDvrVariant(): Boolean =
-    type?.startsWith("live_playback") == true
 
 val linkColor = Color(241, 95, 44)
 private fun PostDataTextContent.Style.toSpanStyle(): SpanStyle = when (this) {

@@ -1,6 +1,6 @@
 package ru.slartus.boostbuddy.ui.widgets
 
-import android.graphics.Color
+import android.graphics.Color as PlatformColor
 import android.view.KeyEvent
 import android.view.ViewGroup
 import android.widget.FrameLayout
@@ -39,9 +39,11 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Stable
+import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
@@ -63,6 +65,7 @@ import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.calculatePan
 import androidx.compose.foundation.gestures.calculateZoom
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.util.fastAny
 import androidx.compose.ui.util.fastForEach
@@ -77,6 +80,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import ru.slartus.boostbuddy.ui.common.noRippleClickable
 import ru.slartus.boostbuddy.ui.theme.LightColorScheme
@@ -88,6 +92,15 @@ private val HIDE_CONTROLLER_DELAY = 5.seconds
 private val SEEK_INCREMENT = 5.seconds
 private val DOUBLE_TAP_SEEK = 10.seconds
 private val SEEK_FEEDBACK_TIMEOUT = 1.seconds
+private const val LIVE_ELAPSED_TICK_MS = 1_000L
+
+internal sealed interface PlaybackMode {
+    data object Vod : PlaybackMode
+    data class Live(val startedAtSeconds: Long?) : PlaybackMode
+}
+
+private val PlaybackMode.isLive: Boolean
+    get() = this is PlaybackMode.Live
 
 // Pinch-in трактуем как «жест выхода» — любое уменьшение zoom относительно
 // начала pinch-сессии возвращает видео в дефолт (1f без смещения). Это даёт
@@ -117,12 +130,11 @@ internal fun VideoPlayerChrome(
     title: String,
     playingPosition: Long,
     isEnded: Boolean,
-    isLive: Boolean,
-    isAtLiveEdge: Boolean,
-    onLiveEdgeChanged: (Boolean) -> Unit,
+    playbackMode: PlaybackMode,
     onStopClick: () -> Unit,
     onSettingsClick: (() -> Unit)? = null,
 ) {
+    val isLive = playbackMode.isLive
     val coroutineScope = rememberCoroutineScope()
     val controllerState = rememberVideoControllerState()
     val focusRequester = remember { FocusRequester() }
@@ -166,6 +178,7 @@ internal fun VideoPlayerChrome(
     val seekFeedbackJobHolder = remember { JobHolder() }
 
     val applySeekTick by rememberUpdatedState<(Offset) -> Unit> { offset ->
+        if (isLive) return@rememberUpdatedState
         val width = playerSize.width
         if (width <= 0) return@rememberUpdatedState
         val direction = if (offset.x > width / 2f) {
@@ -232,22 +245,26 @@ internal fun VideoPlayerChrome(
                         }
                     },
                     onLeftClick = { longPress ->
-                        val seekMultiplier = seekState.calcSeekMultiplier(longPress)
-                        exoPlayer.seekTo(
-                            exoPlayer.currentPosition - (SEEK_INCREMENT.toLong(
-                                DurationUnit.MILLISECONDS
-                            ) * seekMultiplier).toLong()
-                        )
-                        controllerState.showWithAutoHide()
+                        if (!isLive) {
+                            val seekMultiplier = seekState.calcSeekMultiplier(longPress)
+                            exoPlayer.seekTo(
+                                exoPlayer.currentPosition - (SEEK_INCREMENT.toLong(
+                                    DurationUnit.MILLISECONDS
+                                ) * seekMultiplier).toLong()
+                            )
+                            controllerState.showWithAutoHide()
+                        }
                     },
                     onRightClick = { longPress ->
-                        val seekMultiplier = seekState.calcSeekMultiplier(longPress)
-                        exoPlayer.seekTo(
-                            exoPlayer.currentPosition + (SEEK_INCREMENT.toLong(
-                                DurationUnit.MILLISECONDS
-                            ) * seekMultiplier).toLong()
-                        )
-                        controllerState.showWithAutoHide()
+                        if (!isLive) {
+                            val seekMultiplier = seekState.calcSeekMultiplier(longPress)
+                            exoPlayer.seekTo(
+                                exoPlayer.currentPosition + (SEEK_INCREMENT.toLong(
+                                    DurationUnit.MILLISECONDS
+                                ) * seekMultiplier).toLong()
+                            )
+                            controllerState.showWithAutoHide()
+                        }
                     },
                     onStopClick = { onStopClick() },
                     onSettingsClick = onSettingsClick?.let { { _: Boolean -> it() } },
@@ -267,26 +284,26 @@ internal fun VideoPlayerChrome(
                         Modifier
                             .onSizeChanged { playerSize = it }
                             .pointerInput(Unit) {
-                                // detectTransformGestures триггерится и на одиночных
-                                // касаниях/фантомных pointer-событиях (например при
-                                // закрытии ModalBottomSheet со слайдером скорости):
-                                // видео тихо «раздувается» и сдвигается. Поэтому
-                                // считаем пальцы вручную:
-                                //  • zoom == 1f и < 2 пальцев — игнорим (фантомы и
-                                //    случайные свайпы не должны масштабировать видео);
-                                //  • 2+ пальцев — полноценный pinch + pan;
-                                //  • zoom > 1f и 1 палец — pan уже зумнутого видео.
+                                // detectTransformGestures триггерится на одиночных
+                                // касаниях и фантомных pointer-событиях (например при
+                                // закрытии ModalBottomSheet, на эмуляторе, при auto-hide
+                                // контроллера). Поэтому считаем пальцы вручную и входим
+                                // в zoom/pan обработку ТОЛЬКО когда реально был pinch
+                                // (≥2 пальцев) ИЛИ видео уже зумлено. Single-finger tap
+                                // на не-зумленном видео должен полностью игнорироваться
+                                // этим блоком — его обработает detectTapGestures ниже.
                                 awaitEachGesture {
                                     awaitFirstDown(requireUnconsumed = false)
                                     var pinchStartZoom: Float? = null
+                                    var sawMultiTouch = false
                                     while (true) {
                                         val event = awaitPointerEvent()
                                         if (event.changes.none { it.pressed }) break
                                         val pressedCount = event.changes.count { it.pressed }
+                                        if (pressedCount >= 2) sawMultiTouch = true
                                         // Pinch уже начался (≥2 пальцев) и один поднялся —
-                                        // завершаем жест целиком. Иначе оставшийся палец
-                                        // интерпретируется как single-finger pan, zoom
-                                        // фиксируется и pinch-in уже не доводит его до 1f.
+                                        // завершаем жест целиком, иначе оставшийся палец
+                                        // интерпретируется как single-finger pan.
                                         if (pinchStartZoom != null && pressedCount < 2) break
                                         if (pressedCount >= 2 && pinchStartZoom == null) {
                                             pinchStartZoom = zoom
@@ -313,11 +330,15 @@ internal fun VideoPlayerChrome(
                                         zoom = newZoom
                                         event.changes.fastForEach { it.consume() }
                                     }
-                                    val startZoom = pinchStartZoom
-                                    val zoomDecreased =
-                                        startZoom != null && zoom < startZoom - PINCH_DECREASE_NOISE
-                                    if (zoom < ZOOM_SNAP_THRESHOLD || zoomDecreased) {
-                                        resetZoom()
+                                    // Snap-reset только после реального pinch-жеста.
+                                    // Иначе любой тап «дёргал» zoom/offset на округлении.
+                                    if (sawMultiTouch) {
+                                        val startZoom = pinchStartZoom
+                                        val zoomDecreased = startZoom != null &&
+                                                zoom < startZoom - PINCH_DECREASE_NOISE
+                                        if (zoom < ZOOM_SNAP_THRESHOLD || zoomDecreased) {
+                                            resetZoom()
+                                        }
                                     }
                                 }
                             }
@@ -359,7 +380,7 @@ internal fun VideoPlayerChrome(
                         ViewGroup.LayoutParams.MATCH_PARENT,
                         ViewGroup.LayoutParams.MATCH_PARENT
                     )
-                    setBackgroundColor(Color.BLACK)
+                    setBackgroundColor(PlatformColor.BLACK)
                     resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FIXED_WIDTH
                     controllerAutoShow = false
                     useController = false
@@ -442,6 +463,7 @@ internal fun VideoPlayerChrome(
                     title = title,
                     playingPosition = playingPosition,
                     playingDuration = exoPlayer.contentDuration,
+                    playbackMode = playbackMode,
                     onChangePosition = { newPosition ->
                         changePositionJob?.cancel()
                         val autoHideWasActive = controllerState.isAutoHideActive
@@ -474,11 +496,8 @@ internal fun VideoPlayerChrome(
         }
 
         if (isLive) {
-            LiveEdgeController(
-                exoPlayer = exoPlayer,
-                isAtLiveEdge = isAtLiveEdge,
+            LiveBadge(
                 isControllerVisible = controllerState.isVisible,
-                onLiveEdgeChanged = onLiveEdgeChanged,
                 modifier = Modifier
                     .align(Alignment.TopStart)
                     .padding(16.dp),
@@ -496,47 +515,91 @@ private fun PlayerControllerView(
     title: String,
     playingPosition: Long,
     playingDuration: Long,
+    playbackMode: PlaybackMode,
     onChangePosition: (Long) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    if (playingDuration <= 0L) return
+    if (playbackMode is PlaybackMode.Vod && playingDuration <= 0L) return
 
     Column(modifier = modifier.fillMaxWidth()) {
-        Text(
-            text = title,
-            color = androidx.compose.ui.graphics.Color.White,
-            style = MaterialTheme.typography.titleLarge
-        )
-        Spacer(Modifier.height(8.dp))
-
-        val valueRange = remember(playingDuration) { 0f..playingDuration.toFloat() }
-        var position by remember(playingPosition) {
-            mutableFloatStateOf(playingPosition.toFloat())
-        }
-
-        Slider(
-            modifier = Modifier.fillMaxWidth(),
-            value = position,
-            valueRange = valueRange,
-            onValueChange = {
-                position = it
-                onChangePosition(it.toLong())
-            }
-        )
-
-        Row {
-            Spacer(modifier = Modifier.weight(1f))
-            val positionText = remember(position, playingDuration) {
-                "${formatDuration(position.toLong())} / ${formatDuration(playingDuration)}"
-            }
+        if (title.isNotEmpty()) {
             Text(
-                text = positionText,
-                color = androidx.compose.ui.graphics.Color.White,
-                style = MaterialTheme.typography.labelMedium
+                text = title,
+                color = Color.White,
+                style = MaterialTheme.typography.titleLarge
             )
+            Spacer(Modifier.height(8.dp))
+        }
+        when (playbackMode) {
+            PlaybackMode.Vod -> VodProgress(
+                playingPosition = playingPosition,
+                playingDuration = playingDuration,
+                onChangePosition = onChangePosition,
+            )
+            // Live: длительность стрима = (now - startedAt). playingPosition
+            // (positions в HLS sliding window) для пользователя бессмыслен.
+            is PlaybackMode.Live -> LiveElapsed(startedAtSeconds = playbackMode.startedAtSeconds)
         }
     }
 }
+
+@Composable
+private fun VodProgress(
+    playingPosition: Long,
+    playingDuration: Long,
+    onChangePosition: (Long) -> Unit,
+) {
+    val valueRange = remember(playingDuration) { 0f..playingDuration.toFloat() }
+    var position by remember(playingPosition) {
+        mutableFloatStateOf(playingPosition.toFloat())
+    }
+    Slider(
+        modifier = Modifier.fillMaxWidth(),
+        value = position,
+        valueRange = valueRange,
+        onValueChange = {
+            position = it
+            onChangePosition(it.toLong())
+        }
+    )
+    Row {
+        Spacer(modifier = Modifier.weight(1f))
+        val positionText = remember(position, playingDuration) {
+            "${formatDuration(position.toLong())} / ${formatDuration(playingDuration)}"
+        }
+        Text(
+            text = positionText,
+            color = Color.White,
+            style = MaterialTheme.typography.labelMedium
+        )
+    }
+}
+
+@Composable
+private fun LiveElapsed(startedAtSeconds: Long?) {
+    val elapsedMs by rememberLiveElapsedMs(startedAtSeconds)
+    Row {
+        Spacer(modifier = Modifier.weight(1f))
+        Text(
+            text = formatDuration(elapsedMs),
+            color = Color.White,
+            style = MaterialTheme.typography.labelMedium
+        )
+    }
+}
+
+@Composable
+private fun rememberLiveElapsedMs(startedAtSeconds: Long?): State<Long> =
+    produceState(initialValue = 0L, startedAtSeconds) {
+        if (startedAtSeconds == null) {
+            value = 0L
+            return@produceState
+        }
+        while (isActive) {
+            value = (System.currentTimeMillis() - startedAtSeconds * 1000L).coerceAtLeast(0L)
+            delay(LIVE_ELAPSED_TICK_MS)
+        }
+    }
 
 @Composable
 private fun SeekFeedbackOverlay(
