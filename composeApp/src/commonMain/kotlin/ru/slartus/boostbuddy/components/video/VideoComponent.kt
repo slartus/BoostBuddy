@@ -61,11 +61,11 @@ enum class VideoState {
 
 internal class VideoComponentImpl(
     componentContext: ComponentContext,
-    blogUrl: String,
-    postId: String,
+    private val blogUrl: String,
+    private val postId: String,
     postData: Content.OkVideo,
     playerUrl: PlayerUrl,
-    liveBlogUrl: String? = null,
+    private val liveBlogUrl: String? = null,
     liveStartedAtSeconds: Long? = null,
     private val onStopClicked: () -> Unit
 ) : BaseComponent<VideoViewState, Any>(
@@ -95,6 +95,8 @@ internal class VideoComponentImpl(
         )
     }
     private var bufferingDebounceJob: Job? = null
+    private var autoRecoveryAttempted = false
+    private var recoverJob: Job? = null
 
     init {
         if (liveStreamModel != null) {
@@ -150,6 +152,7 @@ internal class VideoComponentImpl(
             Buffering -> showBufferingLoadingDebounced()
             Ready -> {
                 cancelLoadingDebounce()
+                autoRecoveryAttempted = false
                 viewState = viewState.copy(loading = false, playbackError = false)
             }
 
@@ -159,7 +162,12 @@ internal class VideoComponentImpl(
             }
             Error -> {
                 cancelLoadingDebounce()
-                viewState = viewState.copy(playbackError = true, loading = false)
+                if (autoRecoveryAttempted) {
+                    viewState = viewState.copy(playbackError = true, loading = false)
+                } else {
+                    viewState = viewState.copy(loading = true)
+                    recoverPlayback()
+                }
             }
         }
     }
@@ -181,11 +189,41 @@ internal class VideoComponentImpl(
     }
 
     override fun onRetryClicked() {
-        viewState = viewState.copy(
-            playbackError = false,
-            loading = true,
-            retryToken = viewState.retryToken + 1,
-        )
+        viewState = viewState.copy(playbackError = false, loading = true)
+        recoverPlayback()
+    }
+
+    private fun recoverPlayback() {
+        autoRecoveryAttempted = true
+        recoverJob?.cancel()
+        recoverJob = scope.launch {
+            val fresh = fetchFreshPlayback()
+            viewState = if (fresh != null) {
+                viewState.copy(
+                    postData = fresh.first,
+                    playerUrl = fresh.second,
+                    playbackError = false,
+                    loading = true,
+                    retryToken = viewState.retryToken + 1,
+                )
+            } else {
+                viewState.copy(playbackError = true, loading = false)
+            }
+        }
+    }
+
+    private suspend fun fetchFreshPlayback(): Pair<Content.OkVideo, PlayerUrl>? {
+        val preferred = viewState.playerUrl.quality
+        val video = if (liveBlogUrl != null) {
+            streamRepository.fetchActive(liveBlogUrl).getOrNull()?.video
+        } else {
+            val videoId = viewState.postData?.id ?: return null
+            postRepository.getPost(blogUrl, postId).getOrNull()
+                ?.data?.filterIsInstance<Content.OkVideo>()
+                ?.find { it.id == videoId }
+        } ?: return null
+        val freshUrl = video.playerUrls.pickPlayerUrl(preferred) ?: return null
+        return video to freshUrl
     }
 
     private fun handlePlaybackEnded() {

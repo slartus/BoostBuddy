@@ -40,7 +40,7 @@ import java.io.IOException
 
 private const val SEEK_UPDATE_INTERVAL_MS = 1000L
 
-private class PlayerUrlHolder(var value: PlayerUrl)
+private class ReloadKeyHolder(var playerUrl: PlayerUrl, var retryToken: Int)
 
 @Composable
 actual fun VideoPlayer(
@@ -98,10 +98,13 @@ actual fun VideoPlayer(
         }
     }
 
-    val lastPlayerUrl = remember(exoPlayer) { PlayerUrlHolder(playerUrl) }
-    LaunchedEffect(exoPlayer, playerUrl) {
-        if (playerUrl == lastPlayerUrl.value) return@LaunchedEffect
-        lastPlayerUrl.value = playerUrl
+    val lastReloadKey = remember(exoPlayer) { ReloadKeyHolder(playerUrl, retryToken) }
+    LaunchedEffect(exoPlayer, playerUrl, retryToken) {
+        if (playerUrl == lastReloadKey.playerUrl && retryToken == lastReloadKey.retryToken) {
+            return@LaunchedEffect
+        }
+        lastReloadKey.playerUrl = playerUrl
+        lastReloadKey.retryToken = retryToken
         val savedPosition = exoPlayer.currentPosition
         val wasPlaying = exoPlayer.playWhenReady
         exoPlayer.stop()
@@ -118,10 +121,6 @@ actual fun VideoPlayer(
 
     LaunchedEffect(exoPlayer, playbackSpeed) {
         exoPlayer.setPlaybackSpeed(playbackSpeed)
-    }
-
-    LaunchedEffect(exoPlayer, retryToken) {
-        if (retryToken > 0 && exoPlayer.playbackState == Player.STATE_IDLE) exoPlayer.prepare()
     }
 
     val playbackMode = remember(isLive, liveStartedAtSeconds) {
