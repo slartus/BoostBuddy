@@ -20,22 +20,23 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment.Companion.Center
 import androidx.compose.ui.Alignment.Companion.CenterVertically
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import ru.slartus.boostbuddy.data.Inject
 import ru.slartus.boostbuddy.data.log.logger
 import ru.slartus.boostbuddy.data.repositories.models.Content
 import ru.slartus.boostbuddy.data.repositories.models.linkColor
 import ru.slartus.boostbuddy.ui.common.HorizontalSpacer
 import ru.slartus.boostbuddy.ui.common.VerticalSpacer
+import ru.slartus.boostbuddy.utils.AudioPlayerHolder
 import ru.slartus.boostbuddy.utils.AudioPlayerState
-import ru.slartus.boostbuddy.utils.AudioPlayerStateListener
-import ru.slartus.boostbuddy.utils.rememberAudioPlayer
 
 
 @Composable
@@ -43,29 +44,22 @@ internal fun PostDataAudioFileView(
     signedQuery: String,
     postData: Content.AudioFile
 ) {
-    var playerState by remember { mutableStateOf<AudioPlayerState>(AudioPlayerState.Idle) }
-    var position by remember { mutableStateOf(0f) }
-    val listener: AudioPlayerStateListener = remember {
-        object : AudioPlayerStateListener {
-            override fun onStateChanged(state: AudioPlayerState) {
-                playerState = state
-                when (state) {
-                    AudioPlayerState.Completed,
-                    AudioPlayerState.Error,
-                    AudioPlayerState.Idle,
-                    AudioPlayerState.Prepared,
-                    AudioPlayerState.Preparing,
-                    AudioPlayerState.Starting,
-                    AudioPlayerState.Stopped -> Unit
+    val holder = Inject.instance<AudioPlayerHolder>()
+    val trackKey = postData.url
+    val playbackState by holder.state.collectAsState()
+    val isCurrentTrack = playbackState.trackKey == trackKey
+    val playerState: AudioPlayerState = if (isCurrentTrack) playbackState.state else AudioPlayerState.Idle
+    var lastKnownPosition by remember(trackKey) { mutableFloatStateOf(0f) }
+    val position: Float = when (val s = playerState) {
+        is AudioPlayerState.Playing -> s.position.toFloat().also { lastKnownPosition = it }
+        is AudioPlayerState.Paused -> s.position.toFloat().also { lastKnownPosition = it }
 
-                    is AudioPlayerState.Paused -> position = state.position.toFloat()
-                    is AudioPlayerState.Playing -> position = state.position.toFloat()
+        AudioPlayerState.Preparing,
+        AudioPlayerState.Prepared,
+        AudioPlayerState.Starting -> if (isCurrentTrack) lastKnownPosition else 0f
 
-                }
-            }
-        }
+        else -> 0f
     }
-    val audioPlayer = rememberAudioPlayer(listener)
     Column(
         Modifier
             .border(
@@ -97,20 +91,21 @@ internal fun PostDataAudioFileView(
                     when (playerState) {
                         AudioPlayerState.Idle,
                         AudioPlayerState.Completed,
-                        AudioPlayerState.Stopped ->
-                            audioPlayer.play(postData.url + signedQuery)
+                        AudioPlayerState.Stopped -> {
+                            lastKnownPosition = 0f
+                            holder.play(trackKey, postData.url + signedQuery)
+                        }
 
-                        AudioPlayerState.Error -> if (position > 0f) audioPlayer.resume()
-                        else audioPlayer.play(postData.url + signedQuery)
+                        AudioPlayerState.Error ->
+                            holder.play(trackKey, postData.url + signedQuery)
 
-                        is AudioPlayerState.Paused -> audioPlayer.resume()
+                        is AudioPlayerState.Paused -> holder.resume(trackKey)
 
                         AudioPlayerState.Prepared,
                         AudioPlayerState.Preparing,
                         AudioPlayerState.Starting -> Unit
 
-                        is AudioPlayerState.Playing -> audioPlayer.pause()
-
+                        is AudioPlayerState.Playing -> holder.pause(trackKey)
                     }
                 }.onFailure {
                     logger.e("audioPlayer.play", it)
@@ -149,8 +144,8 @@ internal fun PostDataAudioFileView(
                 value = position,
                 valueRange = 0f..postData.duration.toFloat(),
                 onValueChange = {
-                    if (playerState.isPlaying || playerState is AudioPlayerState.Paused)
-                        audioPlayer.seekTo(it.toInt())
+                    if (isCurrentTrack && (playerState.isPlaying || playerState is AudioPlayerState.Paused))
+                        holder.seekTo(trackKey, it.toInt())
                 }
             )
         }

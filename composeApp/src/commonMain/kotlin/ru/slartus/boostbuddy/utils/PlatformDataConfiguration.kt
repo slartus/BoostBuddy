@@ -80,6 +80,7 @@ object PlatformDataConfiguration {
             }
             bindSingleton { GlobalExceptionHandlersChain() }
             bindSingleton { platformConfiguration }
+            bindSingleton { AudioPlayerHolder(platformConfiguration = instance()) }
             bindSingleton { NavigationRouterImpl() }
             bindSingleton { Permissions(platformConfiguration = instance()) }
             bindSingleton { SettingsFactory(platformConfiguration = instance()).createDefault() }
