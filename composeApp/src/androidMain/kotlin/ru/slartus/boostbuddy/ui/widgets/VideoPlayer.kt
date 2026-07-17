@@ -47,6 +47,7 @@ actual fun VideoPlayer(
     vid: String,
     playerUrl: PlayerUrl,
     title: String,
+    postTitle: String,
     position: Long,
     playbackSpeed: Float,
     isLive: Boolean,
@@ -129,6 +130,7 @@ actual fun VideoPlayer(
     VideoPlayerChrome(
         exoPlayer = exoPlayer,
         title = title,
+        postTitle = postTitle,
         playingPosition = playingPosition,
         isEnded = isEnded,
         playbackMode = playbackMode,

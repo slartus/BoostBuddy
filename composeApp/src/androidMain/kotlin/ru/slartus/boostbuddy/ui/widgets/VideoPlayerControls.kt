@@ -58,6 +58,7 @@ import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.positionChanged
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.gestures.awaitEachGesture
@@ -128,6 +129,7 @@ private class JobHolder {
 internal fun VideoPlayerChrome(
     exoPlayer: ExoPlayer,
     title: String,
+    postTitle: String,
     playingPosition: Long,
     isEnded: Boolean,
     playbackMode: PlaybackMode,
@@ -411,11 +413,27 @@ internal fun VideoPlayerChrome(
             Box(Modifier.fillMaxSize()) {
                 Row(
                     modifier = Modifier
-                        .align(Alignment.TopEnd)
+                        .align(Alignment.TopStart)
+                        .fillMaxWidth()
                         .padding(16.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
+                    if (isLive) {
+                        LiveBadge(isControllerVisible = true)
+                    }
+                    if (postTitle.isNotEmpty()) {
+                        Text(
+                            modifier = Modifier.weight(1f),
+                            text = postTitle,
+                            color = Color.White,
+                            style = MaterialTheme.typography.titleMedium,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    } else {
+                        Spacer(Modifier.weight(1f))
+                    }
                     if (zoom.isZoomed()) {
                         ZoomChip(
                             zoom = zoom,
@@ -460,7 +478,7 @@ internal fun VideoPlayerChrome(
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
                         .padding(16.dp),
-                    title = title,
+                    title = title.takeIf { it != postTitle }.orEmpty(),
                     playingPosition = playingPosition,
                     playingDuration = exoPlayer.contentDuration,
                     playbackMode = playbackMode,
@@ -493,15 +511,6 @@ internal fun VideoPlayerChrome(
             exit = fadeOut(),
         ) {
             ZoomBadge(zoom = zoom, onClick = resetZoom)
-        }
-
-        if (isLive) {
-            LiveBadge(
-                isControllerVisible = controllerState.isVisible,
-                modifier = Modifier
-                    .align(Alignment.TopStart)
-                    .padding(16.dp),
-            )
         }
     }
 

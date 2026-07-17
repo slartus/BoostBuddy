@@ -41,6 +41,7 @@ interface VideoComponent {
 
 data class VideoViewState(
     val postData: Content.OkVideo?,
+    val postTitle: String? = null,
     val playerUrl: PlayerUrl,
     val loading: Boolean = true,
     val settingsSheetVisible: Boolean = false,
@@ -97,7 +98,11 @@ internal class VideoComponentImpl(
 
     init {
         if (liveStreamModel != null) {
-            viewState = viewState.copy(postData = postData, loading = false)
+            viewState = viewState.copy(
+                postData = postData,
+                postTitle = postData.title,
+                loading = false,
+            )
             timeCodeManager.setContentId(postData.id)
             liveStreamModel.startHeartbeat()
             lifecycle.doOnDestroy { liveStreamModel.stopHeartbeat() }
@@ -256,12 +261,17 @@ internal class VideoComponentImpl(
         postData: Content.OkVideo,
     ) {
         scope.launch {
-            val postResult = postRepository.getPost(blogUrl, postId)
-            val refreshData = postResult.getOrNull()?.let { post ->
-                post.data.filterIsInstance<Content.OkVideo>().find { it.id == postData.id }
-            } ?: postData
+            val post = postRepository.getPost(blogUrl, postId).getOrNull()
+            val refreshData = post?.data
+                ?.filterIsInstance<Content.OkVideo>()
+                ?.find { it.id == postData.id }
+                ?: postData
             timeCodeManager.setContentId(refreshData.id)
-            viewState = viewState.copy(postData = refreshData, loading = false)
+            viewState = viewState.copy(
+                postData = refreshData,
+                postTitle = post?.title,
+                loading = false,
+            )
         }
     }
 

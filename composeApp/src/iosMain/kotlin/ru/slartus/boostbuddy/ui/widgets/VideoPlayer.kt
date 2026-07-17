@@ -25,6 +25,7 @@ actual fun VideoPlayer(
     vid: String,
     playerUrl: PlayerUrl,
     title: String,
+    postTitle: String,
     position: Long,
     playbackSpeed: Float,
     isLive: Boolean,
