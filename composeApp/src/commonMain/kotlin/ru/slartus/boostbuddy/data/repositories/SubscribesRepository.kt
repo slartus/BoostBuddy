@@ -120,7 +120,7 @@ private data class SubscribesResponse(
     @Serializable
     data class Data(
         // val isArchived: Boolean? = null,
-        // val price: Double? = null,
+// val   price: Double? = null,
         // val customPrice: Double? = null,
         // val nextPayTime: Int? = null,
         // val ownerId: Int? = null,
