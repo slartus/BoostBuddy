@@ -84,7 +84,7 @@ actual class AudioPlayer actual constructor(
                     .build(),
                 true
             )
-            .setWakeMode(C.WAKE_MODE_NETWORK)
+            .setWakeMode(C.WAKE_MODE_LOCAL)
             .setHandleAudioBecomingNoisy(true)
             .build()
             .apply { addListener(PlayerListener()) }
