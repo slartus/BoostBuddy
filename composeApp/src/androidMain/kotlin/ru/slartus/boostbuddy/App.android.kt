@@ -18,6 +18,7 @@ import ru.slartus.boostbuddy.data.Inject
 import ru.slartus.boostbuddy.data.analytic.AppMetricaAnalyticsTracker
 import ru.slartus.boostbuddy.data.analytic.analytics
 import ru.slartus.boostbuddy.data.log.debugLogBuild
+import ru.slartus.boostbuddy.data.pairing.CioPairingSender
 import ru.slartus.boostbuddy.ui.common.LocalPlatformConfiguration
 import ru.slartus.boostbuddy.ui.screens.RootScreen
 import ru.slartus.boostbuddy.utils.GlobalExceptionHandlersChain
@@ -44,6 +45,7 @@ class AndroidApp : Application() {
                 }
             }
         )
+        PlatformDataConfiguration.bindPairingSender { CioPairingSender(allowLoopback = BuildConfig.DEBUG) }
     }
 
     private fun getPlatform(): Platform {

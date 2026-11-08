@@ -15,14 +15,23 @@ internal class ProfileRepository(
             Profile(
                 id = response.id ?: error("wrong data"),
                 blogUrl = response.blogUrl,
+                name = response.name,
+                avatarUrl = response.avatarUrl,
             )
         }
 }
 
-data class Profile(val id: String, val blogUrl: String?)
+data class Profile(
+    val id: String,
+    val blogUrl: String?,
+    val name: String?,
+    val avatarUrl: String?,
+)
 
 @Serializable
 private data class ProfileResponse(
     val id: String? = null,
-    val blogUrl: String? = null
+    val blogUrl: String? = null,
+    val name: String? = null,
+    val avatarUrl: String? = null,
 )

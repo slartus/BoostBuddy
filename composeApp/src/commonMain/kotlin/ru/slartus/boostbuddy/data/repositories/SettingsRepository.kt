@@ -137,6 +137,26 @@ internal class SettingsRepository(
 
     suspend fun putDeviceId(value: String) = putString(DEVICE_ID_KEY, value, authSettings)
 
+    suspend fun getDeviceId(): String? = getString(DEVICE_ID_KEY, authSettings)
+
+    suspend fun replaceSession(
+        accessToken: String?,
+        refreshToken: String?,
+        expiresAt: Long?,
+        deviceId: String?,
+    ) = withContext(Dispatchers.IO) {
+        locker.withLock {
+            authSettings.putOrRemove(ACCESS_TOKEN_KEY, accessToken, Settings::putString)
+            authSettings.putOrRemove(REFRESH_TOKEN_KEY, refreshToken, Settings::putString)
+            authSettings.putOrRemove(TOKEN_EXPIRES_AT_KEY, expiresAt, Settings::putLong)
+            authSettings.putOrRemove(DEVICE_ID_KEY, deviceId, Settings::putString)
+        }
+    }
+
+    private fun <T : Any> Settings.putOrRemove(key: String, value: T?, put: Settings.(String, T) -> Unit) {
+        if (value == null) remove(key) else put(key, value)
+    }
+
     suspend fun isWebDeviceIdMigrated(): Boolean = getBoolean(WEB_DEVICE_ID_MIGRATED_KEY, false)
 
     suspend fun setWebDeviceIdMigrated() = putBoolean(WEB_DEVICE_ID_MIGRATED_KEY, true)

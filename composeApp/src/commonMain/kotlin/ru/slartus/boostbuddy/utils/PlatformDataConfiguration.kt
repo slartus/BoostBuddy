@@ -28,6 +28,7 @@ import ru.slartus.boostbuddy.data.log.CompositeLogger
 import ru.slartus.boostbuddy.data.log.Logger
 import ru.slartus.boostbuddy.data.log.NapierProxy
 import ru.slartus.boostbuddy.data.log.logger
+import ru.slartus.boostbuddy.data.pairing.PairingSender
 import ru.slartus.boostbuddy.data.repositories.AppSettings
 import ru.slartus.boostbuddy.data.repositories.BlogRepository
 import ru.slartus.boostbuddy.data.repositories.EventsRepository
@@ -107,6 +108,12 @@ object PlatformDataConfiguration {
             val debugLog = appSettings.debugLog || platformConfiguration.isDebug
             githubDependencies(debugLog)
             boostyDependencies(debugLog)
+        }
+    }
+
+    internal fun bindPairingSender(factory: () -> PairingSender) {
+        Inject.addConfig {
+            bindSingleton { factory() }
         }
     }
 
