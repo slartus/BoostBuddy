@@ -121,6 +121,31 @@ class CioPairingReceiverTest {
     }
 
     @Test
+    fun request_overConcurrencyLimit_returns503() = runBlocking {
+        val session = receiver(bodyReadTimeoutMillis = 5_000).start().getOrThrow()
+        val stalled = List(CioPairingReceiver.MAX_CONCURRENT_REQUESTS) {
+            Socket(LOOPBACK, session.port).also { socket ->
+                socket.getOutputStream().write(
+                    ("POST ${sendPath(session)} HTTP/1.1\r\nHost: ${session.host}:${session.port}\r\n" +
+                            "Content-Type: text/plain\r\nContent-Length: 100\r\n\r\npartial").encodeToByteArray()
+                )
+            }
+        }
+        try {
+            val deadline = System.currentTimeMillis() + 3_000
+            var status = request(session, "GET", PairingWebPages.PATH_PAGE_P).status
+            while (status != 503 && System.currentTimeMillis() < deadline) {
+                Thread.sleep(50)
+                status = request(session, "GET", PairingWebPages.PATH_PAGE_P).status
+            }
+
+            assertEquals(503, status)
+        } finally {
+            stalled.forEach { it.close() }
+        }
+    }
+
+    @Test
     fun post_withUnknownSid_returns404() = runBlocking {
         val session = startedSession()
 
