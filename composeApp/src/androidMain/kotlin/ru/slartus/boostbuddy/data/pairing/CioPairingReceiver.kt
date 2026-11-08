@@ -45,7 +45,8 @@ internal class CioPairingReceiver(
     private val allowLoopback: Boolean,
     private val lanAddress: () -> String?,
     private val ports: IntRange = DEFAULT_PORTS,
-    private val clock: () -> Long = System::currentTimeMillis,
+    private val wallClock: () -> Long = System::currentTimeMillis,
+    private val monotonicClock: () -> Long = { System.nanoTime() / 1_000_000 },
     private val ttlMillis: Long = TTL_MILLIS,
     private val lingerMillis: Long = LINGER_MILLIS,
 ) : PairingReceiver {
@@ -87,7 +88,12 @@ internal class CioPairingReceiver(
             ?: throw PairingReceiverException.NoLan()
         var bindError: Throwable? = null
         for (port in ports) {
-            val session = ActiveSession(host, port, clock() + ttlMillis)
+            val session = ActiveSession(
+                host = host,
+                port = port,
+                deadlineMonotonicMs = monotonicClock() + ttlMillis,
+                expiresAtMs = wallClock() + ttlMillis,
+            )
             try {
                 session.server.startSuspend(wait = false)
             } catch (e: Exception) {
@@ -104,7 +110,12 @@ internal class CioPairingReceiver(
         throw PairingReceiverException.NoFreePort(bindError)
     }
 
-    private inner class ActiveSession(host: String, port: Int, private val expiresAtMs: Long) {
+    private inner class ActiveSession(
+        host: String,
+        port: Int,
+        private val deadlineMonotonicMs: Long,
+        expiresAtMs: Long,
+    ) {
         private val lock = Any()
         private val key = PairingEnvelope.newKey()
         private val sid = PairingEnvelope.newSid()
@@ -208,13 +219,8 @@ internal class CioPairingReceiver(
 
         private fun accept(sealed: String): HttpStatusCode = synchronized(lock) {
             if (!isAcceptingLocked()) return HttpStatusCode.Gone
-            val payload = PairingPayloadValidator.openOrNull(
-                key = key,
-                sid = sid,
-                sealed = sealed,
-                nowSeconds = clock() / 1000,
-                ttlSeconds = ttlMillis / 1000,
-            ) ?: return failLocked(HttpStatusCode.BadRequest)
+            val payload = PairingPayloadValidator.openOrNull(key = key, sid = sid, sealed = sealed)
+                ?: return failLocked(HttpStatusCode.BadRequest)
             finishWith(PairingReceiverEvent.Received(payload))
             HttpStatusCode.OK
         }
@@ -223,7 +229,7 @@ internal class CioPairingReceiver(
 
         private fun isAcceptingLocked(): Boolean {
             if (finished) return false
-            if (clock() >= expiresAtMs) {
+            if (monotonicClock() >= deadlineMonotonicMs) {
                 finishWith(PairingReceiverEvent.Expired)
                 return false
             }

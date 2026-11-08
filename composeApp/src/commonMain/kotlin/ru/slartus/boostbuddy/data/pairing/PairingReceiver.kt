@@ -37,7 +37,7 @@ internal sealed class PairingReceiverException(message: String, cause: Throwable
 internal object PairingPayloadValidator {
     private val json = Json { ignoreUnknownKeys = true }
 
-    fun openOrNull(key: ByteArray, sid: String, sealed: String, nowSeconds: Long, ttlSeconds: Long): PairingPayload? {
+    fun openOrNull(key: ByteArray, sid: String, sealed: String): PairingPayload? {
         val plain = try {
             PairingEnvelope.open(key, sid, sealed)
         } catch (e: PairingEnvelopeException) {
@@ -52,7 +52,6 @@ internal object PairingPayloadValidator {
         }
         if (payload.accessToken.isBlank() || payload.refreshToken.isBlank() || payload.deviceId.isBlank()) return null
         if (payload.source != PairingPayload.SOURCE_WEB && payload.source != PairingPayload.SOURCE_APP) return null
-        if (nowSeconds - payload.iat > ttlSeconds || payload.iat - nowSeconds > ttlSeconds) return null
         return payload.copy(expiresAt = normalizeEpochSeconds(payload.expiresAt))
     }
 }

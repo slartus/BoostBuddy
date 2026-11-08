@@ -3,6 +3,7 @@ package ru.slartus.boostbuddy
 import android.app.Application
 import android.content.pm.PackageManager
 import android.os.Bundle
+import android.os.SystemClock
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.fillMaxSize
@@ -52,6 +53,7 @@ class AndroidApp : Application() {
             CioPairingReceiver(
                 allowLoopback = BuildConfig.DEBUG,
                 lanAddress = AndroidLanAddressResolver(this)::resolve,
+                monotonicClock = SystemClock::elapsedRealtime,
             )
         }
     }

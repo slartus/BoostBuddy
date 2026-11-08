@@ -30,6 +30,7 @@ import kotlin.test.fail
 class CioPairingReceiverTest {
 
     private var now = 1_700_000_000_000L
+    private var monotonicNow = 5_000L
     private val firstPort = freePort()
     private val receivers = mutableListOf<CioPairingReceiver>()
     private val blockers = mutableListOf<ServerSocket>()
@@ -141,11 +142,19 @@ class CioPairingReceiverTest {
     }
 
     @Test
+    fun post_withSkewedSenderClock_isAccepted() = runBlocking {
+        val twoDaysSeconds = 2 * 24 * 60 * 60L
+        val behind = startedSession()
+        val ahead = startedSession()
+
+        assertEquals(200, request(behind, "POST", sendPath(behind), body = seal(behind, payloadJson(iat = now / 1000 - twoDaysSeconds))).status)
+        assertEquals(200, request(ahead, "POST", sendPath(ahead), body = seal(ahead, payloadJson(iat = now / 1000 + twoDaysSeconds))).status)
+    }
+
+    @Test
     fun post_withInvalidPayload_returns400() = runBlocking {
         val session = startedSession()
-        val staleIat = now / 1000 - CioPairingReceiver.TTL_MILLIS / 1000 - 1
 
-        assertEquals(400, request(session, "POST", sendPath(session), body = seal(session, payloadJson(iat = staleIat))).status)
         assertEquals(400, request(session, "POST", sendPath(session), body = seal(session, payloadJson(deviceId = " "))).status)
         assertEquals(400, request(session, "POST", sendPath(session), body = seal(session, "{}")).status)
     }
@@ -179,12 +188,22 @@ class CioPairingReceiverTest {
         val receiver = receiver()
         val session = receiver.start().getOrThrow()
         val sealed = seal(session)
-        now = session.expiresAtMs
+        assertEquals(now + CioPairingReceiver.TTL_MILLIS, session.expiresAtMs)
+        monotonicNow += CioPairingReceiver.TTL_MILLIS
 
         val response = request(session, "POST", sendPath(session), body = sealed)
 
         assertEquals(410, response.status)
         assertEquals(PairingReceiverEvent.Expired, nextEvent(receiver))
+    }
+
+    @Test
+    fun post_afterWallClockJump_isStillAccepted() = runBlocking {
+        val session = startedSession()
+        val sealed = seal(session)
+        now += CioPairingReceiver.TTL_MILLIS * 10
+
+        assertEquals(200, request(session, "POST", sendPath(session), body = sealed).status)
     }
 
     @Test
@@ -268,7 +287,7 @@ class CioPairingReceiverTest {
 
     @Test
     fun cioSender_deliversPayloadToReceiver() = runBlocking {
-        val receiver = receiver(clock = System::currentTimeMillis)
+        val receiver = receiver()
         val session = receiver.start().getOrThrow()
         val target = assertNotNull(PairingLink.parse(session.pageUrl, allowLoopback = true))
         val sealed = PairingEnvelope.seal(
@@ -290,14 +309,15 @@ class CioPairingReceiverTest {
         allowLoopback: Boolean = true,
         lanAddress: () -> String? = { LOOPBACK },
         ports: IntRange = firstPort..firstPort + 3,
-        clock: () -> Long = { now },
+        monotonicClock: () -> Long = { monotonicNow },
         lingerMillis: Long = 60_000L,
     ): CioPairingReceiver =
         CioPairingReceiver(
             allowLoopback = allowLoopback,
             lanAddress = lanAddress,
             ports = ports,
-            clock = clock,
+            wallClock = { now },
+            monotonicClock = monotonicClock,
             lingerMillis = lingerMillis,
         ).also { receivers += it }
 
