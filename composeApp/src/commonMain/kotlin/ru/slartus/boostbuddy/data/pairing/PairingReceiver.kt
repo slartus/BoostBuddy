@@ -23,9 +23,11 @@ internal data class PairingSession(
 }
 
 internal sealed class PairingReceiverEvent {
-    data class Received(val payload: PairingPayload) : PairingReceiverEvent()
-    data object Expired : PairingReceiverEvent()
-    data object TooManyAttempts : PairingReceiverEvent()
+    abstract val sid: String
+
+    data class Received(override val sid: String, val payload: PairingPayload) : PairingReceiverEvent()
+    data class Expired(override val sid: String) : PairingReceiverEvent()
+    data class TooManyAttempts(override val sid: String) : PairingReceiverEvent()
 }
 
 internal sealed class PairingReceiverException(message: String, cause: Throwable? = null) :
@@ -33,6 +35,7 @@ internal sealed class PairingReceiverException(message: String, cause: Throwable
     class NoLan : PairingReceiverException("No private LAN IPv4 address")
     class NoFreePort(cause: Throwable?) : PairingReceiverException("No free pairing port", cause)
     class Stopped : PairingReceiverException("Pairing receiver stopped while starting")
+    class StartFailed(cause: Throwable?) : PairingReceiverException("Pairing receiver failed to start", cause)
 }
 
 internal object PairingPayloadValidator {

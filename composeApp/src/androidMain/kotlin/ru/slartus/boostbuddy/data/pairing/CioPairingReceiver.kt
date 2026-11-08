@@ -39,7 +39,10 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.io.readByteArray
 import ru.slartus.boostbuddy.data.pairing.web.PairingWebPages
+import java.io.IOException
 import java.net.BindException
+import java.net.InetAddress
+import java.net.NetworkInterface
 
 internal class CioPairingReceiver(
     private val allowLoopback: Boolean,
@@ -81,8 +84,8 @@ internal class CioPairingReceiver(
             generation++
             current
         }
-        _events.resetReplayCache()
         session?.close()
+        _events.resetReplayCache()
     }
 
     private suspend fun startLocked(startGeneration: Int): PairingSession {
@@ -94,6 +97,7 @@ internal class CioPairingReceiver(
         _events.resetReplayCache()
         val host = lanAddress()?.takeIf { isPrivateIpv4(it, allowLoopback) }
             ?: throw PairingReceiverException.NoLan()
+        if (!isLocalAddress(host)) throw PairingReceiverException.StartFailed(null)
         var bindError: Throwable? = null
         for (port in ports) {
             val session = ActiveSession(
@@ -107,7 +111,7 @@ internal class CioPairingReceiver(
             } catch (e: Exception) {
                 session.close()
                 currentCoroutineContext().ensureActive()
-                if (!e.isBindFailure()) throw e
+                if (!e.isBindFailure()) throw PairingReceiverException.StartFailed(e)
                 bindError = e
                 continue
             }
@@ -172,7 +176,7 @@ internal class CioPairingReceiver(
         fun scheduleExpiry() {
             expiryJob = scope.launch {
                 delay(ttlMillis)
-                synchronized(lock) { finishWith(PairingReceiverEvent.Expired) }
+                synchronized(lock) { finishWith(PairingReceiverEvent.Expired(sid)) }
             }
         }
 
@@ -235,7 +239,7 @@ internal class CioPairingReceiver(
             if (!isAcceptingLocked()) return HttpStatusCode.Gone
             val payload = PairingPayloadValidator.openOrNull(key = key, sid = sid, sealed = sealed)
                 ?: return failLocked(HttpStatusCode.BadRequest)
-            finishWith(PairingReceiverEvent.Received(payload))
+            finishWith(PairingReceiverEvent.Received(sid, payload))
             HttpStatusCode.OK
         }
 
@@ -244,7 +248,7 @@ internal class CioPairingReceiver(
         private fun isAcceptingLocked(): Boolean {
             if (finished) return false
             if (monotonicClock() >= deadlineMonotonicMs) {
-                finishWith(PairingReceiverEvent.Expired)
+                finishWith(PairingReceiverEvent.Expired(sid))
                 return false
             }
             return true
@@ -255,7 +259,7 @@ internal class CioPairingReceiver(
         private fun failLocked(status: HttpStatusCode): HttpStatusCode {
             if (finished) return HttpStatusCode.Gone
             failures++
-            if (failures >= MAX_FAILURES) finishWith(PairingReceiverEvent.TooManyAttempts)
+            if (failures >= MAX_FAILURES) finishWith(PairingReceiverEvent.TooManyAttempts(sid))
             return status
         }
 
@@ -275,6 +279,13 @@ internal class CioPairingReceiver(
             return true
         }
     }
+
+    private fun isLocalAddress(host: String): Boolean =
+        try {
+            NetworkInterface.getByInetAddress(InetAddress.getByName(host)) != null
+        } catch (e: IOException) {
+            false
+        }
 
     private fun Throwable.isBindFailure(): Boolean =
         generateSequence(this) { it.cause }.any { it is BindException }

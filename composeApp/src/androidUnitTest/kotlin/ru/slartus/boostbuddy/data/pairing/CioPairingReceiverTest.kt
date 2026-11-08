@@ -3,6 +3,7 @@ package ru.slartus.boostbuddy.data.pairing
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.kodein.di.bindSingleton
@@ -168,6 +169,7 @@ class CioPairingReceiverTest {
 
         assertEquals(200, response.status)
         val event = assertIs<PairingReceiverEvent.Received>(nextEvent(receiver))
+        assertEquals(session.sid, event.sid)
         assertEquals("access", event.payload.accessToken)
         assertEquals("refresh", event.payload.refreshToken)
         assertEquals("device", event.payload.deviceId)
@@ -194,7 +196,7 @@ class CioPairingReceiverTest {
         val response = request(session, "POST", sendPath(session), body = sealed)
 
         assertEquals(410, response.status)
-        assertEquals(PairingReceiverEvent.Expired, nextEvent(receiver))
+        assertEquals(PairingReceiverEvent.Expired(session.sid), nextEvent(receiver))
     }
 
     @Test
@@ -216,7 +218,7 @@ class CioPairingReceiverTest {
         }
 
         assertEquals(410, request(session, "POST", sendPath(session), body = seal(session)).status)
-        assertEquals(PairingReceiverEvent.TooManyAttempts, nextEvent(receiver))
+        assertEquals(PairingReceiverEvent.TooManyAttempts(session.sid), nextEvent(receiver))
     }
 
     @Test
@@ -259,6 +261,24 @@ class CioPairingReceiverTest {
 
         assertIs<PairingReceiverException.Stopped>(error)
         assertPortReleased(firstPort)
+    }
+
+    @Test
+    fun stop_dropsReceivedEventForNewSubscribers() = runBlocking {
+        val receiver = receiver()
+        val session = receiver.start().getOrThrow()
+        assertEquals(200, request(session, "POST", sendPath(session), body = seal(session)).status)
+
+        receiver.stop()
+
+        assertNull(withTimeoutOrNull(300) { receiver.events.first() })
+    }
+
+    @Test
+    fun start_failsWhenAddressIsNotLocal() = runBlocking<Unit> {
+        val error = receiver(lanAddress = { "10.255.255.1" }).start().exceptionOrNull()
+
+        assertIs<PairingReceiverException.StartFailed>(error)
     }
 
     @Test
