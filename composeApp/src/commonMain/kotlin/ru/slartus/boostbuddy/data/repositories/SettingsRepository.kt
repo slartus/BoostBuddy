@@ -133,6 +133,12 @@ internal class SettingsRepository(
         }
     }
 
+    suspend fun putDeviceId(value: String) = putString(DEVICE_ID_KEY, value)
+
+    suspend fun isWebDeviceIdMigrated(): Boolean = getBoolean(WEB_DEVICE_ID_MIGRATED_KEY, false)
+
+    suspend fun setWebDeviceIdMigrated() = putBoolean(WEB_DEVICE_ID_MIGRATED_KEY, true)
+
     private fun generateDeviceId(): String {
         val bytes = ByteArray(16).also { Random.nextBytes(it) }
         bytes[6] = ((bytes[6].toInt() and 0x0f) or 0x40).toByte()
@@ -226,6 +232,7 @@ internal class SettingsRepository(
         const val REFRESH_TOKEN_KEY = "refresh_token"
         const val TOKEN_EXPIRES_AT_KEY = "token_expires_at"
         const val DEVICE_ID_KEY = "device_id"
+        const val WEB_DEVICE_ID_MIGRATED_KEY = "web_device_id_migrated"
         const val DARK_MODE_KEY = "dark_mode"
         const val SYSTEM_PLAYER_KEY = "system_player"
         const val DEBUG_LOG = "debug_log"

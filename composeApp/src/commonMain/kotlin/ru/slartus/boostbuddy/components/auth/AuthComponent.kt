@@ -12,6 +12,7 @@ import kotlinx.serialization.json.Json
 import ru.slartus.boostbuddy.components.BaseComponent
 import ru.slartus.boostbuddy.data.Inject
 import ru.slartus.boostbuddy.data.analytic.analytics
+import ru.slartus.boostbuddy.data.auth.boostyClientId
 import ru.slartus.boostbuddy.data.log.logger
 import ru.slartus.boostbuddy.data.repositories.PhoneAuthRepository
 import ru.slartus.boostbuddy.data.repositories.ProfileRepository
@@ -61,8 +62,9 @@ internal class AuthComponentImpl(
     override fun onCookiesChanged(cookies: String) {
         scope.launch {
             runCatching {
+                val parsedCookies = parseCookies(cookies)
                 val authCookie =
-                    parseCookies(cookies).entries.firstOrNull { it.key == "auth" } ?: return@launch
+                    parsedCookies.entries.firstOrNull { it.key == "auth" } ?: return@launch
                 val jsonObject = authCookie.value.decodeURLQueryComponent()
                 val authResponse = json.decodeFromString<AuthResponse>(jsonObject)
                 authResponse.accessToken?.let { accessToken ->
@@ -72,7 +74,8 @@ internal class AuthComponentImpl(
                             checkToken(
                                 accessToken,
                                 authResponse.refreshToken,
-                                authResponse.expiresAt
+                                authResponse.expiresAt,
+                                parsedCookies.boostyClientId(),
                             )
                         }
                     }
@@ -215,7 +218,17 @@ internal class AuthComponentImpl(
         }
     }
 
-    private suspend fun checkToken(token: String, refreshToken: String?, expiresAt: Long?) {
+    private suspend fun checkToken(
+        token: String,
+        refreshToken: String?,
+        expiresAt: Long?,
+        clientId: String?,
+    ) {
+        if (clientId != null) {
+            settingsRepository.putDeviceId(clientId)
+        } else {
+            logger.w("Web login without _clientId cookie, token refresh will use current device id")
+        }
         settingsRepository.putAccessToken(token)
         settingsRepository.putRefreshToken(refreshToken)
         settingsRepository.putTokenExpiresAt(expiresAt)

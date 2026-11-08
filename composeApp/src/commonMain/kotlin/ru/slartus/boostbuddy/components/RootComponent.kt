@@ -21,6 +21,7 @@ import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
 import ru.slartus.boostbuddy.components.auth.AuthComponent
 import ru.slartus.boostbuddy.components.auth.AuthComponentImpl
 import ru.slartus.boostbuddy.components.blog.BlogComponent
@@ -46,6 +47,7 @@ import ru.slartus.boostbuddy.components.video.VideoComponent
 import ru.slartus.boostbuddy.components.video.VideoComponentImpl
 import ru.slartus.boostbuddy.data.Inject
 import ru.slartus.boostbuddy.data.analytic.analytics
+import ru.slartus.boostbuddy.data.auth.migrateWebSessionDeviceId
 import ru.slartus.boostbuddy.data.repositories.AppSettings
 import ru.slartus.boostbuddy.data.repositories.Blog
 import ru.slartus.boostbuddy.data.repositories.GithubRepository
@@ -131,6 +133,7 @@ class RootComponentImpl(
     private val githubRepository by Inject.lazy<GithubRepository>()
     private val platformConfiguration by Inject.lazy<PlatformConfiguration>()
     private val permissions by Inject.lazy<Permissions>()
+    private val json by Inject.lazy<Json>()
     private var fetchVersionJob: Job = Job()
 
     // Лямбда не сериализуется и поэтому не лежит в DialogConfig.Filter. Живёт в памяти процесса:
@@ -159,6 +162,7 @@ class RootComponentImpl(
         )
 
     init {
+        scope.launch { migrateWebSessionDeviceId(settingsRepository, json) }
         subscribeSettings()
         scope.launch { donateNotify() }
         fetchLastReleaseInfo()

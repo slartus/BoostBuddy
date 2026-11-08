@@ -39,4 +39,6 @@ actual object WebManager {
             NSDate.dateWithTimeIntervalSince1970(0.0)
         ) { }
     }
+
+    actual suspend fun getCookies(url: String): String? = null
 }
