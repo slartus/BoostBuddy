@@ -1,6 +1,7 @@
 package ru.slartus.boostbuddy
 
 import android.app.Application
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Bundle
 import android.os.SystemClock
@@ -14,6 +15,7 @@ import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.LifecycleOwner
 import com.arkivanov.decompose.defaultComponentContext
+import ru.slartus.boostbuddy.components.RootComponent
 import ru.slartus.boostbuddy.components.RootComponentImpl
 import ru.slartus.boostbuddy.data.Inject
 import ru.slartus.boostbuddy.data.analytic.AppMetricaAnalyticsTracker
@@ -73,11 +75,14 @@ class AppActivity : BaseComponentActivity()
 class TvAppActivity : BaseComponentActivity()
 
 open class BaseComponentActivity : ComponentActivity() {
+    private lateinit var root: RootComponent
+
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen()
         super.onCreate(savedInstanceState)
 
         val root = RootComponentImpl(componentContext = defaultComponentContext())
+        this.root = root
 
         Inject.instance<GlobalExceptionHandlersChain>().registerHandler { error ->
             when (error) {
@@ -104,5 +109,19 @@ open class BaseComponentActivity : ComponentActivity() {
                 RootScreen(component = root, modifier = Modifier.fillMaxSize())
             }
         }
+        if (savedInstanceState == null) consumeDeepLink(intent)
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        consumeDeepLink(intent)
+    }
+
+    private fun consumeDeepLink(intent: Intent?) {
+        if (intent?.action != Intent.ACTION_VIEW) return
+        val url = intent.data?.toString() ?: return
+        intent.data = null
+        setIntent(intent)
+        root.onDeepLink(url)
     }
 }
