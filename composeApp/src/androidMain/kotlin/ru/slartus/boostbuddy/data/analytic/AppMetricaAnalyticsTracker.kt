@@ -7,6 +7,7 @@ import io.appmetrica.analytics.AppMetricaConfig
 class AppMetricaAnalyticsTracker(context: Context) : AnalyticsTracker {
     init {
         val config = AppMetricaConfig.newConfigBuilder(API_KEY)
+            .withAppOpenTrackingEnabled(false)
             .build()
         AppMetrica.activate(context, config)
     }

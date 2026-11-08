@@ -15,6 +15,7 @@ import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.LifecycleOwner
 import com.arkivanov.decompose.defaultComponentContext
+import io.appmetrica.analytics.AppMetrica
 import ru.slartus.boostbuddy.components.RootComponent
 import ru.slartus.boostbuddy.components.RootComponentImpl
 import ru.slartus.boostbuddy.data.Inject
@@ -24,6 +25,7 @@ import ru.slartus.boostbuddy.data.log.debugLogBuild
 import ru.slartus.boostbuddy.data.pairing.AndroidLanAddressResolver
 import ru.slartus.boostbuddy.data.pairing.CioPairingReceiver
 import ru.slartus.boostbuddy.data.pairing.CioPairingSender
+import ru.slartus.boostbuddy.data.pairing.PairingLink
 import ru.slartus.boostbuddy.ui.common.LocalPlatformConfiguration
 import ru.slartus.boostbuddy.ui.screens.RootScreen
 import ru.slartus.boostbuddy.utils.GlobalExceptionHandlersChain
@@ -109,19 +111,24 @@ open class BaseComponentActivity : ComponentActivity() {
                 RootScreen(component = root, modifier = Modifier.fillMaxSize())
             }
         }
-        if (savedInstanceState == null) consumeDeepLink(intent)
+        consumeDeepLink(intent, handle = savedInstanceState == null)
+        if (!BuildConfig.DEBUG) AppMetrica.reportAppOpen(intent)
     }
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
-        consumeDeepLink(intent)
+        consumeDeepLink(intent, handle = true)
     }
 
-    private fun consumeDeepLink(intent: Intent?) {
-        if (intent?.action != Intent.ACTION_VIEW) return
-        val url = intent.data?.toString() ?: return
+    private fun consumeDeepLink(intent: Intent, handle: Boolean) {
+        if (intent.action != Intent.ACTION_VIEW) return
+        val data = intent.data ?: return
+        val isPairingLink = data.scheme.equals(PairingLink.APP_SCHEME, ignoreCase = true) &&
+                data.host.equals(PairingLink.APP_HOST, ignoreCase = true)
+        if (!isPairingLink) return
         intent.data = null
         setIntent(intent)
-        root.onDeepLink(url)
+        val launchedFromHistory = (intent.flags and Intent.FLAG_ACTIVITY_LAUNCHED_FROM_HISTORY) != 0
+        if (handle && !launchedFromHistory) root.onDeepLink(data.toString())
     }
 }
