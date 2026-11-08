@@ -19,3 +19,10 @@ internal data class PairingPayload(
         const val SOURCE_APP = "app"
     }
 }
+
+private const val MILLIS_EPOCH_THRESHOLD = 100_000_000_000L
+
+internal fun normalizeEpochSeconds(value: Long?): Long? {
+    if (value == null || value <= 0) return null
+    return if (value > MILLIS_EPOCH_THRESHOLD) value / 1000 else value
+}
