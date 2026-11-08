@@ -225,15 +225,20 @@ internal fun buildHttpClient(
         install(Logging) {
             logger = object : Logger {
                 override fun log(message: String) {
-                    ru.slartus.boostbuddy.data.log.logger.d(
-                        message.replace(
-                            Regex("Bearer\\s+[^\\s-]+", RegexOption.IGNORE_CASE),
-                            "Bearer secret"
-                        )
-                    )
+                    ru.slartus.boostbuddy.data.log.logger.d(maskSecrets(message))
                 }
             }
             level = if (isDebug) LogLevel.ALL else LogLevel.NONE
+            sanitizeHeader { it == HttpHeaders.Authorization }
         }
         block(this)
     }
+
+private val secretLogPatterns = listOf(
+    Regex("Bearer\\s+\\S+", RegexOption.IGNORE_CASE) to "Bearer ***",
+    Regex("((?:refresh_token|access_token)=)[^&\\s]+") to "\$1***",
+    Regex("(\"(?:accessToken|refreshToken|access_token|refresh_token)\"\\s*:\\s*)\"[^\"]*\"") to "\$1\"***\"",
+)
+
+private fun maskSecrets(message: String): String =
+    secretLogPatterns.fold(message) { acc, (regex, replacement) -> regex.replace(acc, replacement) }
