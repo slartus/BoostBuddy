@@ -6,6 +6,7 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -76,7 +77,10 @@ actual class AudioPlayer actual constructor(
     private fun obtainPlayer(): ExoPlayer = player ?: createPlayer().also { player = it }
 
     private fun createPlayer(): ExoPlayer =
-        ExoPlayer.Builder(platformConfiguration.androidContext)
+        ExoPlayer.Builder(
+            platformConfiguration.androidContext,
+            DefaultMediaSourceFactory(browserHeadersHttpDataSourceFactory())
+        )
             .setAudioAttributes(
                 AudioAttributes.Builder()
                     .setContentType(C.AUDIO_CONTENT_TYPE_MUSIC)

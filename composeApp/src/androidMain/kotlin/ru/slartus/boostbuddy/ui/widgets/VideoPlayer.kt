@@ -21,7 +21,7 @@ import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.DataSource
 import androidx.media3.datasource.DataSpec
-import androidx.media3.datasource.DefaultHttpDataSource
+import ru.slartus.boostbuddy.utils.browserHeadersHttpDataSourceFactory
 import androidx.media3.datasource.HttpDataSource
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.analytics.AnalyticsListener
@@ -271,7 +271,7 @@ private object LoadDiagnosticsListener : AnalyticsListener {
 
 @OptIn(UnstableApi::class)
 private fun loggingHttpFactory(): DataSource.Factory {
-    val delegate = DefaultHttpDataSource.Factory()
+    val delegate = browserHeadersHttpDataSourceFactory()
     return DataSource.Factory {
         val source = delegate.createDataSource()
         LoggingHttpDataSource(source)
