@@ -14,6 +14,7 @@ import com.arkivanov.decompose.router.stack.navigate
 import com.arkivanov.decompose.router.stack.popTo
 import com.arkivanov.decompose.router.stack.popWhile
 import com.arkivanov.decompose.router.stack.push
+import com.arkivanov.decompose.router.stack.pushNew
 import com.arkivanov.decompose.router.stack.pushToFront
 import com.arkivanov.decompose.router.stack.replaceAll
 import com.arkivanov.decompose.value.Value
@@ -24,6 +25,7 @@ import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.Transient
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.Json
 import ru.slartus.boostbuddy.components.auth.AuthComponent
@@ -41,6 +43,7 @@ import ru.slartus.boostbuddy.components.main.MainComponentImpl
 import ru.slartus.boostbuddy.components.pairsend.PairSendComponent
 import ru.slartus.boostbuddy.components.pairsend.PairSendComponentImpl
 import ru.slartus.boostbuddy.components.pairsend.PairSendDeepLinkDecision
+import ru.slartus.boostbuddy.components.pairsend.PairSendViewState
 import ru.slartus.boostbuddy.components.pairsend.resolvePairSendDeepLink
 import ru.slartus.boostbuddy.components.post.PostComponent
 import ru.slartus.boostbuddy.components.post.PostComponentImpl
@@ -72,6 +75,7 @@ import ru.slartus.boostbuddy.navigation.NavigationRouter
 import ru.slartus.boostbuddy.navigation.NavigationTree
 import ru.slartus.boostbuddy.navigation.Screen
 import ru.slartus.boostbuddy.navigation.ScreenAction
+import ru.slartus.boostbuddy.navigation.persistableStack
 import ru.slartus.boostbuddy.navigation.navigateTo
 import ru.slartus.boostbuddy.utils.Permission
 import ru.slartus.boostbuddy.utils.Permissions
@@ -156,8 +160,6 @@ class RootComponentImpl(
     private var pendingFilterCallback: ((ru.slartus.boostbuddy.components.filter.Filter) -> Unit)? =
         null
 
-    private var pendingPairTarget: PairingTarget? = null
-
     override val dialogSlot: Value<ChildSlot<*, RootComponent.DialogChild>> =
         childSlot(
             key = "dialogSlot",
@@ -179,8 +181,7 @@ class RootComponentImpl(
         )
 
     private fun saveStack(stack: List<Config>): SerializableContainer? =
-        stack.filterNot { it is Config.PairSend }
-            .takeIf { it.isNotEmpty() }
+        persistableStack(stack) { it is Config.PairSend }
             ?.let { SerializableContainer(value = it, strategy = ListSerializer(Config.serializer())) }
 
     init {
@@ -438,7 +439,7 @@ class RootComponentImpl(
             onLogined = {
                 navigation.replaceAll(Config.Main)
             },
-            onQrLogin = { navigation.push(Config.QrLogin) },
+            onQrLogin = { navigation.pushNew(Config.QrLogin) },
         )
 
     private fun qrLoginComponent(componentContext: ComponentContext): QrLoginComponent =
@@ -453,20 +454,20 @@ class RootComponentImpl(
         componentContext: ComponentContext,
         config: Config.PairSend,
     ): PairSendComponent {
-        val target = checkNotNull(pendingPairTarget)
-        pendingPairTarget = null
         return PairSendComponentImpl(
             componentContext = componentContext,
-            target = target,
+            target = checkNotNull(config.target),
             onTransferred = { navigation.replaceAll(Config.Auth) },
             onCancelled = { navigation.popWhile { it == config } },
         )
     }
 
     override fun onDeepLink(url: String) {
-        val isQrLoginActive = stack.value.active.configuration == Config.QrLogin
+        val isLoginInProgress = stack.value.items.any {
+            it.configuration == Config.Auth || it.configuration == Config.QrLogin
+        }
         scope.launch {
-            val isLoggedIn = !isQrLoginActive && !settingsRepository.getAccessToken().isNullOrEmpty()
+            val isLoggedIn = !isLoginInProgress && !settingsRepository.getAccessToken().isNullOrEmpty()
             val decision = resolvePairSendDeepLink(
                 url = url,
                 allowLoopback = platformConfiguration.isDebug,
@@ -484,8 +485,14 @@ class RootComponentImpl(
     }
 
     private fun openPairSend(target: PairingTarget) {
-        pendingPairTarget = target
-        navigation.navigate { stack -> stack.filterNot { it is Config.PairSend } + Config.PairSend() }
+        val active = stack.value.active.instance
+        if (active is RootComponent.Child.PairSendChild &&
+            active.component.viewStates.value is PairSendViewState.Sending
+        ) {
+            dialogNavigation.activate(DialogConfig.Error(PAIR_SEND_IN_PROGRESS_MESSAGE))
+            return
+        }
+        navigation.navigate { stack -> stack.filterNot { it is Config.PairSend } + Config.PairSend(target) }
     }
 
     private fun subscribesComponent(componentContext: ComponentContext): SubscribesComponent =
@@ -717,7 +724,10 @@ class RootComponentImpl(
         data object QrLogin : Config
 
         @Serializable
-        data class PairSend(val id: String = Uuid.random().toString()) : Config
+        data class PairSend(
+            @Transient val target: PairingTarget? = null,
+            val id: String = Uuid.random().toString(),
+        ) : Config
     }
 
     private companion object {
@@ -725,6 +735,7 @@ class RootComponentImpl(
             "Ссылка для передачи входа повреждена или устарела. Отсканируйте QR-код ещё раз"
         const val PAIR_NOT_LOGGED_IN_MESSAGE =
             "Сначала войдите в аккаунт на этом устройстве, затем отсканируйте QR снова"
+        const val PAIR_SEND_IN_PROGRESS_MESSAGE = "Передача входа уже выполняется"
     }
 
     @Serializable
