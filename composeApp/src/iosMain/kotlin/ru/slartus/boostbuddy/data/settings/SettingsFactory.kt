@@ -10,4 +10,6 @@ internal actual class SettingsFactory actual constructor(val platformConfigurati
     actual fun createDefault(): ObservableSettings {
         return NSUserDefaultsSettings(NSUserDefaults.standardUserDefaults)
     }
+
+    actual fun createAuth(): ObservableSettings? = null
 }

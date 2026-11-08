@@ -5,4 +5,5 @@ import ru.slartus.boostbuddy.utils.PlatformConfiguration
 
 internal expect class SettingsFactory(platformConfiguration: PlatformConfiguration) {
     fun createDefault(): ObservableSettings
+    fun createAuth(): ObservableSettings?
 }

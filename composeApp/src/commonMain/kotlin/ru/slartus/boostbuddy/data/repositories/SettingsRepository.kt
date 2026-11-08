@@ -2,6 +2,7 @@ package ru.slartus.boostbuddy.data.repositories
 
 import com.russhwolf.settings.ExperimentalSettingsApi
 import com.russhwolf.settings.ObservableSettings
+import com.russhwolf.settings.Settings
 import com.russhwolf.settings.coroutines.getBooleanFlow
 import com.russhwolf.settings.coroutines.getBooleanOrNullFlow
 import com.russhwolf.settings.coroutines.getFloatFlow
@@ -24,12 +25,13 @@ import kotlin.random.Random
 @OptIn(ExperimentalSettingsApi::class)
 internal class SettingsRepository(
     private val settings: ObservableSettings,
+    private val authSettings: ObservableSettings,
     private val coroutineScope: CoroutineScope,
 ) {
     private val locker = Mutex()
 
     val tokenFlow: StateFlow<String?>
-        get() = settings.getStringOrNullStateFlow(coroutineScope, ACCESS_TOKEN_KEY)
+        get() = authSettings.getStringOrNullStateFlow(coroutineScope, ACCESS_TOKEN_KEY)
 
     val appSettingsFlow: Flow<AppSettings>
         get() = combine(
@@ -98,42 +100,42 @@ internal class SettingsRepository(
 
     suspend fun putAccessToken(value: String?) = withContext(Dispatchers.IO) {
         if (value == null)
-            remove(ACCESS_TOKEN_KEY)
+            remove(ACCESS_TOKEN_KEY, authSettings)
         else
-            putString(ACCESS_TOKEN_KEY, value)
+            putString(ACCESS_TOKEN_KEY, value, authSettings)
     }
 
-    suspend fun getAccessToken(): String? = getString(ACCESS_TOKEN_KEY)
+    suspend fun getAccessToken(): String? = getString(ACCESS_TOKEN_KEY, authSettings)
 
     suspend fun putRefreshToken(value: String?) = withContext(Dispatchers.IO) {
         if (value == null)
-            remove(REFRESH_TOKEN_KEY)
+            remove(REFRESH_TOKEN_KEY, authSettings)
         else
-            putString(REFRESH_TOKEN_KEY, value)
+            putString(REFRESH_TOKEN_KEY, value, authSettings)
     }
 
-    suspend fun getRefreshToken(): String? = getString(REFRESH_TOKEN_KEY)
+    suspend fun getRefreshToken(): String? = getString(REFRESH_TOKEN_KEY, authSettings)
 
     suspend fun putTokenExpiresAt(value: Long?) = withContext(Dispatchers.IO) {
         if (value == null)
-            remove(TOKEN_EXPIRES_AT_KEY)
+            remove(TOKEN_EXPIRES_AT_KEY, authSettings)
         else
-            putLong(TOKEN_EXPIRES_AT_KEY, value)
+            putLong(TOKEN_EXPIRES_AT_KEY, value, authSettings)
     }
 
-    suspend fun getTokenExpiresAt(): Long? = getLong(TOKEN_EXPIRES_AT_KEY)
+    suspend fun getTokenExpiresAt(): Long? = getLong(TOKEN_EXPIRES_AT_KEY, authSettings)
 
     suspend fun getOrCreateDeviceId(): String = withContext(Dispatchers.IO) {
         locker.withLock {
-            val existing = settings.getStringOrNull(DEVICE_ID_KEY)
+            val existing = authSettings.getStringOrNull(DEVICE_ID_KEY)
             if (existing != null) return@withLock existing
             val generated = generateDeviceId()
-            settings.putString(DEVICE_ID_KEY, generated)
+            authSettings.putString(DEVICE_ID_KEY, generated)
             generated
         }
     }
 
-    suspend fun putDeviceId(value: String) = putString(DEVICE_ID_KEY, value)
+    suspend fun putDeviceId(value: String) = putString(DEVICE_ID_KEY, value, authSettings)
 
     suspend fun isWebDeviceIdMigrated(): Boolean = getBoolean(WEB_DEVICE_ID_MIGRATED_KEY, false)
 
@@ -164,15 +166,15 @@ internal class SettingsRepository(
     suspend fun getLastDonateNotifyVersion(): String? =
         getString(LAST_DONATE_NOTIFY_VERSION_KEY)
 
-    private suspend fun getString(key: String): String? = withContext(Dispatchers.IO) {
+    private suspend fun getString(key: String, store: Settings = settings): String? = withContext(Dispatchers.IO) {
         locker.withLock {
-            settings.getStringOrNull(key)
+            store.getStringOrNull(key)
         }
     }
 
-    private suspend fun putString(key: String, value: String) = withContext(Dispatchers.IO) {
+    private suspend fun putString(key: String, value: String, store: Settings = settings) = withContext(Dispatchers.IO) {
         locker.withLock {
-            settings.putString(key, value)
+            store.putString(key, value)
         }
     }
 
@@ -195,9 +197,9 @@ internal class SettingsRepository(
         }
     }
 
-    private suspend fun putLong(key: String, value: Long) = withContext(Dispatchers.IO) {
+    private suspend fun putLong(key: String, value: Long, store: Settings = settings) = withContext(Dispatchers.IO) {
         locker.withLock {
-            settings.putLong(key, value)
+            store.putLong(key, value)
         }
     }
 
@@ -207,15 +209,15 @@ internal class SettingsRepository(
         }
     }
 
-    private suspend fun getLong(key: String) = withContext(Dispatchers.IO) {
+    private suspend fun getLong(key: String, store: Settings = settings) = withContext(Dispatchers.IO) {
         locker.withLock {
-            settings.getLongOrNull(key)
+            store.getLongOrNull(key)
         }
     }
 
-    private suspend fun remove(key: String) = withContext(Dispatchers.IO) {
+    private suspend fun remove(key: String, store: Settings = settings) = withContext(Dispatchers.IO) {
         locker.withLock {
-            settings.remove(key)
+            store.remove(key)
         }
     }
 
@@ -226,21 +228,39 @@ internal class SettingsRepository(
         settings.putString(KEY_DONATION_PROMPT_VERSION, version)
     }
 
-    private companion object {
-        const val KEY_DONATION_PROMPT_VERSION = "KEY_DONATION_PROMPT_VERSION"
-        const val ACCESS_TOKEN_KEY = "access_token"
-        const val REFRESH_TOKEN_KEY = "refresh_token"
-        const val TOKEN_EXPIRES_AT_KEY = "token_expires_at"
-        const val DEVICE_ID_KEY = "device_id"
-        const val WEB_DEVICE_ID_MIGRATED_KEY = "web_device_id_migrated"
-        const val DARK_MODE_KEY = "dark_mode"
-        const val SYSTEM_PLAYER_KEY = "system_player"
-        const val DEBUG_LOG = "debug_log"
-        const val LAST_DONATE_NOTIFY_VERSION_KEY = "LAST_DONATE_NOTIFY_VERSION_KEY"
-        const val PREFERRED_QUALITY_KEY = "preferred_video_quality"
-        const val PREFERRED_PLAYBACK_SPEED_KEY = "preferred_playback_speed"
-        const val DEFAULT_PLAYBACK_SPEED = 1f
-        const val VIDEO_SCALE_MODE_KEY = "video_scale_mode"
+    internal companion object {
+        fun migrateAuthSettings(legacy: Settings, target: Settings) {
+            if (legacy === target) return
+            AUTH_STRING_KEYS.forEach { key ->
+                val value = legacy.getStringOrNull(key)
+                if (value != null && !target.hasKey(key)) target.putString(key, value)
+            }
+            AUTH_LONG_KEYS.forEach { key ->
+                val value = legacy.getLongOrNull(key)
+                if (value != null && !target.hasKey(key)) target.putLong(key, value)
+            }
+            (AUTH_STRING_KEYS + AUTH_LONG_KEYS)
+                .filter(legacy::hasKey)
+                .forEach(legacy::remove)
+        }
+
+        private val AUTH_STRING_KEYS = listOf(ACCESS_TOKEN_KEY, REFRESH_TOKEN_KEY, DEVICE_ID_KEY)
+        private val AUTH_LONG_KEYS = listOf(TOKEN_EXPIRES_AT_KEY)
+
+        private const val KEY_DONATION_PROMPT_VERSION = "KEY_DONATION_PROMPT_VERSION"
+        private const val ACCESS_TOKEN_KEY = "access_token"
+        private const val REFRESH_TOKEN_KEY = "refresh_token"
+        private const val TOKEN_EXPIRES_AT_KEY = "token_expires_at"
+        private const val DEVICE_ID_KEY = "device_id"
+        private const val WEB_DEVICE_ID_MIGRATED_KEY = "web_device_id_migrated"
+        private const val DARK_MODE_KEY = "dark_mode"
+        private const val SYSTEM_PLAYER_KEY = "system_player"
+        private const val DEBUG_LOG = "debug_log"
+        private const val LAST_DONATE_NOTIFY_VERSION_KEY = "LAST_DONATE_NOTIFY_VERSION_KEY"
+        private const val PREFERRED_QUALITY_KEY = "preferred_video_quality"
+        private const val PREFERRED_PLAYBACK_SPEED_KEY = "preferred_playback_speed"
+        private const val DEFAULT_PLAYBACK_SPEED = 1f
+        private const val VIDEO_SCALE_MODE_KEY = "video_scale_mode"
     }
 }
 

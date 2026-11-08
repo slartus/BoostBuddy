@@ -1,5 +1,6 @@
 package ru.slartus.boostbuddy.utils
 
+import com.russhwolf.settings.ObservableSettings
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
@@ -48,6 +49,7 @@ object PlatformDataConfiguration {
     private const val TAG_HTTP_CLIENT_BOOSTY = "boosty"
     private const val TAG_HTTP_CLIENT_BOOSTY_AUTH = "boosty_auth"
     private const val TAG_HTTP_CLIENT_GITHUB = "github"
+    private const val TAG_AUTH_SETTINGS = "auth_settings"
     fun createDependenciesTree(
         platformConfiguration: PlatformConfiguration,
         analyticsTrackers: List<AnalyticsTracker>
@@ -84,7 +86,19 @@ object PlatformDataConfiguration {
             bindSingleton { NavigationRouterImpl() }
             bindSingleton { Permissions(platformConfiguration = instance()) }
             bindSingleton { SettingsFactory(platformConfiguration = instance()).createDefault() }
-            bindProvider { new(::SettingsRepository) }
+            bindSingleton(TAG_AUTH_SETTINGS) {
+                val legacySettings = instance<ObservableSettings>()
+                SettingsFactory(platformConfiguration = instance()).createAuth()
+                    ?.also { SettingsRepository.migrateAuthSettings(legacy = legacySettings, target = it) }
+                    ?: legacySettings
+            }
+            bindProvider {
+                SettingsRepository(
+                    settings = instance(),
+                    authSettings = instance(TAG_AUTH_SETTINGS),
+                    coroutineScope = instance(),
+                )
+            }
         }
         val appSettings = getAppSettings()
         val bufferLoggingTracker = addBufferLoggingTracker(appSettings.debugLog)
