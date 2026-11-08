@@ -14,6 +14,7 @@ import io.ktor.client.request.setBody
 import io.ktor.client.statement.HttpResponse
 import io.ktor.http.Parameters
 import kotlinx.datetime.Clock
+import ru.slartus.boostbuddy.data.ktor.SkipTokenRefresh
 import ru.slartus.boostbuddy.data.api.model.RemoteBlogInfoResponse
 import ru.slartus.boostbuddy.data.api.model.RemoteBlogTagResponse
 import ru.slartus.boostbuddy.data.api.model.RemoteFeedResponse
@@ -48,7 +49,10 @@ internal class BoostyApi(
                 parameter("with_follow", withFollow)
             }
 
-    suspend fun current(): HttpResponse = httpClient.get("v1/user/current")
+    suspend fun current(allowTokenRefresh: Boolean = true): HttpResponse =
+        httpClient.get("v1/user/current") {
+            if (!allowTokenRefresh) attributes.put(SkipTokenRefresh, Unit)
+        }
 
     suspend fun blogPosts(
         blog: String,

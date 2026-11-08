@@ -22,6 +22,7 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.http.Parameters
 import io.ktor.http.URLProtocol
 import io.ktor.serialization.kotlinx.json.json
+import io.ktor.util.AttributeKey
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.datetime.Clock
@@ -38,38 +39,36 @@ internal const val DESKTOP_USER_AGENT =
 
 private const val REFRESH_THRESHOLD_SECONDS = 300L // 5 минут до истечения
 
-internal fun buildBoostyHttpClient(
-    debugLog: Boolean,
-    settingsRepository: SettingsRepository,
-    json: Json
-): HttpClient {
-    val refreshMutex = Mutex()
+internal val SkipTokenRefresh = AttributeKey<Unit>("BoostySkipTokenRefresh")
 
-    val refreshClient by lazy {
-        HttpClient(HttpEngineFactory().createEngine(debugLog)) {
-            expectSuccess = true
-            install(ContentNegotiation) { json(json) }
-            install(UserAgent) { agent = DESKTOP_USER_AGENT }
-            install(HttpTimeout) {
-                connectTimeoutMillis = 15000
-                requestTimeoutMillis = 30000
-            }
-            defaultRequest {
-                url {
-                    protocol = URLProtocol.HTTPS
-                    host = "api.boosty.to"
-                }
-                header("X-App", "web")
-                header("X-Locale", "ru_RU")
-                header(HttpHeaders.Referrer, "https://boosty.to/")
-                header(HttpHeaders.Origin, "https://boosty.to")
-                header(HttpHeaders.Accept, "application/json, text/plain, */*")
-                headers.remove(HttpHeaders.AcceptCharset)
+internal class BoostyTokenRefresher(
+    private val settingsRepository: SettingsRepository,
+    refreshClientFactory: () -> HttpClient,
+) {
+    private val refreshMutex = Mutex()
+    private val refreshClient by lazy(refreshClientFactory)
+
+    suspend fun ensureValidToken(): String? = refreshMutex.withLock {
+        val accessToken = settingsRepository.getAccessToken()
+        if (accessToken.isNullOrEmpty()) return@withLock null
+
+        val expiresAt = settingsRepository.getTokenExpiresAt()
+        if (expiresAt != null) {
+            val now = Clock.System.now().epochSeconds
+            if (expiresAt - now < REFRESH_THRESHOLD_SECONDS) {
+                logger.d("Token expires soon (in ${expiresAt - now}s), proactive refresh")
+                return@withLock doRefresh() ?: accessToken
             }
         }
+
+        accessToken
     }
 
-    suspend fun doRefresh(): String? {
+    suspend fun forceRefresh(): String? = refreshMutex.withLock {
+        doRefresh()
+    }
+
+    private suspend fun doRefresh(): String? {
         val storedRefreshToken = settingsRepository.getRefreshToken()
         if (storedRefreshToken.isNullOrEmpty()) return null
 
@@ -111,38 +110,53 @@ internal fun buildBoostyHttpClient(
             null
         }
     }
+}
 
-    suspend fun ensureValidToken(): String? = refreshMutex.withLock {
-        val accessToken = settingsRepository.getAccessToken()
-        if (accessToken.isNullOrEmpty()) return@withLock null
-
-        val expiresAt = settingsRepository.getTokenExpiresAt()
-        if (expiresAt != null) {
-            val now = Clock.System.now().epochSeconds
-            if (expiresAt - now < REFRESH_THRESHOLD_SECONDS) {
-                logger.d("Token expires soon (in ${expiresAt - now}s), proactive refresh")
-                return@withLock doRefresh() ?: accessToken
-            }
+internal fun buildBoostyRefreshHttpClient(debugLog: Boolean, json: Json): HttpClient =
+    HttpClient(HttpEngineFactory().createEngine(debugLog)) {
+        expectSuccess = true
+        install(ContentNegotiation) { json(json) }
+        install(UserAgent) { agent = DESKTOP_USER_AGENT }
+        install(HttpTimeout) {
+            connectTimeoutMillis = 15000
+            requestTimeoutMillis = 30000
         }
-
-        accessToken
+        defaultRequest {
+            url {
+                protocol = URLProtocol.HTTPS
+                host = "api.boosty.to"
+            }
+            header("X-App", "web")
+            header("X-Locale", "ru_RU")
+            header(HttpHeaders.Referrer, "https://boosty.to/")
+            header(HttpHeaders.Origin, "https://boosty.to")
+            header(HttpHeaders.Accept, "application/json, text/plain, */*")
+            headers.remove(HttpHeaders.AcceptCharset)
+        }
     }
 
-    suspend fun forceRefresh(): String? = refreshMutex.withLock {
-        doRefresh()
-    }
-
+internal fun buildBoostyHttpClient(
+    debugLog: Boolean,
+    settingsRepository: SettingsRepository,
+    tokenRefresher: BoostyTokenRefresher,
+    json: Json
+): HttpClient {
     val tokenRefreshPlugin = createClientPlugin("BoostyTokenRefresh") {
         on(Send) { request ->
-            val token = ensureValidToken()
+            val skipRefresh = request.attributes.contains(SkipTokenRefresh)
+            val token = if (skipRefresh) {
+                settingsRepository.getAccessToken()
+            } else {
+                tokenRefresher.ensureValidToken()
+            }
             if (!token.isNullOrEmpty()) {
                 request.headers[HttpHeaders.Authorization] = "Bearer $token"
             }
 
             val originalCall = proceed(request)
 
-            if (originalCall.response.status == HttpStatusCode.Unauthorized) {
-                val newToken = forceRefresh()
+            if (!skipRefresh && originalCall.response.status == HttpStatusCode.Unauthorized) {
+                val newToken = tokenRefresher.forceRefresh()
                 if (newToken != null) {
                     request.headers[HttpHeaders.Authorization] = "Bearer $newToken"
                     proceed(request)

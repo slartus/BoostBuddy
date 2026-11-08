@@ -153,6 +153,27 @@ internal class SettingsRepository(
         }
     }
 
+    suspend fun getSession(): AuthSession = withContext(Dispatchers.IO) {
+        locker.withLock {
+            AuthSession(
+                accessToken = authSettings.getStringOrNull(ACCESS_TOKEN_KEY),
+                refreshToken = authSettings.getStringOrNull(REFRESH_TOKEN_KEY),
+                expiresAt = authSettings.getLongOrNull(TOKEN_EXPIRES_AT_KEY),
+                deviceId = authSettings.getStringOrNull(DEVICE_ID_KEY),
+            )
+        }
+    }
+
+    suspend fun replaceSession(session: AuthSession) = replaceSession(
+        accessToken = session.accessToken,
+        refreshToken = session.refreshToken,
+        expiresAt = session.expiresAt,
+        deviceId = session.deviceId,
+    )
+
+    suspend fun clearSessionWithNewDeviceId() =
+        replaceSession(accessToken = null, refreshToken = null, expiresAt = null, deviceId = generateDeviceId())
+
     private fun <T : Any> Settings.putOrRemove(key: String, value: T?, put: Settings.(String, T) -> Unit) {
         if (value == null) remove(key) else put(key, value)
     }

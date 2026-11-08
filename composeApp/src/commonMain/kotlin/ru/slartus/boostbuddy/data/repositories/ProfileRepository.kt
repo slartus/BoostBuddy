@@ -8,9 +8,9 @@ import ru.slartus.boostbuddy.utils.fetchOrError
 internal class ProfileRepository(
     private val boostyApi: BoostyApi
 ) {
-    suspend fun getProfile(): Result<Profile> =
+    suspend fun getProfile(allowTokenRefresh: Boolean = true): Result<Profile> =
         fetchOrError {
-            val response: ProfileResponse = boostyApi.current().body()
+            val response: ProfileResponse = boostyApi.current(allowTokenRefresh).body()
 
             Profile(
                 id = response.id ?: error("wrong data"),

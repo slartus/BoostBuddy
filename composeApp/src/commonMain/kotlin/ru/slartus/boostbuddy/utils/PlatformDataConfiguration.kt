@@ -22,7 +22,9 @@ import ru.slartus.boostbuddy.data.analytic.LogAnalytics
 import ru.slartus.boostbuddy.data.api.BoostyApi
 import ru.slartus.boostbuddy.data.api.PhoneAuthApi
 import ru.slartus.boostbuddy.data.ktor.buildBoostyAuthHttpClient
+import ru.slartus.boostbuddy.data.ktor.BoostyTokenRefresher
 import ru.slartus.boostbuddy.data.ktor.buildBoostyHttpClient
+import ru.slartus.boostbuddy.data.ktor.buildBoostyRefreshHttpClient
 import ru.slartus.boostbuddy.data.ktor.buildGithubHttpClient
 import ru.slartus.boostbuddy.data.log.CompositeLogger
 import ru.slartus.boostbuddy.data.log.Logger
@@ -141,10 +143,18 @@ object PlatformDataConfiguration {
     }
 
     private fun DI.MainBuilder.boostyDependencies(debugLog: Boolean) {
+        bindSingleton {
+            val json = instance<Json>()
+            BoostyTokenRefresher(
+                settingsRepository = instance(),
+                refreshClientFactory = { buildBoostyRefreshHttpClient(debugLog = debugLog, json = json) },
+            )
+        }
         bindSingleton(TAG_HTTP_CLIENT_BOOSTY) {
             buildBoostyHttpClient(
                 debugLog = debugLog,
                 settingsRepository = instance(),
+                tokenRefresher = instance(),
                 json = instance(),
             )
         }
