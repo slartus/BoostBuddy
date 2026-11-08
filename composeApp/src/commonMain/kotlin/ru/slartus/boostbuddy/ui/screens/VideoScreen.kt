@@ -58,6 +58,7 @@ import ru.slartus.boostbuddy.components.video.timeCodeMs
 import ru.slartus.boostbuddy.components.video.usableOptions
 import ru.slartus.boostbuddy.data.repositories.models.PlayerUrl
 import ru.slartus.boostbuddy.data.repositories.models.VideoQuality
+import ru.slartus.boostbuddy.data.repositories.models.VideoScaleMode
 import ru.slartus.boostbuddy.ui.common.HideSystemBarsEffect
 import ru.slartus.boostbuddy.ui.common.KeepScreenOnEffect
 import ru.slartus.boostbuddy.ui.common.LocalPlatformConfiguration
@@ -93,6 +94,7 @@ internal fun VideoScreen(component: VideoComponent) {
                 postTitle = state.postTitle.orEmpty(),
                 position = postData.timeCodeMs,
                 playbackSpeed = state.playbackSpeed,
+                scaleMode = state.scaleMode,
                 isLive = state.isLive,
                 liveStartedAtSeconds = state.liveStartedAtSeconds,
                 retryToken = state.retryToken,
@@ -109,8 +111,10 @@ internal fun VideoScreen(component: VideoComponent) {
                     currentQuality = state.playerUrl.quality,
                     currentSpeed = state.playbackSpeed,
                     speedAvailable = !state.isLive,
+                    currentScaleMode = state.scaleMode,
                     onQualitySelected = { component.onQualityItemClicked(it) },
                     onSpeedSelected = { component.onPlaybackSpeedSelected(it) },
+                    onScaleModeSelected = { component.onScaleModeSelected(it) },
                     onDownloadSelected = { component.onDownloadQualitySelected(it) },
                     onDismiss = { component.onSettingsSheetDismissed() },
                 )
@@ -213,7 +217,7 @@ private fun PlaybackErrorOverlay(
     }
 }
 
-private enum class SettingsSection { Root, Quality, Speed, Download }
+private enum class SettingsSection { Root, Quality, Speed, Scale, Download }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -223,8 +227,10 @@ private fun PlayerSettingsSheet(
     currentQuality: VideoQuality,
     currentSpeed: Float,
     speedAvailable: Boolean,
+    currentScaleMode: VideoScaleMode,
     onQualitySelected: (PlayerUrl) -> Unit,
     onSpeedSelected: (Float) -> Unit,
+    onScaleModeSelected: (VideoScaleMode) -> Unit,
     onDownloadSelected: (PlayerUrl) -> Unit,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
@@ -250,10 +256,12 @@ private fun PlayerSettingsSheet(
                 SettingsSection.Root -> SettingsRootPanel(
                     qualityLabel = currentQuality.text,
                     speedLabel = formatSpeed(currentSpeed),
+                    scaleLabel = currentScaleMode.shortLabel,
                     downloadAvailable = downloadOptions.isNotEmpty(),
                     speedAvailable = speedAvailable,
                     onQualityClick = { section = SettingsSection.Quality },
                     onSpeedClick = { section = SettingsSection.Speed },
+                    onScaleClick = { section = SettingsSection.Scale },
                     onDownloadClick = { section = SettingsSection.Download },
                 )
 
@@ -266,6 +274,11 @@ private fun PlayerSettingsSheet(
                 SettingsSection.Speed -> SpeedPanel(
                     currentSpeed = currentSpeed,
                     onSelected = onSpeedSelected,
+                )
+
+                SettingsSection.Scale -> ScaleModePanel(
+                    currentScaleMode = currentScaleMode,
+                    onSelected = onScaleModeSelected,
                 )
 
                 SettingsSection.Download -> DownloadPanel(
@@ -305,6 +318,7 @@ private fun SettingsSheetHeader(
                 SettingsSection.Root -> "Настройки воспроизведения"
                 SettingsSection.Quality -> "Качество"
                 SettingsSection.Speed -> "Скорость воспроизведения"
+                SettingsSection.Scale -> "Масштаб"
                 SettingsSection.Download -> "Скачать видео"
             },
             style = MaterialTheme.typography.titleMedium,
@@ -316,10 +330,12 @@ private fun SettingsSheetHeader(
 private fun SettingsRootPanel(
     qualityLabel: String,
     speedLabel: String,
+    scaleLabel: String,
     downloadAvailable: Boolean,
     speedAvailable: Boolean,
     onQualityClick: () -> Unit,
     onSpeedClick: () -> Unit,
+    onScaleClick: () -> Unit,
     onDownloadClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -336,6 +352,11 @@ private fun SettingsRootPanel(
                 onClick = onSpeedClick,
             )
         }
+        SettingsRootRow(
+            title = "Масштаб",
+            value = scaleLabel,
+            onClick = onScaleClick,
+        )
         if (downloadAvailable) {
             SettingsRootRow(
                 title = "Скачать видео",
@@ -395,6 +416,37 @@ private fun QualityPanel(
         }
     }
 }
+
+@Composable
+private fun ScaleModePanel(
+    currentScaleMode: VideoScaleMode,
+    onSelected: (VideoScaleMode) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(modifier = modifier.fillMaxWidth()) {
+        VideoScaleMode.entries.forEach { scaleMode ->
+            CheckmarkRow(
+                title = scaleMode.fullLabel,
+                checked = scaleMode == currentScaleMode,
+                onClick = { onSelected(scaleMode) },
+            )
+        }
+    }
+}
+
+private val VideoScaleMode.shortLabel: String
+    get() = when (this) {
+        VideoScaleMode.Fit -> "Вписать"
+        VideoScaleMode.Fill -> "Заполнить"
+        VideoScaleMode.Stretch -> "Растянуть"
+    }
+
+private val VideoScaleMode.fullLabel: String
+    get() = when (this) {
+        VideoScaleMode.Fit -> "Вписать (без обрезки)"
+        VideoScaleMode.Fill -> "Заполнить (с обрезкой краёв)"
+        VideoScaleMode.Stretch -> "Растянуть (с искажением пропорций)"
+    }
 
 @Composable
 private fun DownloadPanel(

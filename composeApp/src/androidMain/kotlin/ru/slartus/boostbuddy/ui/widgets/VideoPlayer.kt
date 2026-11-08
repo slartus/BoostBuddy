@@ -36,6 +36,7 @@ import kotlinx.coroutines.isActive
 import ru.slartus.boostbuddy.components.video.VideoState
 import ru.slartus.boostbuddy.data.repositories.models.PlayerUrl
 import ru.slartus.boostbuddy.data.repositories.models.VideoQuality
+import ru.slartus.boostbuddy.data.repositories.models.VideoScaleMode
 import java.io.IOException
 
 private const val SEEK_UPDATE_INTERVAL_MS = 1000L
@@ -50,6 +51,7 @@ actual fun VideoPlayer(
     postTitle: String,
     position: Long,
     playbackSpeed: Float,
+    scaleMode: VideoScaleMode,
     isLive: Boolean,
     liveStartedAtSeconds: Long?,
     retryToken: Int,
@@ -133,6 +135,7 @@ actual fun VideoPlayer(
         playingPosition = playingPosition,
         isEnded = isEnded,
         playbackMode = playbackMode,
+        scaleMode = scaleMode,
         onStopClick = onStopClick,
         onSettingsClick = onSettingsClick,
     )

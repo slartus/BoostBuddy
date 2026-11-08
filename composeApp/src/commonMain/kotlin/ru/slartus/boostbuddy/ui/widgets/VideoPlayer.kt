@@ -3,6 +3,7 @@ package ru.slartus.boostbuddy.ui.widgets
 import androidx.compose.runtime.Composable
 import ru.slartus.boostbuddy.components.video.VideoState
 import ru.slartus.boostbuddy.data.repositories.models.PlayerUrl
+import ru.slartus.boostbuddy.data.repositories.models.VideoScaleMode
 
 @Composable
 expect fun VideoPlayer(
@@ -12,6 +13,7 @@ expect fun VideoPlayer(
     postTitle: String,
     position: Long,
     playbackSpeed: Float,
+    scaleMode: VideoScaleMode,
     isLive: Boolean,
     liveStartedAtSeconds: Long?,
     retryToken: Int,

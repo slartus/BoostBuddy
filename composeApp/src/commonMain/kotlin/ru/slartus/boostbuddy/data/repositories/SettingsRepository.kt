@@ -18,6 +18,7 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import ru.slartus.boostbuddy.data.repositories.models.VideoQuality
+import ru.slartus.boostbuddy.data.repositories.models.VideoScaleMode
 import kotlin.random.Random
 
 @OptIn(ExperimentalSettingsApi::class)
@@ -43,8 +44,13 @@ internal class SettingsRepository(
                 useSystemVideoPlayer = systemPlayer,
                 debugLog = debugLog,
                 preferredQuality = preferredQuality,
-                preferredPlaybackSpeed = preferredPlaybackSpeed
+                preferredPlaybackSpeed = preferredPlaybackSpeed,
+                videoScaleMode = VideoScaleMode.Default,
             )
+        }.combine(
+            settings.getStringOrNullFlow(VIDEO_SCALE_MODE_KEY).map { it.toVideoScaleMode() }
+        ) { appSettings, videoScaleMode ->
+            appSettings.copy(videoScaleMode = videoScaleMode)
         }
 
     suspend fun getSettings(): AppSettings = withContext(Dispatchers.IO) {
@@ -57,7 +63,8 @@ internal class SettingsRepository(
             preferredPlaybackSpeed = settings.getFloat(
                 PREFERRED_PLAYBACK_SPEED_KEY,
                 DEFAULT_PLAYBACK_SPEED
-            )
+            ),
+            videoScaleMode = settings.getStringOrNull(VIDEO_SCALE_MODE_KEY).toVideoScaleMode(),
         )
     }
 
@@ -79,6 +86,10 @@ internal class SettingsRepository(
 
     suspend fun setPreferredPlaybackSpeed(value: Float) = withContext(Dispatchers.IO) {
         putFloat(PREFERRED_PLAYBACK_SPEED_KEY, value)
+    }
+
+    suspend fun setVideoScaleMode(value: VideoScaleMode) = withContext(Dispatchers.IO) {
+        putString(VIDEO_SCALE_MODE_KEY, value.name)
     }
 
     suspend fun setDebugLog(value: Boolean) = withContext(Dispatchers.IO) {
@@ -222,18 +233,23 @@ internal class SettingsRepository(
         const val PREFERRED_QUALITY_KEY = "preferred_video_quality"
         const val PREFERRED_PLAYBACK_SPEED_KEY = "preferred_playback_speed"
         const val DEFAULT_PLAYBACK_SPEED = 1f
+        const val VIDEO_SCALE_MODE_KEY = "video_scale_mode"
     }
 }
 
 private fun String?.toVideoQualityOrNull(): VideoQuality? =
     this?.let { name -> VideoQuality.entries.firstOrNull { it.name == name } }
 
+private fun String?.toVideoScaleMode(): VideoScaleMode =
+    VideoScaleMode.entries.firstOrNull { it.name == this } ?: VideoScaleMode.Default
+
 data class AppSettings(
     val isDarkMode: Boolean?,
     val useSystemVideoPlayer: Boolean,
     val debugLog: Boolean,
     val preferredQuality: VideoQuality?,
-    val preferredPlaybackSpeed: Float
+    val preferredPlaybackSpeed: Float,
+    val videoScaleMode: VideoScaleMode,
 ) {
     companion object {
         val Default: AppSettings = AppSettings(
@@ -241,7 +257,8 @@ data class AppSettings(
             useSystemVideoPlayer = false,
             debugLog = false,
             preferredQuality = null,
-            preferredPlaybackSpeed = 1f
+            preferredPlaybackSpeed = 1f,
+            videoScaleMode = VideoScaleMode.Default,
         )
     }
 }

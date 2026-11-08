@@ -70,6 +70,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.util.fastAny
 import androidx.compose.ui.util.fastForEach
+import ru.slartus.boostbuddy.data.repositories.models.VideoScaleMode
 import ru.slartus.boostbuddy.ui.common.LocalPlatformConfiguration
 import ru.slartus.boostbuddy.utils.Platform
 import androidx.compose.ui.viewinterop.AndroidView
@@ -116,6 +117,13 @@ private const val ZOOM_BADGE_AUTOHIDE_MS = 1500L
 
 private fun Float.isZoomed(): Boolean = this > 1f
 
+@OptIn(UnstableApi::class)
+private fun VideoScaleMode.toResizeMode(): Int = when (this) {
+    VideoScaleMode.Fit -> AspectRatioFrameLayout.RESIZE_MODE_FIT
+    VideoScaleMode.Fill -> AspectRatioFrameLayout.RESIZE_MODE_ZOOM
+    VideoScaleMode.Stretch -> AspectRatioFrameLayout.RESIZE_MODE_FILL
+}
+
 private enum class SeekDirection { FORWARD, BACKWARD }
 
 private data class SeekFeedback(val direction: SeekDirection, val seconds: Int)
@@ -133,6 +141,7 @@ internal fun VideoPlayerChrome(
     playingPosition: Long,
     isEnded: Boolean,
     playbackMode: PlaybackMode,
+    scaleMode: VideoScaleMode,
     onStopClick: () -> Unit,
     onSettingsClick: (() -> Unit)? = null,
 ) {
@@ -383,7 +392,6 @@ internal fun VideoPlayerChrome(
                         ViewGroup.LayoutParams.MATCH_PARENT
                     )
                     setBackgroundColor(PlatformColor.BLACK)
-                    resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FIXED_WIDTH
                     controllerAutoShow = false
                     useController = false
                     setShowNextButton(false)
@@ -392,7 +400,10 @@ internal fun VideoPlayerChrome(
                     setShowRewindButton(false)
                     player = exoPlayer
                 }
-            }
+            },
+            update = { playerView ->
+                playerView.resizeMode = scaleMode.toResizeMode()
+            },
         )
 
         AnimatedVisibility(

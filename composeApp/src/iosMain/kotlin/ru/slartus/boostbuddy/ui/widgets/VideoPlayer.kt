@@ -18,6 +18,7 @@ import platform.QuartzCore.kCATransactionDisableActions
 import platform.UIKit.UIView
 import ru.slartus.boostbuddy.components.video.VideoState
 import ru.slartus.boostbuddy.data.repositories.models.PlayerUrl
+import ru.slartus.boostbuddy.data.repositories.models.VideoScaleMode
 
 @OptIn(ExperimentalForeignApi::class)
 @Composable
@@ -28,6 +29,7 @@ actual fun VideoPlayer(
     postTitle: String,
     position: Long,
     playbackSpeed: Float,
+    scaleMode: VideoScaleMode,
     isLive: Boolean,
     liveStartedAtSeconds: Long?,
     retryToken: Int,

@@ -23,6 +23,7 @@ import ru.slartus.boostbuddy.data.repositories.StreamRepository
 import ru.slartus.boostbuddy.data.repositories.VideoRepository
 import ru.slartus.boostbuddy.data.repositories.models.Content
 import ru.slartus.boostbuddy.data.repositories.models.PlayerUrl
+import ru.slartus.boostbuddy.data.repositories.models.VideoScaleMode
 import ru.slartus.boostbuddy.utils.PlatformConfiguration
 
 @Stable
@@ -35,6 +36,7 @@ interface VideoComponent {
     fun onSettingsSheetDismissed()
     fun onQualityItemClicked(playerUrl: PlayerUrl)
     fun onPlaybackSpeedSelected(speed: Float)
+    fun onScaleModeSelected(scaleMode: VideoScaleMode)
     fun onDownloadQualitySelected(playerUrl: PlayerUrl)
     fun onRetryClicked()
 }
@@ -46,6 +48,7 @@ data class VideoViewState(
     val loading: Boolean = true,
     val settingsSheetVisible: Boolean = false,
     val playbackSpeed: Float = 1f,
+    val scaleMode: VideoScaleMode = VideoScaleMode.Default,
     val isLive: Boolean = false,
     val liveStartedAtSeconds: Long? = null,
     val streamEnded: Boolean = false,
@@ -116,6 +119,18 @@ internal class VideoComponentImpl(
             )
         }
         subscribePlaybackSpeed()
+        subscribeScaleMode()
+    }
+
+    private fun subscribeScaleMode() {
+        scope.launch {
+            settingsRepository.appSettingsFlow
+                .map { it.videoScaleMode }
+                .distinctUntilChanged()
+                .collect { scaleMode ->
+                    viewState = viewState.copy(scaleMode = scaleMode)
+                }
+        }
     }
 
     private fun subscribePlaybackSpeed() {
@@ -270,6 +285,12 @@ internal class VideoComponentImpl(
         // subscribePlaybackSpeed-коллектор, иначе будут два writer'а на одно поле.
         scope.launch {
             settingsRepository.setPreferredPlaybackSpeed(speed)
+        }
+    }
+
+    override fun onScaleModeSelected(scaleMode: VideoScaleMode) {
+        scope.launch {
+            settingsRepository.setVideoScaleMode(scaleMode)
         }
     }
 
