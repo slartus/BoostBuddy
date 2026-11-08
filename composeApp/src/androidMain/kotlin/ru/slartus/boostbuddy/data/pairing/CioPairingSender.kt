@@ -15,7 +15,23 @@ internal class CioPairingSender(
     private val allowLoopback: Boolean,
 ) : PairingSender {
 
-    private val httpClient by lazy {
+    override suspend fun send(target: PairingTarget, sealed: String): Result<Unit> = fetchOrError {
+        require(isPrivateIpv4(target.host, allowLoopback)) { "Pairing target is not a private LAN address" }
+        createHttpClient().use { httpClient ->
+            httpClient.post {
+                url {
+                    protocol = URLProtocol.HTTP
+                    host = target.host
+                    port = target.port
+                    path("s", target.sid)
+                }
+                setBody(TextContent(sealed, ContentType.Text.Plain))
+            }
+        }
+        Unit
+    }
+
+    private fun createHttpClient(): HttpClient =
         HttpClient(CIO) {
             expectSuccess = true
             followRedirects = false
@@ -25,21 +41,6 @@ internal class CioPairingSender(
                 socketTimeoutMillis = TIMEOUT_MILLIS
             }
         }
-    }
-
-    override suspend fun send(target: PairingTarget, sealed: String): Result<Unit> = fetchOrError {
-        require(isPrivateIpv4(target.host, allowLoopback)) { "Pairing target is not a private LAN address" }
-        httpClient.post {
-            url {
-                protocol = URLProtocol.HTTP
-                host = target.host
-                port = target.port
-                path("s", target.sid)
-            }
-            setBody(TextContent(sealed, ContentType.Text.Plain))
-        }
-        Unit
-    }
 
     private companion object {
         const val TIMEOUT_MILLIS = 10_000L
