@@ -22,6 +22,7 @@ import ru.slartus.boostbuddy.data.pairing.PairingReceiverEvent
 import ru.slartus.boostbuddy.data.pairing.PairingReceiverException
 import ru.slartus.boostbuddy.data.pairing.PairingSession
 import ru.slartus.boostbuddy.data.repositories.AuthSession
+import kotlin.concurrent.Volatile
 
 internal class QrLoginController(
     private val scope: CoroutineScope,
@@ -36,12 +37,16 @@ internal class QrLoginController(
     val state: StateFlow<QrLoginViewState> = _state.asStateFlow()
 
     private var isStarted = false
+    @Volatile
     private var isCommitting = false
     private var isLeaving = false
+    @Volatile
     private var isDestroyed = false
+    @Volatile
     private var hasPendingSession = false
     private var receiverUsed = false
     private var listenJob: Job? = null
+    @Volatile
     private var acceptJob: Job? = null
 
     fun onStart() {
