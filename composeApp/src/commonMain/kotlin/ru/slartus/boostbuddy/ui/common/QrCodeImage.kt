@@ -8,15 +8,16 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import io.github.alexzhirkevich.qrose.rememberQrCodePainter
+import io.github.alexzhirkevich.qrose.QrCodePainter
 
-private const val QUIET_ZONE_FRACTION = 0.08f
+private const val QUIET_ZONE_FRACTION = 0.1f
 
 @Composable
 internal fun QrCodeImage(
@@ -25,7 +26,7 @@ internal fun QrCodeImage(
     modifier: Modifier = Modifier,
     contentDescription: String? = null,
 ) {
-    val painter = rememberQrCodePainter(content)
+    val painter = remember(content) { QrCodePainter(content) }
     Box(
         modifier = modifier
             .size(size)

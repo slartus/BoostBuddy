@@ -58,7 +58,7 @@ private fun ConfirmContent(
     val cancelFocus = rememberTvInitialFocus()
     Text(
         modifier = Modifier.testTag(PairSendTestTags.CONFIRM_TITLE),
-        text = "Передать вход на устройство $host?",
+        text = "Передать вход на $host?",
         textAlign = TextAlign.Center,
         style = MaterialTheme.typography.headlineSmall,
     )
@@ -153,10 +153,10 @@ private fun ErrorContent(
 }
 
 private fun PairSendErrorKind.isRetryAvailable(): Boolean = when (this) {
+    PairSendErrorKind.NotLoggedIn,
     PairSendErrorKind.Rejected,
     PairSendErrorKind.Uncertain -> false
 
-    PairSendErrorKind.NotLoggedIn,
     PairSendErrorKind.Network,
     PairSendErrorKind.Unknown -> true
 }

@@ -296,7 +296,7 @@ private fun ErrorContent(
                 .testTag(QrLoginTestTags.BUTTON_RETRY),
             onClick = component::onRetry,
         ) {
-            Text("Повторить")
+            Text(kind.retryLabel())
         }
         OutlinedButton(
             modifier = Modifier
@@ -325,6 +325,18 @@ private fun QrLoginErrorKind.message(): String = when (this) {
     QrLoginErrorKind.RefreshNetwork -> "Нет связи с Boosty. Повторите подтверждение."
     QrLoginErrorKind.RefreshRejected ->
         "Boosty отклонил вход. Вход мог быть перенесён частично — при необходимости войдите заново на обоих устройствах."
+}
+
+private fun QrLoginErrorKind.retryLabel(): String = when (this) {
+    QrLoginErrorKind.Expired,
+    QrLoginErrorKind.TooManyAttempts -> "Обновить QR"
+
+    QrLoginErrorKind.NoLan,
+    QrLoginErrorKind.NoFreePort,
+    QrLoginErrorKind.StartFailed,
+    QrLoginErrorKind.ProfileFailed,
+    QrLoginErrorKind.RefreshNetwork,
+    QrLoginErrorKind.RefreshRejected -> "Повторить"
 }
 
 private fun formatTimeLeft(secondsLeft: Int): String {
