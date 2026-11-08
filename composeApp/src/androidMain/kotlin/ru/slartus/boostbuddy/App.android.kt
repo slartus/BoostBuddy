@@ -18,6 +18,8 @@ import ru.slartus.boostbuddy.data.Inject
 import ru.slartus.boostbuddy.data.analytic.AppMetricaAnalyticsTracker
 import ru.slartus.boostbuddy.data.analytic.analytics
 import ru.slartus.boostbuddy.data.log.debugLogBuild
+import ru.slartus.boostbuddy.data.pairing.AndroidLanAddressResolver
+import ru.slartus.boostbuddy.data.pairing.CioPairingReceiver
 import ru.slartus.boostbuddy.data.pairing.CioPairingSender
 import ru.slartus.boostbuddy.ui.common.LocalPlatformConfiguration
 import ru.slartus.boostbuddy.ui.screens.RootScreen
@@ -46,6 +48,12 @@ class AndroidApp : Application() {
             }
         )
         PlatformDataConfiguration.bindPairingSender { CioPairingSender(allowLoopback = BuildConfig.DEBUG) }
+        PlatformDataConfiguration.bindPairingReceiver {
+            CioPairingReceiver(
+                allowLoopback = BuildConfig.DEBUG,
+                lanAddress = AndroidLanAddressResolver(this)::resolve,
+            )
+        }
     }
 
     private fun getPlatform(): Platform {
