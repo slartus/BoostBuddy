@@ -8,6 +8,8 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.runBlocking
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNotEquals
+import kotlin.test.assertTrue
 
 class ReplaceSessionTest {
 
@@ -62,7 +64,30 @@ class ReplaceSessionTest {
             auth.operations,
         )
     }
+
+    @Test
+    fun getSession_readsAllValues() = runBlocking {
+        repository.replaceSession("access", "refresh", 1L, "device")
+
+        assertEquals(AuthSession("access", "refresh", 1L, "device"), repository.getSession())
+    }
+
+    @Test
+    fun clearSessionWithNewDeviceId_removesTokensAndRegeneratesDeviceId() = runBlocking {
+        repository.replaceSession("access", "refresh", 1L, "device")
+
+        repository.clearSessionWithNewDeviceId()
+
+        val session = repository.getSession()
+        assertEquals(null, session.accessToken)
+        assertEquals(null, session.refreshToken)
+        assertEquals(null, session.expiresAt)
+        assertNotEquals("device", session.deviceId)
+        assertTrue(session.deviceId.orEmpty().matches(UUID_REGEX))
+    }
 }
+
+private val UUID_REGEX = Regex("[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}")
 
 private class RecordingObservableSettings(
     val delegate: InMemorySettings,
