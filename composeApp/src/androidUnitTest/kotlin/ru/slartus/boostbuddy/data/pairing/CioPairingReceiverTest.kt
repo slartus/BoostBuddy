@@ -313,10 +313,10 @@ class CioPairingReceiverTest {
     }
 
     @Test
-    fun start_failsWhenAddressIsNotLocal() = runBlocking<Unit> {
+    fun start_reportsNoLanWhenAddressIsNotLocal() = runBlocking<Unit> {
         val error = receiver(lanAddress = { "10.255.255.1" }).start().exceptionOrNull()
 
-        assertIs<PairingReceiverException.StartFailed>(error)
+        assertIs<PairingReceiverException.NoLan>(error)
     }
 
     @Test

@@ -99,7 +99,7 @@ internal class CioPairingReceiver(
         _events.resetReplayCache()
         val host = lanAddress()?.takeIf { isPrivateIpv4(it, allowLoopback) }
             ?: throw PairingReceiverException.NoLan()
-        if (!isLocalAddress(host)) throw PairingReceiverException.StartFailed(null)
+        if (!isLocalAddress(host)) throw PairingReceiverException.NoLan()
         var bindError: Throwable? = null
         for (port in ports) {
             val session = ActiveSession(
