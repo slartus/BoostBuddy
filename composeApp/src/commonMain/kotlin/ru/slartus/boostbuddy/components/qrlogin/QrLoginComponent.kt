@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalTime::class)
+
 package ru.slartus.boostbuddy.components.qrlogin
 
 import androidx.compose.runtime.Stable
@@ -7,13 +9,14 @@ import com.arkivanov.essenty.lifecycle.doOnDestroy
 import com.arkivanov.essenty.lifecycle.doOnStart
 import com.arkivanov.essenty.lifecycle.doOnStop
 import kotlinx.coroutines.launch
-import kotlinx.datetime.Clock
 import ru.slartus.boostbuddy.components.BaseComponent
 import ru.slartus.boostbuddy.data.Inject
 import ru.slartus.boostbuddy.data.ktor.BoostyTokenRefresher
 import ru.slartus.boostbuddy.data.pairing.PairingReceiver
 import ru.slartus.boostbuddy.data.repositories.ProfileRepository
 import ru.slartus.boostbuddy.data.repositories.SettingsRepository
+import kotlin.time.Clock
+import kotlin.time.ExperimentalTime
 
 @Stable
 interface QrLoginComponent {
