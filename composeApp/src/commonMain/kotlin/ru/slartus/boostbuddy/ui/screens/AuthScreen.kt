@@ -9,6 +9,21 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.width
+import androidx.compose.material.icons.filled.QrCode2
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.TextButton
+import androidx.compose.ui.focus.focusProperties
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.testTag
+import ru.slartus.boostbuddy.ui.common.CenteredScrollableColumn
+import ru.slartus.boostbuddy.ui.common.rememberTvInitialFocus
+import ru.slartus.boostbuddy.ui.common.tvFocusHighlight
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
@@ -84,51 +99,60 @@ internal fun AuthScreen(component: AuthComponent) {
     var useCursor by remember { mutableStateOf(false) }
     val isKeyboardOpen by keyboardAsState()
     val state by component.viewStates.subscribeAsState()
+    if (state.mode == AuthViewState.Mode.Start) {
+        AuthStartContent(component = component)
+        return
+    }
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = {
-                    Row(
-                        modifier = Modifier.fillMaxWidth().padding(16.dp),
-                        verticalAlignment = CenterVertically
-                    ) {
-                        Text(
-                            text = "Авторизация"
-                        )
-                    }
-                },
-                actions = {
-                    if (state.mode == AuthViewState.Mode.WebView) {
-                        IconButton(onClick = component::onSwitchToPhoneLoginClick) {
-                            Icon(
-                                imageVector = Icons.Filled.Phone,
-                                contentDescription = "Вход по телефону"
+            Column {
+                TopAppBar(
+                    title = {
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(16.dp),
+                            verticalAlignment = CenterVertically
+                        ) {
+                            Text(
+                                text = "Авторизация"
                             )
                         }
-                        if (platformConfiguration.platform == Platform.AndroidTV)
-                            IconButton(onClick = { useCursor = !useCursor }) {
+                    },
+                    actions = {
+                        if (state.mode == AuthViewState.Mode.WebView) {
+                            IconButton(onClick = component::onSwitchToPhoneLoginClick) {
                                 Icon(
-                                    imageVector = Icons.Filled.NorthWest,
-                                    contentDescription = "Программный курсор"
+                                    imageVector = Icons.Filled.Phone,
+                                    contentDescription = "Вход по телефону"
                                 )
                             }
-                        IconButton(onClick = component::onReloadClick) {
-                            Icon(
-                                imageVector = Icons.Filled.Repeat,
-                                contentDescription = "Повторить"
-                            )
-                        }
-                    } else {
-                        IconButton(onClick = component::onSwitchToWebViewClick) {
-                            Icon(
-                                imageVector = Icons.Filled.Public,
-                                contentDescription = "Вход через сайт"
-                            )
+                            if (platformConfiguration.platform == Platform.AndroidTV)
+                                IconButton(onClick = { useCursor = !useCursor }) {
+                                    Icon(
+                                        imageVector = Icons.Filled.NorthWest,
+                                        contentDescription = "Программный курсор"
+                                    )
+                                }
+                            IconButton(onClick = component::onReloadClick) {
+                                Icon(
+                                    imageVector = Icons.Filled.Repeat,
+                                    contentDescription = "Повторить"
+                                )
+                            }
+                        } else {
+                            IconButton(onClick = component::onSwitchToWebViewClick) {
+                                Icon(
+                                    imageVector = Icons.Filled.Public,
+                                    contentDescription = "Вход через сайт"
+                                )
+                            }
                         }
                     }
-                }
 
-            )
+                )
+                if (state.isQrLoginAvailable) {
+                    QrLoginButton(onClick = component::onQrLoginClick)
+                }
+            }
         },
     ) { innerPadding ->
         if (state.mode != AuthViewState.Mode.WebView) {
@@ -370,6 +394,127 @@ private fun PhoneAuthContent(
 }
 
 @Composable
+private fun QrLoginButton(onClick: () -> Unit) {
+    FilledTonalButton(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .tvFocusHighlight(ButtonDefaults.filledTonalShape)
+            .testTag(AuthScreenTestTags.BUTTON_QR_LOGIN),
+        onClick = onClick,
+    ) {
+        Icon(
+            imageVector = Icons.Filled.QrCode2,
+            contentDescription = null,
+        )
+        Spacer(Modifier.width(8.dp))
+        Text("Войти по QR с другого устройства")
+    }
+}
+
+@Composable
+private fun AuthStartContent(component: AuthComponent) {
+    val phoneCardFocus = rememberTvInitialFocus()
+    val phoneNumberLinkFocus = remember { FocusRequester() }
+    CenteredScrollableColumn(
+        modifier = Modifier.padding(horizontal = 48.dp, vertical = 24.dp),
+    ) {
+        Text(
+            text = "Войти в Boosty",
+            style = MaterialTheme.typography.headlineMedium,
+        )
+        Spacer(Modifier.height(16.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(24.dp)) {
+            AuthStartCard(
+                modifier = Modifier
+                    .focusRequester(phoneCardFocus)
+                    .focusProperties { down = phoneNumberLinkFocus }
+                    .testTag(AuthScreenTestTags.START_CARD_PHONE),
+                icon = Icons.Filled.QrCode2,
+                title = "С телефона",
+                description = "Отсканируйте QR-код и войдите на телефоне",
+                badge = "Рекомендуем",
+                isPrimary = true,
+                onClick = component::onQrLoginClick,
+            )
+            AuthStartCard(
+                modifier = Modifier
+                    .focusProperties { down = phoneNumberLinkFocus }
+                    .testTag(AuthScreenTestTags.START_CARD_WEB),
+                icon = Icons.Filled.Public,
+                title = "Через сайт",
+                description = "Браузер на ТВ, управление пультом",
+                badge = null,
+                isPrimary = false,
+                onClick = component::onSwitchToWebViewClick,
+            )
+        }
+        Spacer(Modifier.height(8.dp))
+        TextButton(
+            modifier = Modifier
+                .focusRequester(phoneNumberLinkFocus)
+                .tvFocusHighlight(ButtonDefaults.textShape)
+                .testTag(AuthScreenTestTags.START_LINK_PHONE_NUMBER),
+            onClick = component::onSwitchToPhoneLoginClick,
+        ) {
+            Text(
+                text = "Войти по номеру телефона",
+                style = MaterialTheme.typography.titleMedium,
+            )
+        }
+    }
+}
+
+@Composable
+private fun AuthStartCard(
+    icon: ImageVector,
+    title: String,
+    description: String,
+    badge: String?,
+    isPrimary: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val shape = CardDefaults.shape
+    Card(
+        modifier = modifier
+            .width(320.dp)
+            .heightIn(min = 200.dp)
+            .tvFocusHighlight(shape),
+        shape = shape,
+        colors = if (isPrimary) {
+            CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.primaryContainer,
+                contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+            )
+        } else {
+            CardDefaults.cardColors()
+        },
+        onClick = onClick,
+    ) {
+        Column(
+            modifier = Modifier.padding(24.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Icon(
+                modifier = Modifier.size(48.dp),
+                imageVector = icon,
+                contentDescription = null,
+            )
+            Text(text = title, style = MaterialTheme.typography.headlineSmall)
+            Text(text = description, style = MaterialTheme.typography.bodyLarge)
+            if (badge != null) {
+                Text(
+                    text = badge,
+                    color = MaterialTheme.colorScheme.primary,
+                    style = MaterialTheme.typography.labelLarge,
+                )
+            }
+        }
+    }
+}
+
+@Composable
 private fun InfoDialogView() {
     var isDialogOpen by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) {
@@ -419,3 +564,11 @@ private fun isOwnKeyCode(keyEvent: KeyEvent): Boolean =
 
         else -> false
     }
+
+internal object AuthScreenTestTags {
+    private const val NAME = "auth"
+    const val START_CARD_PHONE = "${NAME}_start_card_phone"
+    const val START_CARD_WEB = "${NAME}_start_card_web"
+    const val START_LINK_PHONE_NUMBER = "${NAME}_start_link_phone_number"
+    const val BUTTON_QR_LOGIN = "${NAME}_button_qr_login"
+}
