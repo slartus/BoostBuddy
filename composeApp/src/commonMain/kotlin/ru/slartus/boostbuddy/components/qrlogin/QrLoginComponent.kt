@@ -16,7 +16,6 @@ import ru.slartus.boostbuddy.data.Inject
 import ru.slartus.boostbuddy.data.ktor.BoostyTokenRefresher
 import ru.slartus.boostbuddy.data.pairing.PairingReceiver
 import ru.slartus.boostbuddy.data.repositories.ProfileRepository
-import ru.slartus.boostbuddy.data.repositories.SettingsRepository
 import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
 
@@ -37,7 +36,6 @@ internal class QrLoginComponentImpl(
     private val onBackClicked: () -> Unit,
     private val onOtherMethodClicked: () -> Unit,
 ) : BaseComponent<QrLoginViewState, Any>(componentContext, QrLoginViewState.Starting), QrLoginComponent {
-    private val settingsRepository by Inject.lazy<SettingsRepository>()
     private val profileRepository by Inject.lazy<ProfileRepository>()
     private val tokenRefresher by Inject.lazy<BoostyTokenRefresher>()
     private val pairingReceiver by Inject.lazy<PairingReceiver>()
@@ -48,7 +46,6 @@ internal class QrLoginComponentImpl(
         appScope = appScope,
         receiverProvider = { pairingReceiver },
         gateway = DefaultQrLoginSessionGateway(
-            settingsRepository = settingsRepository,
             profileRepository = profileRepository,
             tokenRefresher = tokenRefresher,
         ),

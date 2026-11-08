@@ -11,6 +11,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import ru.slartus.boostbuddy.data.ktor.ExclusiveSessionResult
 import ru.slartus.boostbuddy.data.log.logger
 import ru.slartus.boostbuddy.data.pairing.PairingEnvelope
 import ru.slartus.boostbuddy.data.pairing.PairingPayload
@@ -52,7 +53,11 @@ internal class PairSendController(
                 PairSendSessionCheck.Network -> return@launch fail(PairSendErrorKind.Network)
             }
             val outcome = withContext(NonCancellable) {
-                gateway.withExclusiveSession { session -> transfer(session) }
+                when (val result = gateway.withExclusiveSession { session -> transfer(session) }) {
+                    is ExclusiveSessionResult.Completed -> result.value
+                    ExclusiveSessionResult.SessionPending,
+                    ExclusiveSessionResult.SessionRejected -> SendOutcome.NotLoggedIn
+                }.also { if (it == SendOutcome.Done) gateway.clearWebData() }
             }
             when (outcome) {
                 SendOutcome.Done -> {

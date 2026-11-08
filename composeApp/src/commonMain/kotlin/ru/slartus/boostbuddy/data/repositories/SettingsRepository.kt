@@ -171,9 +171,18 @@ internal class SettingsRepository(
         }
     }
 
+    suspend fun confirmPendingSession() = withContext(Dispatchers.IO) {
+        locker.withLock {
+            if (authSettings.getStringOrNull(PENDING_STATE_KEY) == PENDING_STATE_PENDING) {
+                authSettings.putString(PENDING_STATE_KEY, PENDING_STATE_CONFIRMED)
+            }
+        }
+    }
+
     suspend fun rollbackPendingSessionIfAny(): Boolean = withContext(Dispatchers.IO) {
         locker.withLock {
-            if (authSettings.getStringOrNull(PENDING_STATE_KEY) != PENDING_STATE_PENDING) return@withLock false
+            val state = authSettings.getStringOrNull(PENDING_STATE_KEY)
+            if (state != PENDING_STATE_PENDING && state != PENDING_STATE_CONFIRMED) return@withLock false
             authSettings.writeSession(SESSION_KEYS, authSettings.readSession(PENDING_ROLLBACK_KEYS))
             authSettings.clearPendingSession()
             true
@@ -195,6 +204,8 @@ internal class SettingsRepository(
                 null -> return@withLock
                 PENDING_STATE_COMMITTING ->
                     authSettings.writeSession(SESSION_KEYS, authSettings.readSession(PENDING_COMMIT_KEYS))
+
+                PENDING_STATE_CONFIRMED -> Unit
 
                 else -> authSettings.writeSession(SESSION_KEYS, authSettings.readSession(PENDING_ROLLBACK_KEYS))
             }
@@ -354,6 +365,7 @@ internal class SettingsRepository(
         private const val DEVICE_ID_KEY = "device_id"
         private const val PENDING_STATE_KEY = "pending_session_state"
         private const val PENDING_STATE_PENDING = "pending"
+        private const val PENDING_STATE_CONFIRMED = "confirmed"
         private const val PENDING_STATE_COMMITTING = "committing"
         private val SESSION_KEYS = SessionKeys(ACCESS_TOKEN_KEY, REFRESH_TOKEN_KEY, TOKEN_EXPIRES_AT_KEY, DEVICE_ID_KEY)
         private val PENDING_ROLLBACK_KEYS = SessionKeys(

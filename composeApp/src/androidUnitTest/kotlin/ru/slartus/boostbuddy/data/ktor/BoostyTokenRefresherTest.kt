@@ -17,6 +17,7 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.yield
 import kotlinx.serialization.json.Json
@@ -34,24 +35,28 @@ import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertIs
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class BoostyTokenRefresherTest {
 
     private val now = 1_800_000_000L
+    private val authStore = InMemorySettings()
     private val settings = SettingsRepository(
         settings = RecordingObservableSettings(InMemorySettings()),
-        authSettings = RecordingObservableSettings(InMemorySettings()),
+        authSettings = RecordingObservableSettings(authStore),
         coroutineScope = CoroutineScope(Job()),
     )
     private val refreshCalls = mutableListOf<Pair<String, String>>()
+    private val stateDuringRefresh = mutableListOf<Any?>()
     private var refreshOutcome: TokenRefreshOutcome = success("new-access", "new-refresh", 3600)
     private var refreshGate: CompletableDeferred<Unit>? = null
     private val refresher = BoostyTokenRefresher(
         settingsRepository = settings,
         refreshRequest = { refreshToken, deviceId ->
             refreshCalls += refreshToken to deviceId
+            stateDuringRefresh += authStore.values["pending_session_state"]
             refreshGate?.await()
             refreshOutcome
         },
@@ -107,6 +112,7 @@ class BoostyTokenRefresherTest {
 
         assertTrue(outcome is TokenRefreshOutcome.Success)
         assertEquals(listOf("donor-refresh" to "donor-device"), refreshCalls)
+        assertEquals(listOf<Any?>("confirmed"), stateDuringRefresh)
         assertEquals(AuthSession("new-access", "new-refresh", now + 3600, "donor-device"), settings.getSession())
         assertFalse(settings.hasPendingSession())
     }
@@ -135,7 +141,9 @@ class BoostyTokenRefresherTest {
     fun withExclusiveSession_refreshesWhenShortLivedAndPassesFreshSession() = runBlocking<Unit> {
         store(expiresAt = now + 10 * 60)
 
-        val session = refresher.withExclusiveSession { it }
+        val session = assertIs<ExclusiveSessionResult.Completed<AuthSession>>(
+            refresher.withExclusiveSession { it }
+        ).value
 
         assertEquals(1, refreshCalls.size)
         assertEquals("new-access", session.accessToken)
@@ -162,9 +170,71 @@ class BoostyTokenRefresherTest {
         assertTrue(refreshCalls.isEmpty())
         release.complete(Unit)
 
-        assertEquals("old-refresh", exclusive.await())
+        assertEquals(ExclusiveSessionResult.Completed("old-refresh"), exclusive.await())
         assertEquals("new-access", forced.await())
         assertEquals(1, refreshCalls.size)
+    }
+
+    @Test
+    fun withExclusiveSession_pendingSessionSkipsBlockAndRefresh() = runBlocking<Unit> {
+        refresher.beginPendingSession(AuthSession("donor-access", "donor-refresh", now + 10, "donor-device"))
+        var executed = false
+
+        val result = refresher.withExclusiveSession { executed = true }
+
+        assertEquals(ExclusiveSessionResult.SessionPending, result)
+        assertFalse(executed)
+        assertTrue(refreshCalls.isEmpty())
+    }
+
+    @Test
+    fun withExclusiveSession_rejectedRefreshSkipsBlock() = runBlocking<Unit> {
+        store(expiresAt = now + 60)
+        refreshOutcome = TokenRefreshOutcome.Rejected
+        var executed = false
+
+        val result = refresher.withExclusiveSession { executed = true }
+
+        assertEquals(ExclusiveSessionResult.SessionRejected, result)
+        assertFalse(executed)
+    }
+
+    @Test
+    fun withExclusiveSession_networkErrorStillRunsBlockWithCurrentSession() = runBlocking<Unit> {
+        store(expiresAt = now + 60)
+        refreshOutcome = TokenRefreshOutcome.NetworkError
+
+        val result = refresher.withExclusiveSession { it.accessToken }
+
+        assertEquals(ExclusiveSessionResult.Completed("old-access"), result)
+    }
+
+    @Test
+    fun rollbackPendingSession_reenablesRefresh() = runBlocking<Unit> {
+        store(expiresAt = now + 60)
+        refresher.beginPendingSession(AuthSession("donor-access", "donor-refresh", now + 10, "donor-device"))
+        assertNull(refresher.forceRefresh())
+
+        refresher.rollbackPendingSession()
+
+        assertEquals("new-access", refresher.forceRefresh())
+        assertEquals(listOf("old-refresh" to "device"), refreshCalls)
+    }
+
+    @Test
+    fun commitPendingSession_completesStoringWhenCallerCancelled() = runBlocking<Unit> {
+        settings.beginPendingSession(AuthSession("donor-access", "donor-refresh", now + 10, "donor-device"))
+        val gate = CompletableDeferred<Unit>()
+        refreshGate = gate
+
+        val commit = launch { refresher.commitPendingSession() }
+        while (refreshCalls.isEmpty()) yield()
+        commit.cancel()
+        gate.complete(Unit)
+        commit.join()
+
+        assertEquals(AuthSession("new-access", "new-refresh", now + 3600, "donor-device"), settings.getSession())
+        assertFalse(settings.hasPendingSession())
     }
 
     @Test

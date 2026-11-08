@@ -9,6 +9,7 @@ import kotlinx.serialization.json.Json
 import org.kodein.di.bindSingleton
 import ru.slartus.boostbuddy.components.qrlogin.await
 import ru.slartus.boostbuddy.data.Inject
+import ru.slartus.boostbuddy.data.ktor.ExclusiveSessionResult
 import ru.slartus.boostbuddy.data.log.CompositeLogger
 import ru.slartus.boostbuddy.data.log.Logger
 import ru.slartus.boostbuddy.data.pairing.PairingEnvelope
@@ -22,6 +23,7 @@ import kotlin.coroutines.ContinuationInterceptor
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class PairSendControllerTest {
@@ -55,6 +57,8 @@ class PairSendControllerTest {
         assertEquals(1, transferred)
         assertEquals(1, gateway.clearCalls)
         assertTrue(gateway.clearedInsideExclusive)
+        assertEquals(1, gateway.webClearCalls)
+        assertFalse(gateway.webClearedInsideExclusive)
         val sent = sender.sent.single()
         assertEquals(target, sent.first)
         val payload = Json.decodeFromString<PairingPayload>(
@@ -145,6 +149,27 @@ class PairSendControllerTest {
     }
 
     @Test
+    fun send_pendingSession_isNotLoggedInWithoutSending() = test { controller ->
+        gateway.exclusiveResult = ExclusiveSessionResult.SessionPending
+
+        controller.onSend()
+
+        assertEquals(PairSendErrorKind.NotLoggedIn, controller.state.await<PairSendViewState.Error>().kind)
+        assertTrue(sender.sent.isEmpty())
+        assertEquals(0, gateway.clearCalls)
+    }
+
+    @Test
+    fun send_refreshRejected_isNotLoggedInWithoutSending() = test { controller ->
+        gateway.exclusiveResult = ExclusiveSessionResult.SessionRejected
+
+        controller.onSend()
+
+        assertEquals(PairSendErrorKind.NotLoggedIn, controller.state.await<PairSendViewState.Error>().kind)
+        assertTrue(sender.sent.isEmpty())
+    }
+
+    @Test
     fun send_notFound_isRejected() = test { controller ->
         sender.result = Result.failure(ServerException.Request(HttpStatusCode.NotFound, "Not found"))
 
@@ -217,21 +242,30 @@ class PairSendControllerTest {
     private inner class FakeGateway : PairSendSessionGateway {
         var check = PairSendSessionCheck.Valid
         var exclusiveSession = session
+        var exclusiveResult: ExclusiveSessionResult<Nothing>? = null
         var clearCalls = 0
         var clearedInsideExclusive = false
+        var webClearCalls = 0
+        var webClearedInsideExclusive = false
         var exclusiveCalls = 0
         private var insideExclusive = false
 
         override suspend fun checkSession(): PairSendSessionCheck = check
 
-        override suspend fun <T> withExclusiveSession(block: suspend (AuthSession) -> T): T {
+        override suspend fun <T> withExclusiveSession(block: suspend (AuthSession) -> T): ExclusiveSessionResult<T> {
             exclusiveCalls++
+            exclusiveResult?.let { return it }
             insideExclusive = true
             try {
-                return block(exclusiveSession)
+                return ExclusiveSessionResult.Completed(block(exclusiveSession))
             } finally {
                 insideExclusive = false
             }
+        }
+
+        override suspend fun clearWebData() {
+            webClearCalls++
+            webClearedInsideExclusive = insideExclusive
         }
 
         override suspend fun clearLocalSession() {

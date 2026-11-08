@@ -5,7 +5,6 @@ import ru.slartus.boostbuddy.data.ktor.TokenRefreshOutcome
 import ru.slartus.boostbuddy.data.repositories.AuthSession
 import ru.slartus.boostbuddy.data.repositories.Profile
 import ru.slartus.boostbuddy.data.repositories.ProfileRepository
-import ru.slartus.boostbuddy.data.repositories.SettingsRepository
 
 internal enum class QrLoginCommitResult { Committed, Rejected, NetworkError }
 
@@ -17,16 +16,14 @@ internal interface QrLoginSessionGateway {
 }
 
 internal class DefaultQrLoginSessionGateway(
-    private val settingsRepository: SettingsRepository,
     private val profileRepository: ProfileRepository,
     private val tokenRefresher: BoostyTokenRefresher,
 ) : QrLoginSessionGateway {
     override suspend fun beginPendingSession(session: AuthSession) =
-        settingsRepository.beginPendingSession(session)
+        tokenRefresher.beginPendingSession(session)
 
-    override suspend fun rollbackPendingSession() {
-        settingsRepository.rollbackPendingSessionIfAny()
-    }
+    override suspend fun rollbackPendingSession() =
+        tokenRefresher.rollbackPendingSession()
 
     override suspend fun fetchProfileWithoutRefresh(): Result<Profile> =
         profileRepository.getProfile(allowTokenRefresh = false)

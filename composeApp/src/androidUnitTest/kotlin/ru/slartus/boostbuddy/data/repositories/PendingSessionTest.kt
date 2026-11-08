@@ -103,4 +103,33 @@ class PendingSessionTest {
         assertEquals(rotated, restarted.getSession())
         assertFalse(restarted.hasPendingSession())
     }
+
+    @Test
+    fun restartAfterConfirm_keepsAcceptedSessionAndClearsJournal() = runBlocking {
+        repository().apply {
+            replaceSession(previous.accessToken, previous.refreshToken, previous.expiresAt, previous.deviceId)
+            beginPendingSession(donor)
+            confirmPendingSession()
+        }
+
+        val restarted = repository()
+        restarted.recoverPendingSession()
+
+        assertEquals(donor, restarted.getSession())
+        assertFalse(restarted.hasPendingSession())
+        assertTrue(authStore.keys.none { it.startsWith("pending_") })
+    }
+
+    @Test
+    fun rollbackAfterConfirm_restoresPreviousSession() = runBlocking {
+        val repository = repository()
+        repository.replaceSession(previous.accessToken, previous.refreshToken, previous.expiresAt, previous.deviceId)
+        repository.beginPendingSession(donor)
+        repository.confirmPendingSession()
+
+        assertTrue(repository.rollbackPendingSessionIfAny())
+
+        assertEquals(previous, repository.getSession())
+        assertFalse(repository.hasPendingSession())
+    }
 }
