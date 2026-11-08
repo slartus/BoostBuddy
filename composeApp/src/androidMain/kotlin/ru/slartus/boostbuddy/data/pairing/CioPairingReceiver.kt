@@ -304,9 +304,9 @@ internal class CioPairingReceiver(
         const val TTL_MILLIS = 5 * 60 * 1000L
         const val LINGER_MILLIS = 3_000L
         const val BODY_READ_TIMEOUT_MILLIS = 10_000L
-        const val MAX_BODY_BYTES = 8 * 1024
+        const val MAX_BODY_BYTES = PairingWebPages.MAX_SEALED_BYTES
         const val MAX_FAILURES = 10
-        private const val MAX_CONCURRENT_REQUESTS = 8
+        const val MAX_CONCURRENT_REQUESTS = 8
         private const val CONNECTION_IDLE_TIMEOUT_SECONDS = 10
         private const val SHUTDOWN_GRACE_MILLIS = 200L
         private const val SHUTDOWN_TIMEOUT_MILLIS = 1_000L

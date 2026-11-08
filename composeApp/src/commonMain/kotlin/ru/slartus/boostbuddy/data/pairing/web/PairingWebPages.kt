@@ -11,6 +11,7 @@ internal object PairingWebPages {
     const val PATH_SCRIPT_S = "/s.js"
     const val PATH_STYLE = "/pair.css"
     const val PATH_SEND_PREFIX = "/s/"
+    const val MAX_SEALED_BYTES = 8 * 1024
 
     private const val CONTENT_TYPE_HTML = "text/html; charset=utf-8"
     private const val CONTENT_TYPE_JS = "text/javascript; charset=utf-8"
@@ -377,7 +378,7 @@ internal object PairingWebPages {
         (function () {
           'use strict';
           var SID_PATTERN = /^[A-Za-z0-9_-]{22}$/;
-          var SEALED_PATTERN = /^[A-Za-z0-9_-]{39,16384}$/;
+          var SEALED_PATTERN = /^[A-Za-z0-9_-]{39,$MAX_SEALED_BYTES}$/;
           var status = document.getElementById('status');
           var retry = document.getElementById('retry');
 
@@ -410,7 +411,7 @@ internal object PairingWebPages {
                 show('Сеанс входа устарел. Отсканируйте новый QR-код на экране BoostBuddy.', 'error');
               } else {
                 show('BoostBuddy не принял данные (код ' + response.status + ').', 'error');
-                retry.hidden = false;
+                retry.hidden = !(response.status >= 500 || response.status === 408);
               }
             }, function () {
               show('Нет связи с BoostBuddy. Проверьте, что устройство в той же сети и экран входа по QR открыт.', 'error');

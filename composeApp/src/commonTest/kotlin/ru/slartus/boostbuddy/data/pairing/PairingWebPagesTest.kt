@@ -41,6 +41,12 @@ class PairingWebPagesTest {
     }
 
     @Test
+    fun sendScriptUsesSharedBodyLimitAndRetriesOnlyTransientErrors() {
+        assertTrue(PairingWebPages.SCRIPT_S.contains("{39,${PairingWebPages.MAX_SEALED_BYTES}}"))
+        assertTrue(PairingWebPages.SCRIPT_S.contains("retry.hidden = !(response.status >= 500 || response.status === 408);"))
+    }
+
+    @Test
     fun receiverScriptEmbedsBookmarklet() {
         assertTrue(PairingWebPages.SCRIPT_P.startsWith("var BOOKMARKLET_SOURCE = \"(function () {"))
         assertEquals(5, PairingWebPages.assets.size)
