@@ -15,6 +15,7 @@ import ru.slartus.boostbuddy.data.log.logger
 import ru.slartus.boostbuddy.data.pairing.PairingEnvelope
 import ru.slartus.boostbuddy.data.pairing.PairingPayload
 import ru.slartus.boostbuddy.data.pairing.PairingSender
+import ru.slartus.boostbuddy.data.pairing.PairingSenderException
 import ru.slartus.boostbuddy.data.pairing.PairingTarget
 import ru.slartus.boostbuddy.data.repositories.AuthSession
 import ru.slartus.boostbuddy.utils.ServerException
@@ -45,25 +46,41 @@ internal class PairSendController(
     private fun send() {
         _state.value = PairSendViewState.Sending
         scope.launch {
-            val session = when (val check = gateway.loadValidSession()) {
-                is PairSendSessionCheck.Valid -> check.session
+            when (gateway.checkSession()) {
+                PairSendSessionCheck.Valid -> Unit
                 PairSendSessionCheck.NotLoggedIn -> return@launch fail(PairSendErrorKind.NotLoggedIn)
                 PairSendSessionCheck.Network -> return@launch fail(PairSendErrorKind.Network)
             }
-            val sealed = withContext(Dispatchers.Default) { seal(session) }
-            val result = withContext(NonCancellable) {
-                sender.send(target, sealed).onSuccess { gateway.clearLocalSession() }
+            val outcome = withContext(NonCancellable) {
+                gateway.withExclusiveSession { session -> transfer(session) }
             }
-            result
-                .onSuccess {
+            when (outcome) {
+                SendOutcome.Done -> {
                     _state.value = PairSendViewState.Done
                     onTransferred()
                 }
-                .onFailure { error ->
-                    logger.e(error, "PairSend: send failed")
-                    fail(error.toErrorKind())
+
+                SendOutcome.NotLoggedIn -> fail(PairSendErrorKind.NotLoggedIn)
+                is SendOutcome.Failed -> {
+                    logger.e(outcome.error, "PairSend: send failed")
+                    fail(outcome.error.toErrorKind())
                 }
+            }
         }
+    }
+
+    private suspend fun transfer(session: AuthSession): SendOutcome {
+        if (session.accessToken.isNullOrEmpty() || session.refreshToken.isNullOrEmpty()) {
+            return SendOutcome.NotLoggedIn
+        }
+        val sealed = withContext(Dispatchers.Default) { seal(session) }
+        return sender.send(target, sealed).fold(
+            onSuccess = {
+                gateway.clearLocalSession()
+                SendOutcome.Done
+            },
+            onFailure = { SendOutcome.Failed(it) },
+        )
     }
 
     private fun fail(kind: PairSendErrorKind) {
@@ -89,11 +106,19 @@ internal class PairSendController(
 
     private fun Throwable.toErrorKind(): PairSendErrorKind = when (this) {
         is ServerException.Request -> when (code) {
-            HttpStatusCode.Gone, HttpStatusCode.BadRequest -> PairSendErrorKind.Rejected
+            HttpStatusCode.Gone, HttpStatusCode.BadRequest, HttpStatusCode.NotFound -> PairSendErrorKind.Rejected
             else -> PairSendErrorKind.Unknown
         }
 
-        is ServerException.Other -> PairSendErrorKind.Network
+        is PairingSenderException.InvalidTarget -> PairSendErrorKind.Rejected
+        is PairingSenderException.NotDelivered -> PairSendErrorKind.Network
+        is PairingSenderException.Uncertain -> PairSendErrorKind.Uncertain
         else -> PairSendErrorKind.Unknown
+    }
+
+    private sealed class SendOutcome {
+        data object Done : SendOutcome()
+        data object NotLoggedIn : SendOutcome()
+        data class Failed(val error: Throwable) : SendOutcome()
     }
 }

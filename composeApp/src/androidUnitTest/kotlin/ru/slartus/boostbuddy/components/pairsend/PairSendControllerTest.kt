@@ -14,6 +14,7 @@ import ru.slartus.boostbuddy.data.log.Logger
 import ru.slartus.boostbuddy.data.pairing.PairingEnvelope
 import ru.slartus.boostbuddy.data.pairing.PairingPayload
 import ru.slartus.boostbuddy.data.pairing.PairingSender
+import ru.slartus.boostbuddy.data.pairing.PairingSenderException
 import ru.slartus.boostbuddy.data.pairing.PairingTarget
 import ru.slartus.boostbuddy.data.repositories.AuthSession
 import ru.slartus.boostbuddy.utils.ServerException
@@ -53,6 +54,7 @@ class PairSendControllerTest {
         controller.state.await<PairSendViewState.Done>()
         assertEquals(1, transferred)
         assertEquals(1, gateway.clearCalls)
+        assertTrue(gateway.clearedInsideExclusive)
         val sent = sender.sent.single()
         assertEquals(target, sent.first)
         val payload = Json.decodeFromString<PairingPayload>(
@@ -89,7 +91,7 @@ class PairSendControllerTest {
 
     @Test
     fun send_connectionFailure_isNetwork() = test { controller ->
-        sender.result = Result.failure(ServerException.Other("Connection refused"))
+        sender.result = Result.failure(PairingSenderException.NotDelivered(java.net.ConnectException("refused")))
 
         controller.onSend()
 
@@ -115,6 +117,60 @@ class PairSendControllerTest {
 
         assertEquals(PairSendErrorKind.NotLoggedIn, controller.state.await<PairSendViewState.Error>().kind)
         assertTrue(sender.sent.isEmpty())
+        assertEquals(0, gateway.exclusiveCalls)
+    }
+
+    @Test
+    fun send_tokensMissingUnderLock_isNotLoggedIn() = test { controller ->
+        gateway.exclusiveSession = session.copy(refreshToken = null)
+
+        controller.onSend()
+
+        assertEquals(PairSendErrorKind.NotLoggedIn, controller.state.await<PairSendViewState.Error>().kind)
+        assertTrue(sender.sent.isEmpty())
+    }
+
+    @Test
+    fun send_sealsSessionReadUnderLock() = test { controller ->
+        gateway.exclusiveSession = session.copy(accessToken = "fresh-access", refreshToken = "fresh-refresh")
+
+        controller.onSend()
+
+        controller.state.await<PairSendViewState.Done>()
+        val payload = Json.decodeFromString<PairingPayload>(
+            PairingEnvelope.open(target.key, target.sid, sender.sent.single().second).decodeToString()
+        )
+        assertEquals("fresh-access", payload.accessToken)
+        assertEquals("fresh-refresh", payload.refreshToken)
+    }
+
+    @Test
+    fun send_notFound_isRejected() = test { controller ->
+        sender.result = Result.failure(ServerException.Request(HttpStatusCode.NotFound, "Not found"))
+
+        controller.onSend()
+
+        assertEquals(PairSendErrorKind.Rejected, controller.state.await<PairSendViewState.Error>().kind)
+        assertEquals(0, gateway.clearCalls)
+    }
+
+    @Test
+    fun send_invalidTarget_isRejected() = test { controller ->
+        sender.result = Result.failure(PairingSenderException.InvalidTarget())
+
+        controller.onSend()
+
+        assertEquals(PairSendErrorKind.Rejected, controller.state.await<PairSendViewState.Error>().kind)
+    }
+
+    @Test
+    fun send_uncertainDelivery_isUncertainAndKeepsSession() = test { controller ->
+        sender.result = Result.failure(PairingSenderException.Uncertain(java.io.IOException("reset")))
+
+        controller.onSend()
+
+        assertEquals(PairSendErrorKind.Uncertain, controller.state.await<PairSendViewState.Error>().kind)
+        assertEquals(0, gateway.clearCalls)
     }
 
     @Test
@@ -129,7 +185,7 @@ class PairSendControllerTest {
 
     @Test
     fun retry_afterFailure_sendsAgain() = test { controller ->
-        sender.result = Result.failure(ServerException.Other("timeout"))
+        sender.result = Result.failure(PairingSenderException.NotDelivered(java.net.ConnectException("refused")))
         controller.onSend()
         controller.state.await<PairSendViewState.Error>()
 
@@ -159,13 +215,28 @@ class PairSendControllerTest {
     }
 
     private inner class FakeGateway : PairSendSessionGateway {
-        var check: PairSendSessionCheck = PairSendSessionCheck.Valid(session)
+        var check = PairSendSessionCheck.Valid
+        var exclusiveSession = session
         var clearCalls = 0
+        var clearedInsideExclusive = false
+        var exclusiveCalls = 0
+        private var insideExclusive = false
 
-        override suspend fun loadValidSession(): PairSendSessionCheck = check
+        override suspend fun checkSession(): PairSendSessionCheck = check
+
+        override suspend fun <T> withExclusiveSession(block: suspend (AuthSession) -> T): T {
+            exclusiveCalls++
+            insideExclusive = true
+            try {
+                return block(exclusiveSession)
+            } finally {
+                insideExclusive = false
+            }
+        }
 
         override suspend fun clearLocalSession() {
             clearCalls++
+            clearedInsideExclusive = insideExclusive
         }
     }
 

@@ -5,9 +5,11 @@ package ru.slartus.boostbuddy.components.pairsend
 import androidx.compose.runtime.Stable
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.value.Value
+import com.arkivanov.essenty.backhandler.BackCallback
 import kotlinx.coroutines.launch
 import ru.slartus.boostbuddy.components.BaseComponent
 import ru.slartus.boostbuddy.data.Inject
+import ru.slartus.boostbuddy.data.ktor.BoostyTokenRefresher
 import ru.slartus.boostbuddy.data.pairing.PairingSender
 import ru.slartus.boostbuddy.data.pairing.PairingTarget
 import ru.slartus.boostbuddy.data.repositories.ProfileRepository
@@ -33,6 +35,7 @@ internal class PairSendComponentImpl(
     private val settingsRepository by Inject.lazy<SettingsRepository>()
     private val profileRepository by Inject.lazy<ProfileRepository>()
     private val pairingSender by Inject.lazy<PairingSender>()
+    private val tokenRefresher by Inject.lazy<BoostyTokenRefresher>()
 
     private val controller = PairSendController(
         scope = scope,
@@ -40,6 +43,7 @@ internal class PairSendComponentImpl(
         gateway = DefaultPairSendSessionGateway(
             settingsRepository = settingsRepository,
             profileRepository = profileRepository,
+            tokenRefresher = tokenRefresher,
         ),
         senderProvider = { pairingSender },
         nowSeconds = { Clock.System.now().epochSeconds },
@@ -50,6 +54,7 @@ internal class PairSendComponentImpl(
         scope.launch {
             controller.state.collect { viewState = it }
         }
+        backHandler.register(BackCallback { onCancel() })
     }
 
     override fun onSend() = controller.onSend()

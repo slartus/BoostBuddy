@@ -11,5 +11,6 @@ enum class PairSendErrorKind {
     NotLoggedIn,
     Network,
     Rejected,
+    Uncertain,
     Unknown,
 }
