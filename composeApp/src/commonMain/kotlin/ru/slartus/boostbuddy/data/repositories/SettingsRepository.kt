@@ -154,22 +154,81 @@ internal class SettingsRepository(
     }
 
     suspend fun getSession(): AuthSession = withContext(Dispatchers.IO) {
+        locker.withLock { authSettings.readSession(SESSION_KEYS) }
+    }
+
+    suspend fun hasPendingSession(): Boolean = withContext(Dispatchers.IO) {
+        locker.withLock { authSettings.getStringOrNull(PENDING_STATE_KEY) != null }
+    }
+
+    suspend fun beginPendingSession(session: AuthSession) = withContext(Dispatchers.IO) {
         locker.withLock {
-            AuthSession(
-                accessToken = authSettings.getStringOrNull(ACCESS_TOKEN_KEY),
-                refreshToken = authSettings.getStringOrNull(REFRESH_TOKEN_KEY),
-                expiresAt = authSettings.getLongOrNull(TOKEN_EXPIRES_AT_KEY),
-                deviceId = authSettings.getStringOrNull(DEVICE_ID_KEY),
-            )
+            if (authSettings.getStringOrNull(PENDING_STATE_KEY) == null) {
+                authSettings.writeSession(PENDING_ROLLBACK_KEYS, authSettings.readSession(SESSION_KEYS))
+                authSettings.putString(PENDING_STATE_KEY, PENDING_STATE_PENDING)
+            }
+            authSettings.writeSession(SESSION_KEYS, session)
         }
     }
 
-    suspend fun replaceSession(session: AuthSession) = replaceSession(
-        accessToken = session.accessToken,
-        refreshToken = session.refreshToken,
-        expiresAt = session.expiresAt,
-        deviceId = session.deviceId,
+    suspend fun rollbackPendingSessionIfAny(): Boolean = withContext(Dispatchers.IO) {
+        locker.withLock {
+            if (authSettings.getStringOrNull(PENDING_STATE_KEY) != PENDING_STATE_PENDING) return@withLock false
+            authSettings.writeSession(SESSION_KEYS, authSettings.readSession(PENDING_ROLLBACK_KEYS))
+            authSettings.clearPendingSession()
+            true
+        }
+    }
+
+    suspend fun commitPendingSession(session: AuthSession) = withContext(Dispatchers.IO) {
+        locker.withLock {
+            authSettings.writeSession(PENDING_COMMIT_KEYS, session)
+            authSettings.putString(PENDING_STATE_KEY, PENDING_STATE_COMMITTING)
+            authSettings.writeSession(SESSION_KEYS, session)
+            authSettings.clearPendingSession()
+        }
+    }
+
+    suspend fun recoverPendingSession() = withContext(Dispatchers.IO) {
+        locker.withLock {
+            when (authSettings.getStringOrNull(PENDING_STATE_KEY)) {
+                null -> return@withLock
+                PENDING_STATE_COMMITTING ->
+                    authSettings.writeSession(SESSION_KEYS, authSettings.readSession(PENDING_COMMIT_KEYS))
+
+                else -> authSettings.writeSession(SESSION_KEYS, authSettings.readSession(PENDING_ROLLBACK_KEYS))
+            }
+            authSettings.clearPendingSession()
+        }
+    }
+
+    private fun Settings.readSession(keys: SessionKeys): AuthSession = AuthSession(
+        accessToken = getStringOrNull(keys.accessToken),
+        refreshToken = getStringOrNull(keys.refreshToken),
+        expiresAt = getLongOrNull(keys.expiresAt),
+        deviceId = getStringOrNull(keys.deviceId),
     )
+
+    private fun Settings.writeSession(keys: SessionKeys, session: AuthSession) {
+        putOrRemove(keys.deviceId, session.deviceId, Settings::putString)
+        putOrRemove(keys.expiresAt, session.expiresAt, Settings::putLong)
+        putOrRemove(keys.refreshToken, session.refreshToken, Settings::putString)
+        putOrRemove(keys.accessToken, session.accessToken, Settings::putString)
+    }
+
+    private fun Settings.clearPendingSession() {
+        remove(PENDING_STATE_KEY)
+        (PENDING_ROLLBACK_KEYS.all + PENDING_COMMIT_KEYS.all).forEach(::remove)
+    }
+
+    private class SessionKeys(
+        val accessToken: String,
+        val refreshToken: String,
+        val expiresAt: String,
+        val deviceId: String,
+    ) {
+        val all: List<String> get() = listOf(accessToken, refreshToken, expiresAt, deviceId)
+    }
 
     suspend fun clearSessionWithNewDeviceId() =
         replaceSession(accessToken = null, refreshToken = null, expiresAt = null, deviceId = generateDeviceId())
@@ -293,6 +352,22 @@ internal class SettingsRepository(
         private const val REFRESH_TOKEN_KEY = "refresh_token"
         private const val TOKEN_EXPIRES_AT_KEY = "token_expires_at"
         private const val DEVICE_ID_KEY = "device_id"
+        private const val PENDING_STATE_KEY = "pending_session_state"
+        private const val PENDING_STATE_PENDING = "pending"
+        private const val PENDING_STATE_COMMITTING = "committing"
+        private val SESSION_KEYS = SessionKeys(ACCESS_TOKEN_KEY, REFRESH_TOKEN_KEY, TOKEN_EXPIRES_AT_KEY, DEVICE_ID_KEY)
+        private val PENDING_ROLLBACK_KEYS = SessionKeys(
+            accessToken = "pending_rollback_access_token",
+            refreshToken = "pending_rollback_refresh_token",
+            expiresAt = "pending_rollback_token_expires_at",
+            deviceId = "pending_rollback_device_id",
+        )
+        private val PENDING_COMMIT_KEYS = SessionKeys(
+            accessToken = "pending_commit_access_token",
+            refreshToken = "pending_commit_refresh_token",
+            expiresAt = "pending_commit_token_expires_at",
+            deviceId = "pending_commit_device_id",
+        )
         private const val WEB_DEVICE_ID_MIGRATED_KEY = "web_device_id_migrated"
         private const val DARK_MODE_KEY = "dark_mode"
         private const val SYSTEM_PLAYER_KEY = "system_player"

@@ -22,6 +22,7 @@ import ru.slartus.boostbuddy.data.analytic.LogAnalytics
 import ru.slartus.boostbuddy.data.api.BoostyApi
 import ru.slartus.boostbuddy.data.api.PhoneAuthApi
 import ru.slartus.boostbuddy.data.ktor.buildBoostyAuthHttpClient
+import ru.slartus.boostbuddy.data.ktor.BoostyRefreshApi
 import ru.slartus.boostbuddy.data.ktor.BoostyTokenRefresher
 import ru.slartus.boostbuddy.data.ktor.buildBoostyHttpClient
 import ru.slartus.boostbuddy.data.ktor.buildBoostyRefreshHttpClient
@@ -104,6 +105,7 @@ object PlatformDataConfiguration {
                 )
             }
         }
+        recoverPendingSession()
         val appSettings = getAppSettings()
         val bufferLoggingTracker = addBufferLoggingTracker(appSettings.debugLog)
         Inject.addConfig {
@@ -131,6 +133,11 @@ object PlatformDataConfiguration {
         return runBlocking { settingsRepository.getSettings() }
     }
 
+    private fun recoverPendingSession() {
+        val settingsRepository = instance<SettingsRepository>()
+        runBlocking { settingsRepository.recoverPendingSession() }
+    }
+
     private fun addBufferLoggingTracker(debugLog: Boolean): BufferLoggingTracker {
         val bufferLoggingTracker = BufferLoggingTracker(debugLog)
         Napier.base(bufferLoggingTracker)
@@ -145,9 +152,13 @@ object PlatformDataConfiguration {
     private fun DI.MainBuilder.boostyDependencies(debugLog: Boolean) {
         bindSingleton {
             val json = instance<Json>()
+            BoostyRefreshApi { buildBoostyRefreshHttpClient(debugLog = debugLog, json = json) }
+        }
+        bindSingleton {
+            val refreshApi = instance<BoostyRefreshApi>()
             BoostyTokenRefresher(
                 settingsRepository = instance(),
-                refreshClientFactory = { buildBoostyRefreshHttpClient(debugLog = debugLog, json = json) },
+                refreshRequest = refreshApi::refresh,
             )
         }
         bindSingleton(TAG_HTTP_CLIENT_BOOSTY) {

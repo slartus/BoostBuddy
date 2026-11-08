@@ -25,6 +25,7 @@ import ru.slartus.boostbuddy.data.repositories.AuthSession
 
 internal class QrLoginController(
     private val scope: CoroutineScope,
+    private val appScope: CoroutineScope,
     receiverProvider: () -> PairingReceiver,
     private val gateway: QrLoginSessionGateway,
     private val nowMs: () -> Long,
@@ -36,10 +37,12 @@ internal class QrLoginController(
 
     private var isStarted = false
     private var isCommitting = false
+    private var isLeaving = false
+    private var isDestroyed = false
+    private var hasPendingSession = false
     private var receiverUsed = false
     private var listenJob: Job? = null
     private var acceptJob: Job? = null
-    private var pendingRollback: AuthSession? = null
 
     fun onStart() {
         isStarted = true
@@ -54,9 +57,11 @@ internal class QrLoginController(
     }
 
     fun onDestroy() {
+        isDestroyed = true
         stopListening()
+        if (isCommitting) return
         val accept = acceptJob
-        scope.launch(NonCancellable) {
+        appScope.launch {
             accept?.cancelAndJoin()
             rollback()
         }
@@ -68,42 +73,51 @@ internal class QrLoginController(
     }
 
     fun onRetry() {
-        if (state.value is QrLoginViewState.Error) restartQr()
+        val current = state.value as? QrLoginViewState.Error ?: return
+        if (current.kind == QrLoginErrorKind.RefreshNetwork && hasPendingSession) commit() else restartQr()
     }
 
     fun onConfirm() {
-        if (state.value !is QrLoginViewState.Confirm) return
-        val previous = pendingRollback ?: return
-        pendingRollback = null
+        if (state.value is QrLoginViewState.Confirm) commit()
+    }
+
+    private fun commit() {
+        if (!hasPendingSession || isCommitting) return
         isCommitting = true
         _state.value = QrLoginViewState.Completing
         scope.launch {
-            val refreshed = withContext(NonCancellable) {
-                gateway.refreshSession().also { ok ->
-                    if (!ok) gateway.replaceSession(previous)
+            val result = withContext(NonCancellable) {
+                gateway.commitPendingSession().also { result ->
+                    when (result) {
+                        QrLoginCommitResult.Committed -> hasPendingSession = false
+                        QrLoginCommitResult.Rejected -> rollback()
+                        QrLoginCommitResult.NetworkError -> if (isDestroyed) rollback()
+                    }
                 }
             }
             isCommitting = false
-            if (refreshed) {
-                _state.value = QrLoginViewState.Success
-                onLogined()
-            } else {
-                _state.value = QrLoginViewState.Error(QrLoginErrorKind.RefreshFailed)
+            when (result) {
+                QrLoginCommitResult.Committed -> {
+                    _state.value = QrLoginViewState.Success
+                    onLogined()
+                }
+
+                QrLoginCommitResult.Rejected ->
+                    _state.value = QrLoginViewState.Error(QrLoginErrorKind.RefreshRejected)
+
+                QrLoginCommitResult.NetworkError ->
+                    _state.value = QrLoginViewState.Error(QrLoginErrorKind.RefreshNetwork)
             }
         }
     }
 
     fun onCancel() {
-        if (state.value !is QrLoginViewState.Confirm) return
-        _state.value = QrLoginViewState.Starting
-        scope.launch {
-            rollback()
-            if (isStarted) startListening()
-        }
+        if (state.value is QrLoginViewState.Confirm) restartQr()
     }
 
     fun onBack(navigate: () -> Unit) {
-        if (isCommitting) return
+        if (isCommitting || isLeaving) return
+        isLeaving = true
         stopListening()
         val accept = acceptJob
         scope.launch {
@@ -114,7 +128,11 @@ internal class QrLoginController(
     }
 
     private fun restartQr() {
-        if (isStarted) startListening() else _state.value = QrLoginViewState.Starting
+        _state.value = QrLoginViewState.Starting
+        scope.launch {
+            rollback()
+            if (isStarted) startListening()
+        }
     }
 
     private fun startListening() {
@@ -190,8 +208,8 @@ internal class QrLoginController(
     private suspend fun accept(payload: PairingPayload) {
         _state.value = QrLoginViewState.Completing
         withContext(NonCancellable) {
-            pendingRollback = gateway.currentSession()
-            gateway.replaceSession(
+            hasPendingSession = true
+            gateway.beginPendingSession(
                 AuthSession(
                     accessToken = payload.accessToken,
                     refreshToken = payload.refreshToken,
@@ -213,9 +231,9 @@ internal class QrLoginController(
     }
 
     private suspend fun rollback() {
-        val previous = pendingRollback ?: return
-        pendingRollback = null
-        withContext(NonCancellable) { gateway.replaceSession(previous) }
+        if (!hasPendingSession) return
+        hasPendingSession = false
+        withContext(NonCancellable) { gateway.rollbackPendingSession() }
     }
 
     private companion object {

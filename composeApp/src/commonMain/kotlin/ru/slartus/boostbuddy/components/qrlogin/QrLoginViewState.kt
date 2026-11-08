@@ -30,5 +30,6 @@ enum class QrLoginErrorKind {
     Expired,
     TooManyAttempts,
     ProfileFailed,
-    RefreshFailed,
+    RefreshRejected,
+    RefreshNetwork,
 }

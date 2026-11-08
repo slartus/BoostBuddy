@@ -25,6 +25,7 @@ import kotlin.coroutines.ContinuationInterceptor
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
 
@@ -61,7 +62,7 @@ class QrLoginControllerTest {
         assertEquals("Donor", confirm.profileName)
         assertEquals("https://avatar", confirm.avatarUrl)
         assertEquals(donorSession, gateway.session)
-        assertEquals(0, gateway.refreshCalls)
+        assertEquals(0, gateway.commitCalls)
         assertEquals(1, gateway.profileCalls)
     }
 
@@ -74,7 +75,7 @@ class QrLoginControllerTest {
 
         assertEquals(QrLoginErrorKind.ProfileFailed, controller.state.await<QrLoginViewState.Error>().kind)
         assertEquals(previous, gateway.session)
-        assertEquals(0, gateway.refreshCalls)
+        assertEquals(0, gateway.commitCalls)
     }
 
     @Test
@@ -84,22 +85,70 @@ class QrLoginControllerTest {
         controller.onConfirm()
 
         controller.state.await<QrLoginViewState.Success>()
-        assertEquals(1, gateway.refreshCalls)
+        assertEquals(1, gateway.commitCalls)
         assertEquals(1, logined)
         assertEquals("rotated-access", gateway.session.accessToken)
         assertEquals("donor-device", gateway.session.deviceId)
     }
 
     @Test
-    fun confirm_refreshFails_rollsBackSession() = test { controller ->
-        gateway.refreshSucceeds = false
+    fun confirm_refreshRejected_rollsBackSession() = test { controller ->
+        gateway.commitResults += QrLoginCommitResult.Rejected
         awaitConfirm(controller)
 
         controller.onConfirm()
 
-        assertEquals(QrLoginErrorKind.RefreshFailed, controller.state.await<QrLoginViewState.Error>().kind)
+        assertEquals(QrLoginErrorKind.RefreshRejected, controller.state.await<QrLoginViewState.Error>().kind)
         assertEquals(previous, gateway.session)
+        assertFalse(gateway.hasPending)
         assertEquals(0, logined)
+    }
+
+    @Test
+    fun confirm_networkError_keepsPendingAndRetryRecommits() = test { controller ->
+        gateway.commitResults += QrLoginCommitResult.NetworkError
+        awaitConfirm(controller)
+
+        controller.onConfirm()
+
+        assertEquals(QrLoginErrorKind.RefreshNetwork, controller.state.await<QrLoginViewState.Error>().kind)
+        assertTrue(gateway.hasPending)
+        assertEquals(donorSession, gateway.session)
+
+        controller.onRetry()
+
+        controller.state.await<QrLoginViewState.Success>()
+        assertEquals(2, gateway.commitCalls)
+        assertEquals(1, receiver.startCalls)
+        assertEquals(1, logined)
+    }
+
+    @Test
+    fun refreshQr_afterNetworkError_rollsBackPending() = test { controller ->
+        gateway.commitResults += QrLoginCommitResult.NetworkError
+        awaitConfirm(controller)
+        controller.onConfirm()
+        controller.state.await<QrLoginViewState.Error>()
+
+        controller.onRefreshQr()
+
+        controller.state.await<QrLoginViewState.ShowQr> { it.pageUrl.endsWith("sid-2") }
+        assertEquals(previous, gateway.session)
+        assertFalse(gateway.hasPending)
+    }
+
+    @Test
+    fun doubleBack_navigatesOnce() = test { controller ->
+        awaitConfirm(controller)
+        var navigations = 0
+
+        controller.onBack { navigations++ }
+        controller.onBack { navigations++ }
+
+        withTimeout(TIMEOUT) { while (navigations == 0) yield() }
+        repeat(5) { yield() }
+        assertEquals(1, navigations)
+        assertEquals(previous, gateway.session)
     }
 
     @Test
@@ -112,7 +161,7 @@ class QrLoginControllerTest {
         assertEquals("192.168.1.10", qr.host)
         assertEquals(previous, gateway.session)
         assertEquals(2, receiver.startCalls)
-        assertEquals(0, gateway.refreshCalls)
+        assertEquals(0, gateway.commitCalls)
     }
 
     @Test
@@ -124,7 +173,7 @@ class QrLoginControllerTest {
 
         withTimeout(TIMEOUT) { while (!navigated) yield() }
         assertEquals(previous, gateway.session)
-        assertEquals(0, gateway.refreshCalls)
+        assertEquals(0, gateway.commitCalls)
     }
 
     @Test
@@ -134,7 +183,7 @@ class QrLoginControllerTest {
         controller.onDestroy()
 
         withTimeout(TIMEOUT) { while (gateway.session != previous) yield() }
-        assertEquals(0, gateway.refreshCalls)
+        assertEquals(0, gateway.commitCalls)
     }
 
     @Test
@@ -238,6 +287,7 @@ class QrLoginControllerTest {
         val scope = CoroutineScope(coroutineContext[ContinuationInterceptor]!! + SupervisorJob())
         val controller = QrLoginController(
             scope = scope,
+            appScope = scope,
             receiverProvider = { receiver },
             gateway = gateway,
             nowMs = { now },
@@ -284,14 +334,21 @@ class QrLoginControllerTest {
 
     private class FakeGateway(var session: AuthSession) : QrLoginSessionGateway {
         var profileResult: Result<Profile> = Result.success(Profile("id", null, "Donor", "https://avatar"))
-        var refreshSucceeds = true
-        var refreshCalls = 0
+        var commitResults = ArrayDeque<QrLoginCommitResult>()
+        var rollbackSnapshot: AuthSession? = null
+        var commitCalls = 0
         var profileCalls = 0
 
-        override suspend fun currentSession(): AuthSession = session
+        val hasPending: Boolean get() = rollbackSnapshot != null
 
-        override suspend fun replaceSession(session: AuthSession) {
+        override suspend fun beginPendingSession(session: AuthSession) {
+            if (rollbackSnapshot == null) rollbackSnapshot = this.session
             this.session = session
+        }
+
+        override suspend fun rollbackPendingSession() {
+            rollbackSnapshot?.let { session = it }
+            rollbackSnapshot = null
         }
 
         override suspend fun fetchProfileWithoutRefresh(): Result<Profile> {
@@ -299,10 +356,14 @@ class QrLoginControllerTest {
             return profileResult
         }
 
-        override suspend fun refreshSession(): Boolean {
-            refreshCalls++
-            if (refreshSucceeds) session = session.copy(accessToken = "rotated-access", refreshToken = "rotated-refresh")
-            return refreshSucceeds
+        override suspend fun commitPendingSession(): QrLoginCommitResult {
+            commitCalls++
+            val result = commitResults.removeFirstOrNull() ?: QrLoginCommitResult.Committed
+            if (result == QrLoginCommitResult.Committed) {
+                session = session.copy(accessToken = "rotated-access", refreshToken = "rotated-refresh")
+                rollbackSnapshot = null
+            }
+            return result
         }
     }
 

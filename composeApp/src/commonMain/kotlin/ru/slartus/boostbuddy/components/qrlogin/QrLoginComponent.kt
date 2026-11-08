@@ -5,9 +5,11 @@ package ru.slartus.boostbuddy.components.qrlogin
 import androidx.compose.runtime.Stable
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.value.Value
+import com.arkivanov.essenty.backhandler.BackCallback
 import com.arkivanov.essenty.lifecycle.doOnDestroy
 import com.arkivanov.essenty.lifecycle.doOnStart
 import com.arkivanov.essenty.lifecycle.doOnStop
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import ru.slartus.boostbuddy.components.BaseComponent
 import ru.slartus.boostbuddy.data.Inject
@@ -39,9 +41,11 @@ internal class QrLoginComponentImpl(
     private val profileRepository by Inject.lazy<ProfileRepository>()
     private val tokenRefresher by Inject.lazy<BoostyTokenRefresher>()
     private val pairingReceiver by Inject.lazy<PairingReceiver>()
+    private val appScope by Inject.lazy<CoroutineScope>()
 
     private val controller = QrLoginController(
         scope = scope,
+        appScope = appScope,
         receiverProvider = { pairingReceiver },
         gateway = DefaultQrLoginSessionGateway(
             settingsRepository = settingsRepository,
@@ -59,6 +63,7 @@ internal class QrLoginComponentImpl(
         lifecycle.doOnStart { controller.onStart() }
         lifecycle.doOnStop { controller.onStop() }
         lifecycle.doOnDestroy { controller.onDestroy() }
+        backHandler.register(BackCallback { onBack() })
     }
 
     override fun onRefreshQr() = controller.onRefreshQr()
