@@ -54,9 +54,11 @@ internal class AuthComponentImpl(
     private var checkTokenJob: Job = Job()
 
     init {
-        if (platformConfiguration.platform == Platform.AndroidTV) {
-            viewState = viewState.copy(mode = AuthViewState.Mode.Start)
-        }
+        val platform = platformConfiguration.platform
+        viewState = viewState.copy(
+            mode = if (platform == Platform.AndroidTV) AuthViewState.Mode.Start else viewState.mode,
+            isQrLoginAvailable = platform == Platform.Android || platform == Platform.AndroidTV,
+        )
         clearToken()
     }
 
@@ -128,7 +130,7 @@ internal class AuthComponentImpl(
     }
 
     override fun onQrLoginClick() {
-        onQrLogin()
+        if (viewState.isQrLoginAvailable) onQrLogin()
     }
 
     override fun onSendSmsCodeClick() {

@@ -9,6 +9,7 @@ data class AuthViewState(
     val resendAvailableAtEpochMs: Long? = null,
     val isLoading: Boolean = false,
     val errorMessage: String? = null,
+    val isQrLoginAvailable: Boolean = false,
 ) {
     enum class Mode { Start, WebView, EnterPhone, EnterSmsCode }
 
