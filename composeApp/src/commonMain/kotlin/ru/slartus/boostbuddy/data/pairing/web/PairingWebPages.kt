@@ -99,7 +99,12 @@ internal object PairingWebPages {
 
           function readValue(name) {
             var value = readCookie(name);
-            if (value === null) {
+            if (value !== null) {
+              try {
+                value = decodeURIComponent(value);
+              } catch (e) {
+              }
+            } else {
               try {
                 value = window.localStorage.getItem(name);
               } catch (e) {
@@ -107,10 +112,6 @@ internal object PairingWebPages {
               }
             }
             if (value === null || value === undefined) return null;
-            try {
-              value = decodeURIComponent(value);
-            } catch (e) {
-            }
             value = String(value).trim();
             return value.length ? value : null;
           }
@@ -148,9 +149,11 @@ internal object PairingWebPages {
           }
 
           function toEpoch(value) {
-            if (typeof value === 'number' && isFinite(value)) return Math.floor(value);
-            if (typeof value === 'string' && /^\d+$/.test(value)) return Number(value);
-            return null;
+            var number = null;
+            if (typeof value === 'number' && isFinite(value)) number = value;
+            else if (typeof value === 'string' && /^\d+$/.test(value)) number = Number(value);
+            if (number === null) return null;
+            return Math.floor(number > 1e11 ? number / 1000 : number);
           }
 
           function seal(target, text) {
