@@ -408,6 +408,7 @@ class RootComponentImpl(
             onLogined = {
                 navigation.replaceAll(Config.Main)
             },
+            onQrLogin = {},
         )
 
     private fun subscribesComponent(componentContext: ComponentContext): SubscribesComponent =

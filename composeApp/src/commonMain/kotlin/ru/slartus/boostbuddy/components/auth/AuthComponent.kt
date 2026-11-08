@@ -19,6 +19,8 @@ import ru.slartus.boostbuddy.data.repositories.PhoneAuthRepository
 import ru.slartus.boostbuddy.data.repositories.ProfileRepository
 import ru.slartus.boostbuddy.data.repositories.SettingsRepository
 import ru.slartus.boostbuddy.data.repositories.models.AuthResponse
+import ru.slartus.boostbuddy.utils.Platform
+import ru.slartus.boostbuddy.utils.PlatformConfiguration
 
 @Stable
 interface AuthComponent {
@@ -34,21 +36,27 @@ interface AuthComponent {
     fun onConfirmSmsCodeClick()
     fun onBackToPhoneClick()
     fun onDismissError()
+    fun onQrLoginClick()
 }
 
 @Suppress("DEPRECATION")
 internal class AuthComponentImpl(
     componentContext: ComponentContext,
     private val onLogined: () -> Unit,
+    private val onQrLogin: () -> Unit,
 ) : BaseComponent<AuthViewState, Any>(componentContext, AuthViewState()), AuthComponent {
     private val settingsRepository by Inject.lazy<SettingsRepository>()
     private val profileRepository by Inject.lazy<ProfileRepository>()
     private val phoneAuthRepository by Inject.lazy<PhoneAuthRepository>()
     private val json by Inject.lazy<Json>()
+    private val platformConfiguration by Inject.lazy<PlatformConfiguration>()
     private val badTokens = mutableSetOf<String>()
     private var checkTokenJob: Job = Job()
 
     init {
+        if (platformConfiguration.platform == Platform.AndroidTV) {
+            viewState = viewState.copy(mode = AuthViewState.Mode.Start)
+        }
         clearToken()
     }
 
@@ -117,6 +125,10 @@ internal class AuthComponentImpl(
 
     override fun onDismissError() {
         viewState = viewState.copy(errorMessage = null)
+    }
+
+    override fun onQrLoginClick() {
+        onQrLogin()
     }
 
     override fun onSendSmsCodeClick() {

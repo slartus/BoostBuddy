@@ -352,6 +352,7 @@ private fun PhoneAuthContent(
                 }
             }
 
+            AuthViewState.Mode.Start,
             AuthViewState.Mode.WebView -> Unit
         }
         val errorMessage = state.errorMessage
