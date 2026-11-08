@@ -245,6 +245,23 @@ class CioPairingReceiverTest {
     }
 
     @Test
+    fun stop_duringStart_cancelsStartAndReleasesPort() = runBlocking {
+        lateinit var receiver: CioPairingReceiver
+        receiver = receiver(
+            ports = firstPort..firstPort,
+            lanAddress = {
+                receiver.stop()
+                LOOPBACK
+            },
+        )
+
+        val error = receiver.start().exceptionOrNull()
+
+        assertIs<PairingReceiverException.Stopped>(error)
+        assertPortReleased(firstPort)
+    }
+
+    @Test
     fun start_skipsBusyPort() = runBlocking {
         blockers += ServerSocket(firstPort, 1, InetAddress.getByName(LOOPBACK))
 

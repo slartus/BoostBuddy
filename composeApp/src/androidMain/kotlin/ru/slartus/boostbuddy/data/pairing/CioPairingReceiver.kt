@@ -58,31 +58,39 @@ internal class CioPairingReceiver(
         onBufferOverflow = BufferOverflow.DROP_OLDEST,
     )
 
-    @Volatile
+    private val stateLock = Any()
+    private var generation = 0
     private var current: ActiveSession? = null
 
     override val events: Flow<PairingReceiverEvent> = _events.asSharedFlow()
 
-    override suspend fun start(): Result<PairingSession> = startMutex.withLock {
-        try {
-            Result.success(withContext(Dispatchers.IO) { startLocked() })
-        } catch (e: Exception) {
-            currentCoroutineContext().ensureActive()
-            Result.failure(e)
+    override suspend fun start(): Result<PairingSession> {
+        val startGeneration = synchronized(stateLock) { generation }
+        return startMutex.withLock {
+            try {
+                Result.success(withContext(Dispatchers.IO) { startLocked(startGeneration) })
+            } catch (e: Exception) {
+                currentCoroutineContext().ensureActive()
+                Result.failure(e)
+            }
         }
     }
 
     override fun stop() {
+        val session = synchronized(stateLock) {
+            generation++
+            current
+        }
         _events.resetReplayCache()
-        current?.close()
+        session?.close()
     }
 
-    private suspend fun startLocked(): PairingSession {
-        current?.let { previous ->
-            previous.close()
-            previous.shutdown().join()
+    private suspend fun startLocked(startGeneration: Int): PairingSession {
+        val previous = synchronized(stateLock) { current.also { current = null } }
+        previous?.let {
+            it.close()
+            it.shutdown().join()
         }
-        current = null
         _events.resetReplayCache()
         val host = lanAddress()?.takeIf { isPrivateIpv4(it, allowLoopback) }
             ?: throw PairingReceiverException.NoLan()
@@ -104,7 +112,13 @@ internal class CioPairingReceiver(
                 continue
             }
             session.scheduleExpiry()
-            current = session
+            val published = synchronized(stateLock) {
+                (generation == startGeneration).also { if (it) current = session }
+            }
+            if (!published) {
+                session.close()
+                throw PairingReceiverException.Stopped()
+            }
             return session.publicSession
         }
         throw PairingReceiverException.NoFreePort(bindError)

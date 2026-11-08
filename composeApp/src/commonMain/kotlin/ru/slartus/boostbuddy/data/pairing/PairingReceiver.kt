@@ -32,6 +32,7 @@ internal sealed class PairingReceiverException(message: String, cause: Throwable
     Exception(message, cause) {
     class NoLan : PairingReceiverException("No private LAN IPv4 address")
     class NoFreePort(cause: Throwable?) : PairingReceiverException("No free pairing port", cause)
+    class Stopped : PairingReceiverException("Pairing receiver stopped while starting")
 }
 
 internal object PairingPayloadValidator {
