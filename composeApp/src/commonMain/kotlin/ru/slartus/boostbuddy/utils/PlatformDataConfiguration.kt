@@ -28,6 +28,7 @@ import ru.slartus.boostbuddy.data.log.CompositeLogger
 import ru.slartus.boostbuddy.data.log.Logger
 import ru.slartus.boostbuddy.data.log.NapierProxy
 import ru.slartus.boostbuddy.data.log.logger
+import ru.slartus.boostbuddy.data.pairing.PairingReceiver
 import ru.slartus.boostbuddy.data.pairing.PairingSender
 import ru.slartus.boostbuddy.data.repositories.AppSettings
 import ru.slartus.boostbuddy.data.repositories.BlogRepository
@@ -112,6 +113,12 @@ object PlatformDataConfiguration {
     }
 
     internal fun bindPairingSender(factory: () -> PairingSender) {
+        Inject.addConfig {
+            bindSingleton { factory() }
+        }
+    }
+
+    internal fun bindPairingReceiver(factory: () -> PairingReceiver) {
         Inject.addConfig {
             bindSingleton { factory() }
         }
