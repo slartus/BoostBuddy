@@ -14,13 +14,13 @@ import io.ktor.client.request.setBody
 import io.ktor.client.statement.HttpResponse
 import io.ktor.http.Parameters
 import kotlinx.datetime.Clock
-import ru.slartus.boostbuddy.data.ktor.SkipTokenRefresh
 import ru.slartus.boostbuddy.data.api.model.RemoteBlogInfoResponse
 import ru.slartus.boostbuddy.data.api.model.RemoteBlogTagResponse
 import ru.slartus.boostbuddy.data.api.model.RemoteFeedResponse
 import ru.slartus.boostbuddy.data.api.model.RemoteFeedTagResponse
 import ru.slartus.boostbuddy.data.api.model.RemotePostResponse
 import ru.slartus.boostbuddy.data.api.model.RemoteSearchResponse
+import ru.slartus.boostbuddy.data.ktor.SkipTokenRefresh
 import kotlin.time.ExperimentalTime
 
 internal class BoostyApi(
