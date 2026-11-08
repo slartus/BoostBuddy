@@ -146,10 +146,10 @@ internal class SettingsRepository(
         deviceId: String?,
     ) = withContext(Dispatchers.IO) {
         locker.withLock {
-            authSettings.putOrRemove(ACCESS_TOKEN_KEY, accessToken, Settings::putString)
-            authSettings.putOrRemove(REFRESH_TOKEN_KEY, refreshToken, Settings::putString)
-            authSettings.putOrRemove(TOKEN_EXPIRES_AT_KEY, expiresAt, Settings::putLong)
             authSettings.putOrRemove(DEVICE_ID_KEY, deviceId, Settings::putString)
+            authSettings.putOrRemove(TOKEN_EXPIRES_AT_KEY, expiresAt, Settings::putLong)
+            authSettings.putOrRemove(REFRESH_TOKEN_KEY, refreshToken, Settings::putString)
+            authSettings.putOrRemove(ACCESS_TOKEN_KEY, accessToken, Settings::putString)
         }
     }
 

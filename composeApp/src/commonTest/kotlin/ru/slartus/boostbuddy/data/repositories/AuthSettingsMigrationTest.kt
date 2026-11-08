@@ -98,7 +98,7 @@ class AuthSettingsMigrationTest {
     )
 }
 
-private class InMemorySettings(initial: Map<String, Any> = emptyMap()) : Settings {
+internal class InMemorySettings(initial: Map<String, Any> = emptyMap()) : Settings {
     val values = initial.toMutableMap()
     var onRemove: (String) -> Unit = {}
 
