@@ -229,7 +229,10 @@ internal fun buildHttpClient(
                 }
             }
             level = if (isDebug) LogLevel.ALL else LogLevel.NONE
-            sanitizeHeader { it == HttpHeaders.Authorization }
+            sanitizeHeader { header ->
+                listOf(HttpHeaders.Authorization, HttpHeaders.Cookie, HttpHeaders.SetCookie)
+                    .any { it.equals(header, ignoreCase = true) }
+            }
         }
         block(this)
     }
