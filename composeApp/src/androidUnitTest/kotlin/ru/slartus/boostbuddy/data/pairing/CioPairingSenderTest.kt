@@ -10,12 +10,15 @@ import io.ktor.server.request.receiveText
 import io.ktor.server.response.respond
 import io.ktor.server.routing.post
 import io.ktor.server.routing.routing
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import org.kodein.di.bindSingleton
 import ru.slartus.boostbuddy.data.Inject
 import ru.slartus.boostbuddy.data.log.CompositeLogger
 import ru.slartus.boostbuddy.data.log.Logger
 import ru.slartus.boostbuddy.utils.ServerException
+import java.net.InetAddress
+import java.net.ServerSocket
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
@@ -27,10 +30,12 @@ class CioPairingSenderTest {
 
     private val received = mutableListOf<Triple<String?, String, String>>()
     private var responseStatus = HttpStatusCode.OK
+    private var responseDelayMillis = 0L
     private val server: EmbeddedServer<*, *> = embeddedServer(CIO, port = 0, host = "127.0.0.1") {
         routing {
             post("/s/{sid}") {
                 received += Triple(call.parameters["sid"], call.request.contentType().toString(), call.receiveText())
+                delay(responseDelayMillis)
                 call.respond(responseStatus)
             }
         }
@@ -50,7 +55,7 @@ class CioPairingSenderTest {
     }
 
     @Test
-    fun send_postsSealedTextToSidPath() = runBlocking {
+    fun send_postsSealedTextToSidPath() = runBlocking<Unit> {
         val result = CioPairingSender(allowLoopback = true).send(target("127.0.0.1"), "sealed-value")
 
         assertTrue(result.isSuccess)
@@ -58,7 +63,7 @@ class CioPairingSenderTest {
     }
 
     @Test
-    fun send_failsOnErrorStatus() = runBlocking {
+    fun send_failsOnErrorStatus() = runBlocking<Unit> {
         responseStatus = HttpStatusCode.Gone
 
         val error = CioPairingSender(allowLoopback = true).send(target("127.0.0.1"), "sealed").exceptionOrNull()
@@ -68,7 +73,7 @@ class CioPairingSenderTest {
     }
 
     @Test
-    fun send_rejectsLoopbackWhenNotAllowed() = runBlocking {
+    fun send_rejectsLoopbackWhenNotAllowed() = runBlocking<Unit> {
         val result = CioPairingSender(allowLoopback = false).send(target("127.0.0.1"), "sealed")
 
         assertTrue(result.isFailure)
@@ -76,10 +81,32 @@ class CioPairingSenderTest {
     }
 
     @Test
-    fun send_rejectsPublicHost() = runBlocking {
-        val result = CioPairingSender(allowLoopback = true).send(target("8.8.8.8"), "sealed")
+    fun send_rejectsPublicHost() = runBlocking<Unit> {
+        val error = CioPairingSender(allowLoopback = true).send(target("8.8.8.8"), "sealed").exceptionOrNull()
 
-        assertTrue(result.isFailure)
+        assertIs<PairingSenderException.InvalidTarget>(error)
+    }
+
+    @Test
+    fun send_connectionRefused_isNotDelivered() = runBlocking<Unit> {
+        val closedPort = ServerSocket(0, 1, InetAddress.getByName("127.0.0.1")).use { it.localPort }
+
+        val error = CioPairingSender(allowLoopback = true)
+            .send(PairingTarget("127.0.0.1", closedPort, sid, PairingEnvelope.newKey()), "sealed")
+            .exceptionOrNull()
+
+        assertIs<PairingSenderException.NotDelivered>(error)
+    }
+
+    @Test
+    fun send_responseTimeoutAfterBody_isUncertain() = runBlocking<Unit> {
+        responseDelayMillis = 2_000
+
+        val error = CioPairingSender(allowLoopback = true, timeoutMillis = 300)
+            .send(target("127.0.0.1"), "sealed")
+            .exceptionOrNull()
+
+        assertIs<PairingSenderException.Uncertain>(error)
     }
 
     private fun target(host: String) =
