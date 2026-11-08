@@ -121,9 +121,11 @@ class PairingEnvelopeTest {
 
     @Test
     fun open_rejectsWrongKeySize() {
-        assertFailsWith<PairingEnvelopeException> {
+        val error = assertFailsWith<PairingEnvelopeException> {
             PairingEnvelope.open(key.copyOf(16), sid, WEB_CRYPTO_SEALED)
         }
+
+        assertEquals("Key must be 32 bytes", error.message)
     }
 
     private companion object {

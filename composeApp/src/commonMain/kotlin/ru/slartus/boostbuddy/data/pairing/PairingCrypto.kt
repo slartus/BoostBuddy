@@ -54,8 +54,9 @@ internal object PairingEnvelope {
         if (bytes[0] != VERSION) throw PairingEnvelopeException("Unsupported envelope version")
         val nonce = bytes.copyOfRange(1, 1 + NONCE_SIZE)
         val ciphertext = bytes.copyOfRange(1 + NONCE_SIZE, bytes.size)
+        val cipher = cipher(key)
         return try {
-            cipher(key).decryptWithIvBlocking(nonce, ciphertext, associatedData(sid))
+            cipher.decryptWithIvBlocking(nonce, ciphertext, associatedData(sid))
         } catch (e: Exception) {
             throw PairingEnvelopeException("Envelope authentication failed", e)
         }
