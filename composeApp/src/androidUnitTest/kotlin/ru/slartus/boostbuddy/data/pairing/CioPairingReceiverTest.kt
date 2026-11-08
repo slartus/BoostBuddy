@@ -12,6 +12,7 @@ import ru.slartus.boostbuddy.data.log.CompositeLogger
 import ru.slartus.boostbuddy.data.log.Logger
 import ru.slartus.boostbuddy.data.pairing.web.PairingWebPages
 import java.io.IOException
+import java.io.InputStream
 import java.net.ConnectException
 import java.net.InetAddress
 import java.net.ServerSocket
@@ -105,6 +106,18 @@ class CioPairingReceiverTest {
         val response = request(session, "POST", sendPath(session), body = ByteArray(9000) { 'A'.code.toByte() }, chunked = true)
 
         assertEquals(413, response.status)
+    }
+
+    @Test
+    fun post_withStalledBody_returns408WithoutCountingFailure() = runBlocking {
+        val session = receiver(bodyReadTimeoutMillis = 200).start().getOrThrow()
+
+        repeat(CioPairingReceiver.MAX_FAILURES) {
+            val response = request(session, "POST", sendPath(session), body = "partial".encodeToByteArray(), declaredLength = 100)
+            assertEquals(408, response.status)
+        }
+
+        assertEquals(200, request(session, "POST", sendPath(session), body = seal(session)).status)
     }
 
     @Test
@@ -348,6 +361,7 @@ class CioPairingReceiverTest {
         ports: IntRange = firstPort..firstPort + 3,
         monotonicClock: () -> Long = { monotonicNow },
         lingerMillis: Long = 60_000L,
+        bodyReadTimeoutMillis: Long = CioPairingReceiver.BODY_READ_TIMEOUT_MILLIS,
     ): CioPairingReceiver =
         CioPairingReceiver(
             allowLoopback = allowLoopback,
@@ -356,6 +370,7 @@ class CioPairingReceiverTest {
             wallClock = { now },
             monotonicClock = monotonicClock,
             lingerMillis = lingerMillis,
+            bodyReadTimeoutMillis = bodyReadTimeoutMillis,
         ).also { receivers += it }
 
     private suspend fun nextEvent(receiver: CioPairingReceiver): PairingReceiverEvent =
@@ -405,13 +420,14 @@ class CioPairingReceiverTest {
         body: ByteArray? = null,
         chunked: Boolean = false,
         contentType: String = "text/plain",
+        declaredLength: Int? = null,
     ): RawResponse = Socket(LOOPBACK, session.port).use { socket ->
         socket.soTimeout = 5_000
         val head = buildString {
             append("$method $path HTTP/1.1\r\nHost: $host\r\nConnection: close\r\n")
             if (body != null) {
                 append("Content-Type: $contentType\r\n")
-                if (chunked) append("Transfer-Encoding: chunked\r\n") else append("Content-Length: ${body.size}\r\n")
+                if (chunked) append("Transfer-Encoding: chunked\r\n") else append("Content-Length: ${declaredLength ?: body.size}\r\n")
             }
             append("\r\n")
         }
@@ -427,21 +443,28 @@ class CioPairingReceiverTest {
         } catch (e: IOException) {
             Unit
         }
-        RawResponse.parse(socket.getInputStream().readBytes().decodeToString())
+        RawResponse.read(socket.getInputStream())
     }
 
     private class RawResponse(val status: Int, private val headers: Map<String, String>, val body: String) {
         fun header(name: String): String? = headers[name.lowercase()]
 
         companion object {
-            fun parse(raw: String): RawResponse {
-                val head = raw.substringBefore("\r\n\r\n")
-                val lines = head.split("\r\n")
+            fun read(input: InputStream): RawResponse {
+                val head = StringBuilder()
+                while (!head.endsWith("\r\n\r\n")) {
+                    val next = input.read()
+                    check(next >= 0) { "Connection closed before response head" }
+                    head.append(next.toChar())
+                }
+                val lines = head.trimEnd().split("\r\n")
                 val status = lines.first().split(' ')[1].toInt()
                 val headers = lines.drop(1).associate {
                     it.substringBefore(':').trim().lowercase() to it.substringAfter(':').trim()
                 }
-                return RawResponse(status, headers, raw.substringAfter("\r\n\r\n"))
+                val length = headers["content-length"]?.toInt()
+                val body = if (length != null) input.readNBytes(length) else input.readBytes()
+                return RawResponse(status, headers, body.decodeToString())
             }
         }
     }

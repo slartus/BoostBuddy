@@ -37,6 +37,7 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.io.readByteArray
 import ru.slartus.boostbuddy.data.pairing.web.PairingWebPages
 import java.io.IOException
@@ -52,6 +53,7 @@ internal class CioPairingReceiver(
     private val monotonicClock: () -> Long = { System.nanoTime() / 1_000_000 },
     private val ttlMillis: Long = TTL_MILLIS,
     private val lingerMillis: Long = LINGER_MILLIS,
+    private val bodyReadTimeoutMillis: Long = BODY_READ_TIMEOUT_MILLIS,
 ) : PairingReceiver {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -215,7 +217,11 @@ internal class CioPairingReceiver(
                     get(path) { call.respondText(asset.body, contentType) }
                 }
                 post("${PairingWebPages.PATH_SEND_PREFIX}{sid}") {
-                    call.respond(receive(call))
+                    val status = receive(call)
+                    if (status == HttpStatusCode.RequestTimeout || status == HttpStatusCode.PayloadTooLarge) {
+                        call.response.headers.append(HttpHeaders.Connection, "close")
+                    }
+                    call.respond(status)
                 }
             }
         }
@@ -230,7 +236,9 @@ internal class CioPairingReceiver(
             if (declaredLength != null && declaredLength > MAX_BODY_BYTES) {
                 return fail(HttpStatusCode.PayloadTooLarge)
             }
-            val body = call.receiveChannel().readRemaining(MAX_BODY_BYTES + 1L).readByteArray()
+            val body = withTimeoutOrNull(bodyReadTimeoutMillis) {
+                call.receiveChannel().readRemaining(MAX_BODY_BYTES + 1L).readByteArray()
+            } ?: return HttpStatusCode.RequestTimeout
             if (body.size > MAX_BODY_BYTES) return fail(HttpStatusCode.PayloadTooLarge)
             return accept(body.decodeToString().trim())
         }
@@ -295,6 +303,7 @@ internal class CioPairingReceiver(
         private val MISDIRECTED_REQUEST = HttpStatusCode(421, "Misdirected Request")
         const val TTL_MILLIS = 5 * 60 * 1000L
         const val LINGER_MILLIS = 3_000L
+        const val BODY_READ_TIMEOUT_MILLIS = 10_000L
         const val MAX_BODY_BYTES = 8 * 1024
         const val MAX_FAILURES = 10
         private const val MAX_CONCURRENT_REQUESTS = 8
