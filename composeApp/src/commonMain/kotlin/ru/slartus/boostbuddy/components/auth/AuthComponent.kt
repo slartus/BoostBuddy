@@ -13,6 +13,7 @@ import ru.slartus.boostbuddy.components.BaseComponent
 import ru.slartus.boostbuddy.data.Inject
 import ru.slartus.boostbuddy.data.analytic.analytics
 import ru.slartus.boostbuddy.data.auth.boostyClientId
+import ru.slartus.boostbuddy.data.auth.parseCookieHeader
 import ru.slartus.boostbuddy.data.log.logger
 import ru.slartus.boostbuddy.data.repositories.PhoneAuthRepository
 import ru.slartus.boostbuddy.data.repositories.ProfileRepository
@@ -62,7 +63,7 @@ internal class AuthComponentImpl(
     override fun onCookiesChanged(cookies: String) {
         scope.launch {
             runCatching {
-                val parsedCookies = parseCookies(cookies)
+                val parsedCookies = parseCookieHeader(cookies)
                 val authCookie =
                     parsedCookies.entries.firstOrNull { it.key == "auth" } ?: return@launch
                 val jsonObject = authCookie.value.decodeURLQueryComponent()
@@ -238,16 +239,6 @@ internal class AuthComponentImpl(
         } else {
             badTokens.add(token)
         }
-    }
-
-    private fun parseCookies(cookies: String?): Map<String, String> {
-        cookies ?: return emptyMap()
-
-        return cookies.split(";")
-            .map { it.trim() }
-            .filter { it.isNotEmpty() }
-            .map { it.split("=") }
-            .associate { it[0] to it[1] }
     }
 
     /**
