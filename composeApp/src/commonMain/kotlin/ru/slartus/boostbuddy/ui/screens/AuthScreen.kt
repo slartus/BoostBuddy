@@ -29,7 +29,6 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -105,54 +104,52 @@ internal fun AuthScreen(component: AuthComponent) {
     }
     Scaffold(
         topBar = {
-            Column {
-                TopAppBar(
-                    title = {
-                        Row(
-                            modifier = Modifier.fillMaxWidth().padding(16.dp),
-                            verticalAlignment = CenterVertically
-                        ) {
-                            Text(
-                                text = "Авторизация"
+            TopAppBar(
+                title = {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(16.dp),
+                        verticalAlignment = CenterVertically
+                    ) {
+                        Text(
+                            text = "Авторизация"
+                        )
+                    }
+                },
+                actions = {
+                    if (state.isQrLoginAvailable) {
+                        QrLoginIconButton(onClick = component::onQrLoginClick)
+                    }
+                    if (state.mode == AuthViewState.Mode.WebView) {
+                        IconButton(onClick = component::onSwitchToPhoneLoginClick) {
+                            Icon(
+                                imageVector = Icons.Filled.Phone,
+                                contentDescription = "Вход по телефону"
                             )
                         }
-                    },
-                    actions = {
-                        if (state.mode == AuthViewState.Mode.WebView) {
-                            IconButton(onClick = component::onSwitchToPhoneLoginClick) {
+                        if (platformConfiguration.platform == Platform.AndroidTV)
+                            IconButton(onClick = { useCursor = !useCursor }) {
                                 Icon(
-                                    imageVector = Icons.Filled.Phone,
-                                    contentDescription = "Вход по телефону"
+                                    imageVector = Icons.Filled.NorthWest,
+                                    contentDescription = "Программный курсор"
                                 )
                             }
-                            if (platformConfiguration.platform == Platform.AndroidTV)
-                                IconButton(onClick = { useCursor = !useCursor }) {
-                                    Icon(
-                                        imageVector = Icons.Filled.NorthWest,
-                                        contentDescription = "Программный курсор"
-                                    )
-                                }
-                            IconButton(onClick = component::onReloadClick) {
-                                Icon(
-                                    imageVector = Icons.Filled.Repeat,
-                                    contentDescription = "Повторить"
-                                )
-                            }
-                        } else {
-                            IconButton(onClick = component::onSwitchToWebViewClick) {
-                                Icon(
-                                    imageVector = Icons.Filled.Public,
-                                    contentDescription = "Вход через сайт"
-                                )
-                            }
+                        IconButton(onClick = component::onReloadClick) {
+                            Icon(
+                                imageVector = Icons.Filled.Repeat,
+                                contentDescription = "Повторить"
+                            )
+                        }
+                    } else {
+                        IconButton(onClick = component::onSwitchToWebViewClick) {
+                            Icon(
+                                imageVector = Icons.Filled.Public,
+                                contentDescription = "Вход через сайт"
+                            )
                         }
                     }
-
-                )
-                if (state.isQrLoginAvailable) {
-                    QrLoginButton(onClick = component::onQrLoginClick)
                 }
-            }
+
+            )
         },
     ) { innerPadding ->
         if (state.mode != AuthViewState.Mode.WebView) {
@@ -394,21 +391,15 @@ private fun PhoneAuthContent(
 }
 
 @Composable
-private fun QrLoginButton(onClick: () -> Unit) {
-    FilledTonalButton(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp)
-            .tvFocusHighlight(ButtonDefaults.filledTonalShape)
-            .testTag(AuthScreenTestTags.BUTTON_QR_LOGIN),
+private fun QrLoginIconButton(onClick: () -> Unit) {
+    IconButton(
+        modifier = Modifier.testTag(AuthScreenTestTags.BUTTON_QR_LOGIN),
         onClick = onClick,
     ) {
         Icon(
             imageVector = Icons.Filled.QrCode2,
-            contentDescription = null,
+            contentDescription = "Войти по QR-коду",
         )
-        Spacer(Modifier.width(8.dp))
-        Text("Войти по QR с другого устройства")
     }
 }
 
