@@ -45,7 +45,9 @@ import ru.slartus.boostbuddy.ui.screens.blog.VideoTypeDialogView
 import ru.slartus.boostbuddy.ui.screens.filter.FilterDialogView
 import ru.slartus.boostbuddy.ui.screens.main.LogoutDialogView
 import ru.slartus.boostbuddy.ui.screens.main.MainScreen
+import ru.slartus.boostbuddy.ui.screens.pairsend.PairSendScreen
 import ru.slartus.boostbuddy.ui.screens.post.PostScreen
+import ru.slartus.boostbuddy.ui.screens.qrlogin.QrLoginScreen
 import ru.slartus.boostbuddy.ui.theme.AppTheme
 
 
@@ -69,6 +71,8 @@ fun RootScreen(component: RootComponent, modifier: Modifier = Modifier) {
                     is RootComponent.Child.BlogChild -> BlogScreen(child.component)
                     is RootComponent.Child.VideoChild -> VideoScreen(child.component)
                     is RootComponent.Child.PostChild -> PostScreen(child.component)
+                    is RootComponent.Child.QrLoginChild -> QrLoginScreen(child.component)
+                    is RootComponent.Child.PairSendChild -> PairSendScreen(child.component)
                 }
             }
 

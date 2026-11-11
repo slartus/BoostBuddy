@@ -1,5 +1,6 @@
 package ru.slartus.boostbuddy.utils
 
+import com.russhwolf.settings.ObservableSettings
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
@@ -21,12 +22,17 @@ import ru.slartus.boostbuddy.data.analytic.LogAnalytics
 import ru.slartus.boostbuddy.data.api.BoostyApi
 import ru.slartus.boostbuddy.data.api.PhoneAuthApi
 import ru.slartus.boostbuddy.data.ktor.buildBoostyAuthHttpClient
+import ru.slartus.boostbuddy.data.ktor.BoostyRefreshApi
+import ru.slartus.boostbuddy.data.ktor.BoostyTokenRefresher
 import ru.slartus.boostbuddy.data.ktor.buildBoostyHttpClient
+import ru.slartus.boostbuddy.data.ktor.buildBoostyRefreshHttpClient
 import ru.slartus.boostbuddy.data.ktor.buildGithubHttpClient
 import ru.slartus.boostbuddy.data.log.CompositeLogger
 import ru.slartus.boostbuddy.data.log.Logger
 import ru.slartus.boostbuddy.data.log.NapierProxy
 import ru.slartus.boostbuddy.data.log.logger
+import ru.slartus.boostbuddy.data.pairing.PairingReceiver
+import ru.slartus.boostbuddy.data.pairing.PairingSender
 import ru.slartus.boostbuddy.data.repositories.AppSettings
 import ru.slartus.boostbuddy.data.repositories.BlogRepository
 import ru.slartus.boostbuddy.data.repositories.EventsRepository
@@ -48,6 +54,7 @@ object PlatformDataConfiguration {
     private const val TAG_HTTP_CLIENT_BOOSTY = "boosty"
     private const val TAG_HTTP_CLIENT_BOOSTY_AUTH = "boosty_auth"
     private const val TAG_HTTP_CLIENT_GITHUB = "github"
+    private const val TAG_AUTH_SETTINGS = "auth_settings"
     fun createDependenciesTree(
         platformConfiguration: PlatformConfiguration,
         analyticsTrackers: List<AnalyticsTracker>
@@ -84,8 +91,21 @@ object PlatformDataConfiguration {
             bindSingleton { NavigationRouterImpl() }
             bindSingleton { Permissions(platformConfiguration = instance()) }
             bindSingleton { SettingsFactory(platformConfiguration = instance()).createDefault() }
-            bindProvider { new(::SettingsRepository) }
+            bindSingleton(TAG_AUTH_SETTINGS) {
+                val legacySettings = instance<ObservableSettings>()
+                SettingsFactory(platformConfiguration = instance()).createAuth()
+                    ?.also { SettingsRepository.migrateAuthSettings(legacy = legacySettings, target = it) }
+                    ?: legacySettings
+            }
+            bindProvider {
+                SettingsRepository(
+                    settings = instance(),
+                    authSettings = instance(TAG_AUTH_SETTINGS),
+                    coroutineScope = instance(),
+                )
+            }
         }
+        recoverPendingSession()
         val appSettings = getAppSettings()
         val bufferLoggingTracker = addBufferLoggingTracker(appSettings.debugLog)
         Inject.addConfig {
@@ -96,9 +116,26 @@ object PlatformDataConfiguration {
         }
     }
 
+    internal fun bindPairingSender(factory: () -> PairingSender) {
+        Inject.addConfig {
+            bindSingleton { factory() }
+        }
+    }
+
+    internal fun bindPairingReceiver(factory: () -> PairingReceiver) {
+        Inject.addConfig {
+            bindSingleton { factory() }
+        }
+    }
+
     private fun getAppSettings(): AppSettings {
         val settingsRepository = instance<SettingsRepository>()
         return runBlocking { settingsRepository.getSettings() }
+    }
+
+    private fun recoverPendingSession() {
+        val settingsRepository = instance<SettingsRepository>()
+        runBlocking { settingsRepository.recoverPendingSession() }
     }
 
     private fun addBufferLoggingTracker(debugLog: Boolean): BufferLoggingTracker {
@@ -113,10 +150,22 @@ object PlatformDataConfiguration {
     }
 
     private fun DI.MainBuilder.boostyDependencies(debugLog: Boolean) {
+        bindSingleton {
+            val json = instance<Json>()
+            BoostyRefreshApi { buildBoostyRefreshHttpClient(debugLog = debugLog, json = json) }
+        }
+        bindSingleton {
+            val refreshApi = instance<BoostyRefreshApi>()
+            BoostyTokenRefresher(
+                settingsRepository = instance(),
+                refreshRequest = refreshApi::refresh,
+            )
+        }
         bindSingleton(TAG_HTTP_CLIENT_BOOSTY) {
             buildBoostyHttpClient(
                 debugLog = debugLog,
                 settingsRepository = instance(),
+                tokenRefresher = instance(),
                 json = instance(),
             )
         }

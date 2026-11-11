@@ -21,10 +21,11 @@ kodein = "7.23.1" # https://github.com/kosi-libs/Kodein
 media3 = "1.7.1" # https://github.com/androidx/media
 collections-immutable = "0.4.0" # https://github.com/Kotlin/kotlinx.collections.immutable/releases
 android-splashscreen = "1.0.1"
-kotlinx-io = "0.6.0" # https://github.com/Kotlin/kotlinx-io
+kotlinx-io = "0.8.0" # https://github.com/Kotlin/kotlinx-io
 qrose = "1.0.1" # https://github.com/alexzhirkevich/qrose
 appmetrica = "7.10.0" # https://appmetrica.yandex.com/docs/en/sdk/android/analytics/quick-start
 atomicfu = "0.29.0" # https://github.com/Kotlin/kotlinx-atomicfu
+cryptography = "0.5.0" # https://github.com/whyoleg/cryptography-kotlin
 
 [libraries]
 androidx-appcompat = { module = "androidx.appcompat:appcompat", version.ref = "androidx-appcompat" }
@@ -46,6 +47,8 @@ ktor-auth = { module = "io.ktor:ktor-client-auth", version.ref = "ktor" }
 ktor-core = { module = "io.ktor:ktor-client-core", version.ref = "ktor" }
 ktor-darwin = { module = "io.ktor:ktor-client-darwin", version.ref = "ktor" }
 ktor-okhttp = { module = "io.ktor:ktor-client-okhttp", version.ref = "ktor" }
+ktor-cio = { module = "io.ktor:ktor-client-cio", version.ref = "ktor" }
+ktor-server-cio = { module = "io.ktor:ktor-server-cio", version.ref = "ktor" }
 ktor-json = { module = "io.ktor:ktor-client-json", version.ref = "ktor" }
 ktor-serialization-json = { module = "io.ktor:ktor-serialization-kotlinx-json", version.ref = "ktor" }
 ktor-negotiation = { module = "io.ktor:ktor-client-content-negotiation", version.ref = "ktor" }
@@ -55,6 +58,8 @@ kotlinx-datetime = { module = "org.jetbrains.kotlinx:kotlinx-datetime", version.
 kotlinx-atomicfu = { module = "org.jetbrains.kotlinx:atomicfu", version.ref = "atomicfu" }
 settings-core = { module = "com.russhwolf:multiplatform-settings", version.ref = "multiplatformSettings" }
 settings-coroutines = { module = "com.russhwolf:multiplatform-settings-coroutines", version.ref = "multiplatformSettings" }
+cryptography-core = { module = "dev.whyoleg.cryptography:cryptography-core", version.ref = "cryptography" }
+cryptography-provider-jdk = { module = "dev.whyoleg.cryptography:cryptography-provider-jdk", version.ref = "cryptography" }
 
 exoplayer-core = { module = "androidx.media3:media3-exoplayer", version.ref = "media3" }
 exoplayer-dash = { module = "androidx.media3:media3-exoplayer-dash", version.ref = "media3" }

@@ -10,17 +10,23 @@ import com.arkivanov.decompose.router.slot.dismiss
 import com.arkivanov.decompose.router.stack.ChildStack
 import com.arkivanov.decompose.router.stack.StackNavigation
 import com.arkivanov.decompose.router.stack.childStack
+import com.arkivanov.decompose.router.stack.navigate
 import com.arkivanov.decompose.router.stack.popTo
 import com.arkivanov.decompose.router.stack.popWhile
 import com.arkivanov.decompose.router.stack.push
+import com.arkivanov.decompose.router.stack.pushNew
 import com.arkivanov.decompose.router.stack.pushToFront
 import com.arkivanov.decompose.router.stack.replaceAll
 import com.arkivanov.decompose.value.Value
+import com.arkivanov.essenty.statekeeper.SerializableContainer
+import com.arkivanov.essenty.statekeeper.consumeRequired
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.Transient
+import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.Json
 import ru.slartus.boostbuddy.components.auth.AuthComponent
 import ru.slartus.boostbuddy.components.auth.AuthComponentImpl
@@ -34,8 +40,15 @@ import ru.slartus.boostbuddy.components.filter.FilterParams
 import ru.slartus.boostbuddy.components.filter.FilterScreenEntryPoint
 import ru.slartus.boostbuddy.components.main.MainComponent
 import ru.slartus.boostbuddy.components.main.MainComponentImpl
+import ru.slartus.boostbuddy.components.pairsend.PairSendComponent
+import ru.slartus.boostbuddy.components.pairsend.PairSendComponentImpl
+import ru.slartus.boostbuddy.components.pairsend.PairSendDeepLinkDecision
+import ru.slartus.boostbuddy.components.pairsend.PairSendViewState
+import ru.slartus.boostbuddy.components.pairsend.resolvePairSendDeepLink
 import ru.slartus.boostbuddy.components.post.PostComponent
 import ru.slartus.boostbuddy.components.post.PostComponentImpl
+import ru.slartus.boostbuddy.components.qrlogin.QrLoginComponent
+import ru.slartus.boostbuddy.components.qrlogin.QrLoginComponentImpl
 import ru.slartus.boostbuddy.components.settings.SettingsComponent
 import ru.slartus.boostbuddy.components.settings.SettingsComponentImpl
 import ru.slartus.boostbuddy.components.settings.SettingsComponentImpl.Companion.DONATE_URL
@@ -48,6 +61,7 @@ import ru.slartus.boostbuddy.components.video.VideoComponentImpl
 import ru.slartus.boostbuddy.data.Inject
 import ru.slartus.boostbuddy.data.analytic.analytics
 import ru.slartus.boostbuddy.data.auth.migrateWebSessionDeviceId
+import ru.slartus.boostbuddy.data.pairing.PairingTarget
 import ru.slartus.boostbuddy.data.repositories.AppSettings
 import ru.slartus.boostbuddy.data.repositories.Blog
 import ru.slartus.boostbuddy.data.repositories.GithubRepository
@@ -61,6 +75,7 @@ import ru.slartus.boostbuddy.navigation.NavigationRouter
 import ru.slartus.boostbuddy.navigation.NavigationTree
 import ru.slartus.boostbuddy.navigation.Screen
 import ru.slartus.boostbuddy.navigation.ScreenAction
+import ru.slartus.boostbuddy.navigation.persistableStack
 import ru.slartus.boostbuddy.navigation.navigateTo
 import ru.slartus.boostbuddy.utils.Permission
 import ru.slartus.boostbuddy.utils.Permissions
@@ -86,6 +101,7 @@ interface RootComponent : AppComponent<RootViewAction> {
     fun onErrorReceived(ex: Throwable)
     fun onDialogDismissed()
     fun onDonateClick()
+    fun onDeepLink(url: String)
 
     sealed class Child {
         class AuthChild(val component: AuthComponent) : Child()
@@ -94,6 +110,8 @@ interface RootComponent : AppComponent<RootViewAction> {
         class BlogChild(val component: BlogComponent) : Child()
         class VideoChild(val component: VideoComponent) : Child()
         class PostChild(val component: PostComponent) : Child()
+        class QrLoginChild(val component: QrLoginComponent) : Child()
+        class PairSendChild(val component: PairSendComponent) : Child()
     }
 
     sealed class DialogChild {
@@ -155,11 +173,16 @@ class RootComponentImpl(
         childStack(
             key = "DefaultChildStack",
             source = navigation,
-            serializer = Config.serializer(),
-            initialConfiguration = Config.Main,
+            initialStack = { listOf(Config.Main) },
+            saveStack = ::saveStack,
+            restoreStack = { it.consumeRequired(ListSerializer(Config.serializer())) },
             handleBackButton = true,
             childFactory = ::child,
         )
+
+    private fun saveStack(stack: List<Config>): SerializableContainer? =
+        persistableStack(stack) { it is Config.PairSend }
+            ?.let { SerializableContainer(value = it, strategy = ListSerializer(Config.serializer())) }
 
     init {
         scope.launch { migrateWebSessionDeviceId(settingsRepository, json) }
@@ -315,6 +338,14 @@ class RootComponentImpl(
             Config.Main -> RootComponent.Child.MainChild(
                 mainComponent(componentContext)
             )
+
+            Config.QrLogin -> RootComponent.Child.QrLoginChild(
+                qrLoginComponent(componentContext)
+            )
+
+            is Config.PairSend -> RootComponent.Child.PairSendChild(
+                pairSendComponent(componentContext, config)
+            )
         }
 
     private fun dialogChild(
@@ -408,7 +439,61 @@ class RootComponentImpl(
             onLogined = {
                 navigation.replaceAll(Config.Main)
             },
+            onQrLogin = { navigation.pushNew(Config.QrLogin) },
         )
+
+    private fun qrLoginComponent(componentContext: ComponentContext): QrLoginComponent =
+        QrLoginComponentImpl(
+            componentContext = componentContext,
+            onLogined = { navigation.replaceAll(Config.Main) },
+            onBackClicked = { navigation.popWhile { it == Config.QrLogin } },
+            onOtherMethodClicked = { navigation.popWhile { it == Config.QrLogin } },
+        )
+
+    private fun pairSendComponent(
+        componentContext: ComponentContext,
+        config: Config.PairSend,
+    ): PairSendComponent {
+        return PairSendComponentImpl(
+            componentContext = componentContext,
+            target = checkNotNull(config.target),
+            onTransferred = { navigation.replaceAll(Config.Auth) },
+            onCancelled = { navigation.popWhile { it == config } },
+        )
+    }
+
+    override fun onDeepLink(url: String) {
+        val isLoginInProgress = stack.value.items.any {
+            it.configuration == Config.Auth || it.configuration == Config.QrLogin
+        }
+        scope.launch {
+            val isLoggedIn = !isLoginInProgress && !settingsRepository.getAccessToken().isNullOrEmpty()
+            val decision = resolvePairSendDeepLink(
+                url = url,
+                allowLoopback = platformConfiguration.isDebug,
+                isLoggedIn = isLoggedIn,
+            )
+            when (decision) {
+                is PairSendDeepLinkDecision.Open -> openPairSend(decision.target)
+                PairSendDeepLinkDecision.InvalidLink ->
+                    dialogNavigation.activate(DialogConfig.Error(PAIR_LINK_INVALID_MESSAGE))
+
+                PairSendDeepLinkDecision.NotLoggedIn ->
+                    dialogNavigation.activate(DialogConfig.Error(PAIR_NOT_LOGGED_IN_MESSAGE))
+            }
+        }
+    }
+
+    private fun openPairSend(target: PairingTarget) {
+        val active = stack.value.active.instance
+        if (active is RootComponent.Child.PairSendChild &&
+            active.component.viewStates.value is PairSendViewState.Sending
+        ) {
+            dialogNavigation.activate(DialogConfig.Error(PAIR_SEND_IN_PROGRESS_MESSAGE))
+            return
+        }
+        navigation.navigate { stack -> stack.filterNot { it is Config.PairSend } + Config.PairSend(target) }
+    }
 
     private fun subscribesComponent(componentContext: ComponentContext): SubscribesComponent =
         SubscribesComponentImpl(componentContext)
@@ -634,6 +719,23 @@ class RootComponentImpl(
 
         @Serializable
         data class PostConfig(val post: Post) : Config
+
+        @Serializable
+        data object QrLogin : Config
+
+        @Serializable
+        data class PairSend(
+            @Transient val target: PairingTarget? = null,
+            val id: String = Uuid.random().toString(),
+        ) : Config
+    }
+
+    private companion object {
+        const val PAIR_LINK_INVALID_MESSAGE =
+            "Ссылка для передачи входа повреждена или устарела. Отсканируйте QR-код ещё раз"
+        const val PAIR_NOT_LOGGED_IN_MESSAGE =
+            "Сначала войдите в аккаунт на этом устройстве, затем отсканируйте QR снова"
+        const val PAIR_SEND_IN_PROGRESS_MESSAGE = "Передача входа уже выполняется"
     }
 
     @Serializable

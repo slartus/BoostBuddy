@@ -9,8 +9,9 @@ data class AuthViewState(
     val resendAvailableAtEpochMs: Long? = null,
     val isLoading: Boolean = false,
     val errorMessage: String? = null,
+    val isQrLoginAvailable: Boolean = false,
 ) {
-    enum class Mode { WebView, EnterPhone, EnterSmsCode }
+    enum class Mode { Start, WebView, EnterPhone, EnterSmsCode }
 
     companion object {
         internal const val AUTH_URL = "https://boosty.to"

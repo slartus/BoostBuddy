@@ -14,6 +14,8 @@
         android:label="BoostBuddy"
         android:theme="@style/AppTheme.App"
         android:banner="@drawable/ic_launcher"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:fullBackupContent="@xml/backup_rules"
         >
         <activity
             android:name=".AppActivity"
@@ -24,6 +26,12 @@
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="boostbuddy" android:host="pair" />
             </intent-filter>
         </activity>
 

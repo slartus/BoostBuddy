@@ -20,6 +20,7 @@ import ru.slartus.boostbuddy.data.api.model.RemoteFeedResponse
 import ru.slartus.boostbuddy.data.api.model.RemoteFeedTagResponse
 import ru.slartus.boostbuddy.data.api.model.RemotePostResponse
 import ru.slartus.boostbuddy.data.api.model.RemoteSearchResponse
+import ru.slartus.boostbuddy.data.ktor.SkipTokenRefresh
 import kotlin.time.ExperimentalTime
 
 internal class BoostyApi(
@@ -48,7 +49,10 @@ internal class BoostyApi(
                 parameter("with_follow", withFollow)
             }
 
-    suspend fun current(): HttpResponse = httpClient.get("v1/user/current")
+    suspend fun current(allowTokenRefresh: Boolean = true): HttpResponse =
+        httpClient.get("v1/user/current") {
+            if (!allowTokenRefresh) attributes.put(SkipTokenRefresh, Unit)
+        }
 
     suspend fun blogPosts(
         blog: String,

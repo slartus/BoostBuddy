@@ -10,28 +10,34 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.NorthWest
 import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material.icons.filled.Public
+import androidx.compose.material.icons.filled.QrCode2
 import androidx.compose.material.icons.filled.Repeat
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -40,13 +46,15 @@ import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import kotlinx.datetime.Clock
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Alignment.Companion.CenterVertically
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.key.Key.Companion.DirectionCenter
 import androidx.compose.ui.input.key.Key.Companion.DirectionDown
 import androidx.compose.ui.input.key.Key.Companion.DirectionDownLeft
@@ -62,16 +70,22 @@ import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.max
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.datetime.Clock
 import ru.slartus.boostbuddy.components.auth.AuthComponent
 import ru.slartus.boostbuddy.components.auth.AuthViewState
+import ru.slartus.boostbuddy.ui.common.CenteredScrollableColumn
 import ru.slartus.boostbuddy.ui.common.LocalPlatformConfiguration
 import ru.slartus.boostbuddy.ui.common.keyboardAsState
+import ru.slartus.boostbuddy.ui.common.rememberTvInitialFocus
+import ru.slartus.boostbuddy.ui.common.tvFocusHighlight
 import ru.slartus.boostbuddy.ui.widgets.WebView
 import ru.slartus.boostbuddy.utils.Platform
 
@@ -84,6 +98,10 @@ internal fun AuthScreen(component: AuthComponent) {
     var useCursor by remember { mutableStateOf(false) }
     val isKeyboardOpen by keyboardAsState()
     val state by component.viewStates.subscribeAsState()
+    if (state.mode == AuthViewState.Mode.Start) {
+        AuthStartContent(component = component)
+        return
+    }
     Scaffold(
         topBar = {
             TopAppBar(
@@ -98,6 +116,9 @@ internal fun AuthScreen(component: AuthComponent) {
                     }
                 },
                 actions = {
+                    if (state.isQrLoginAvailable) {
+                        QrLoginIconButton(onClick = component::onQrLoginClick)
+                    }
                     if (state.mode == AuthViewState.Mode.WebView) {
                         IconButton(onClick = component::onSwitchToPhoneLoginClick) {
                             Icon(
@@ -352,6 +373,7 @@ private fun PhoneAuthContent(
                 }
             }
 
+            AuthViewState.Mode.Start,
             AuthViewState.Mode.WebView -> Unit
         }
         val errorMessage = state.errorMessage
@@ -364,6 +386,121 @@ private fun PhoneAuthContent(
                 title = { Text("Ошибка") },
                 text = { Text(errorMessage) }
             )
+        }
+    }
+}
+
+@Composable
+private fun QrLoginIconButton(onClick: () -> Unit) {
+    IconButton(
+        modifier = Modifier.testTag(AuthScreenTestTags.BUTTON_QR_LOGIN),
+        onClick = onClick,
+    ) {
+        Icon(
+            imageVector = Icons.Filled.QrCode2,
+            contentDescription = "Войти по QR-коду",
+        )
+    }
+}
+
+@Composable
+private fun AuthStartContent(component: AuthComponent) {
+    val phoneCardFocus = rememberTvInitialFocus()
+    val phoneNumberLinkFocus = remember { FocusRequester() }
+    CenteredScrollableColumn(
+        modifier = Modifier.padding(horizontal = 48.dp, vertical = 24.dp),
+    ) {
+        Text(
+            text = "Войти в Boosty",
+            style = MaterialTheme.typography.headlineMedium,
+        )
+        Spacer(Modifier.height(16.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(24.dp)) {
+            AuthStartCard(
+                modifier = Modifier
+                    .focusRequester(phoneCardFocus)
+                    .focusProperties { down = phoneNumberLinkFocus }
+                    .testTag(AuthScreenTestTags.START_CARD_PHONE),
+                icon = Icons.Filled.QrCode2,
+                title = "С телефона",
+                description = "Отсканируйте QR-код и войдите на телефоне",
+                badge = "Рекомендуем",
+                isPrimary = true,
+                onClick = component::onQrLoginClick,
+            )
+            AuthStartCard(
+                modifier = Modifier
+                    .focusProperties { down = phoneNumberLinkFocus }
+                    .testTag(AuthScreenTestTags.START_CARD_WEB),
+                icon = Icons.Filled.Public,
+                title = "Через сайт",
+                description = "Браузер на ТВ, управление пультом",
+                badge = null,
+                isPrimary = false,
+                onClick = component::onSwitchToWebViewClick,
+            )
+        }
+        Spacer(Modifier.height(8.dp))
+        TextButton(
+            modifier = Modifier
+                .focusRequester(phoneNumberLinkFocus)
+                .tvFocusHighlight(ButtonDefaults.textShape)
+                .testTag(AuthScreenTestTags.START_LINK_PHONE_NUMBER),
+            onClick = component::onSwitchToPhoneLoginClick,
+        ) {
+            Text(
+                text = "Войти по номеру телефона",
+                style = MaterialTheme.typography.titleMedium,
+            )
+        }
+    }
+}
+
+@Composable
+private fun AuthStartCard(
+    icon: ImageVector,
+    title: String,
+    description: String,
+    badge: String?,
+    isPrimary: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val shape = CardDefaults.shape
+    Card(
+        modifier = modifier
+            .width(320.dp)
+            .heightIn(min = 200.dp)
+            .tvFocusHighlight(shape),
+        shape = shape,
+        colors = if (isPrimary) {
+            CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.primaryContainer,
+                contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+            )
+        } else {
+            CardDefaults.cardColors()
+        },
+        onClick = onClick,
+    ) {
+        Column(
+            modifier = Modifier.padding(24.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Icon(
+                modifier = Modifier.size(48.dp),
+                imageVector = icon,
+                contentDescription = null,
+            )
+            Text(text = title, style = MaterialTheme.typography.headlineSmall)
+            Text(text = description, style = MaterialTheme.typography.bodyLarge)
+            if (badge != null) {
+                Text(
+                    text = badge,
+                    color = MaterialTheme.colorScheme.primary,
+                    style = MaterialTheme.typography.labelLarge,
+                )
+            }
         }
     }
 }
@@ -418,3 +555,11 @@ private fun isOwnKeyCode(keyEvent: KeyEvent): Boolean =
 
         else -> false
     }
+
+internal object AuthScreenTestTags {
+    private const val NAME = "auth"
+    const val START_CARD_PHONE = "${NAME}_start_card_phone"
+    const val START_CARD_WEB = "${NAME}_start_card_web"
+    const val START_LINK_PHONE_NUMBER = "${NAME}_start_link_phone_number"
+    const val BUTTON_QR_LOGIN = "${NAME}_button_qr_login"
+}

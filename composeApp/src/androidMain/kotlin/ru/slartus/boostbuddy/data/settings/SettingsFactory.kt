@@ -18,4 +18,10 @@ internal actual class SettingsFactory actual constructor(private val platformCon
         return SharedPreferencesSettings(delegate)
     }
 
+    actual fun createAuth(): ObservableSettings? {
+        val name = "${platformConfiguration.androidContext.packageName}_auth"
+        val delegate = platformConfiguration.androidContext.getSharedPreferences(name, Context.MODE_PRIVATE)
+        return SharedPreferencesSettings(delegate, commit = true)
+    }
+
 }

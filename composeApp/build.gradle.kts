@@ -63,6 +63,7 @@ kotlin {
             implementation(libs.collections.immutable)
             implementation(libs.napier)
             implementation(libs.qrose)
+            implementation(libs.cryptography.core)
         }
 
         commonTest.dependencies {
@@ -75,6 +76,9 @@ kotlin {
             implementation(libs.compose.uitooling)
             implementation(libs.kotlinx.coroutines.android)
             implementation(libs.ktor.okhttp)
+            implementation(libs.ktor.cio)
+            implementation(libs.ktor.server.cio)
+            implementation(libs.cryptography.provider.jdk)
             implementation(libs.appmetrica)
 
             implementation(libs.exoplayer.core)

@@ -4,6 +4,7 @@ import io.ktor.client.HttpClient
 import io.ktor.client.HttpClientConfig
 import io.ktor.client.call.body
 import io.ktor.client.engine.HttpClientEngineConfig
+import io.ktor.client.plugins.ClientRequestException
 import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.plugins.UserAgent
 import io.ktor.client.plugins.api.Send
@@ -22,11 +23,17 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.http.Parameters
 import io.ktor.http.URLProtocol
 import io.ktor.serialization.kotlinx.json.json
+import io.ktor.util.AttributeKey
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
 import kotlinx.datetime.Clock
 import kotlinx.serialization.json.Json
 import ru.slartus.boostbuddy.data.log.logger
+import ru.slartus.boostbuddy.data.repositories.AuthSession
 import ru.slartus.boostbuddy.data.repositories.SettingsRepository
 import ru.slartus.boostbuddy.data.repositories.models.TokenRefreshResponse
 
@@ -38,44 +45,23 @@ internal const val DESKTOP_USER_AGENT =
 
 private const val REFRESH_THRESHOLD_SECONDS = 300L // 5 минут до истечения
 
-internal fun buildBoostyHttpClient(
-    debugLog: Boolean,
-    settingsRepository: SettingsRepository,
-    json: Json
-): HttpClient {
-    val refreshMutex = Mutex()
+internal val SkipTokenRefresh = AttributeKey<Unit>("BoostySkipTokenRefresh")
 
-    val refreshClient by lazy {
-        HttpClient(HttpEngineFactory().createEngine(debugLog)) {
-            expectSuccess = true
-            install(ContentNegotiation) { json(json) }
-            install(UserAgent) { agent = DESKTOP_USER_AGENT }
-            install(HttpTimeout) {
-                connectTimeoutMillis = 15000
-                requestTimeoutMillis = 30000
-            }
-            defaultRequest {
-                url {
-                    protocol = URLProtocol.HTTPS
-                    host = "api.boosty.to"
-                }
-                header("X-App", "web")
-                header("X-Locale", "ru_RU")
-                header(HttpHeaders.Referrer, "https://boosty.to/")
-                header(HttpHeaders.Origin, "https://boosty.to")
-                header(HttpHeaders.Accept, "application/json, text/plain, */*")
-                headers.remove(HttpHeaders.AcceptCharset)
-            }
-        }
+internal sealed class TokenRefreshOutcome {
+    data class Success(val response: TokenRefreshResponse) : TokenRefreshOutcome() {
+        override fun toString(): String = "Success"
     }
 
-    suspend fun doRefresh(): String? {
-        val storedRefreshToken = settingsRepository.getRefreshToken()
-        if (storedRefreshToken.isNullOrEmpty()) return null
+    data object Rejected : TokenRefreshOutcome()
+    data object NetworkError : TokenRefreshOutcome()
+}
 
-        return try {
-            val deviceId = settingsRepository.getOrCreateDeviceId()
-            val response: TokenRefreshResponse = refreshClient.post("oauth/token/") {
+internal class BoostyRefreshApi(clientFactory: () -> HttpClient) {
+    private val client by lazy(clientFactory)
+
+    suspend fun refresh(refreshToken: String, deviceId: String): TokenRefreshOutcome =
+        try {
+            val response: TokenRefreshResponse = client.post("oauth/token/") {
                 header("X-From-Id", deviceId)
                 setBody(
                     FormDataContent(
@@ -83,42 +69,50 @@ internal fun buildBoostyHttpClient(
                             append("device_id", deviceId)
                             append("device_os", "web")
                             append("grant_type", "refresh_token")
-                            append("refresh_token", storedRefreshToken)
+                            append("refresh_token", refreshToken)
                         }
                     )
                 )
             }.body()
-
-            val newAccessToken = response.accessToken
-            if (newAccessToken.isNullOrEmpty()) {
+            if (response.accessToken.isNullOrEmpty()) {
                 logger.d("Token refresh returned empty access_token")
-                return null
+                TokenRefreshOutcome.Rejected
+            } else {
+                TokenRefreshOutcome.Success(response)
             }
-
-            settingsRepository.putAccessToken(newAccessToken)
-            response.refreshToken?.let { settingsRepository.putRefreshToken(it) }
-
-            val expiresIn = response.expiresIn
-            if (expiresIn != null && expiresIn > 0) {
-                val expiresAt = Clock.System.now().epochSeconds + expiresIn
-                settingsRepository.putTokenExpiresAt(expiresAt)
-            }
-
-            logger.d("Token refreshed successfully")
-            newAccessToken
+        } catch (e: ClientRequestException) {
+            logger.e(e, "Token refresh rejected")
+            TokenRefreshOutcome.Rejected
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             logger.e(e, "Token refresh failed")
-            null
+            TokenRefreshOutcome.NetworkError
         }
-    }
+}
+
+internal sealed class ExclusiveSessionResult<out T> {
+    data class Completed<T>(val value: T) : ExclusiveSessionResult<T>()
+    data object SessionPending : ExclusiveSessionResult<Nothing>()
+    data object SessionRejected : ExclusiveSessionResult<Nothing>()
+}
+
+internal class BoostyTokenRefresher(
+    private val settingsRepository: SettingsRepository,
+    private val refreshRequest: suspend (refreshToken: String, deviceId: String) -> TokenRefreshOutcome,
+    private val nowSeconds: () -> Long = { Clock.System.now().epochSeconds },
+) {
+    private val refreshMutex = Mutex()
+    private val pendingSession = MutableStateFlow<Boolean?>(null)
 
     suspend fun ensureValidToken(): String? = refreshMutex.withLock {
         val accessToken = settingsRepository.getAccessToken()
         if (accessToken.isNullOrEmpty()) return@withLock null
+        if (isPending()) return@withLock accessToken
 
         val expiresAt = settingsRepository.getTokenExpiresAt()
         if (expiresAt != null) {
-            val now = Clock.System.now().epochSeconds
+            val now = nowSeconds()
             if (expiresAt - now < REFRESH_THRESHOLD_SECONDS) {
                 logger.d("Token expires soon (in ${expiresAt - now}s), proactive refresh")
                 return@withLock doRefresh() ?: accessToken
@@ -129,20 +123,135 @@ internal fun buildBoostyHttpClient(
     }
 
     suspend fun forceRefresh(): String? = refreshMutex.withLock {
+        if (isPending()) return@withLock null
         doRefresh()
     }
 
+    suspend fun beginPendingSession(session: AuthSession) = refreshMutex.withLock {
+        settingsRepository.beginPendingSession(session)
+        pendingSession.value = true
+    }
+
+    suspend fun rollbackPendingSession() = refreshMutex.withLock {
+        settingsRepository.rollbackPendingSessionIfAny()
+        pendingSession.value = false
+    }
+
+    suspend fun commitPendingSession(): TokenRefreshOutcome = refreshMutex.withLock {
+        if (!isPending()) return@withLock TokenRefreshOutcome.Rejected
+        val session = settingsRepository.getSession()
+        val refreshToken = session.refreshToken
+        if (refreshToken.isNullOrEmpty()) return@withLock TokenRefreshOutcome.Rejected
+        val deviceId = session.deviceId ?: settingsRepository.getOrCreateDeviceId()
+        withContext(NonCancellable) {
+            settingsRepository.confirmPendingSession()
+            val outcome = refreshRequest(refreshToken, deviceId)
+            if (outcome is TokenRefreshOutcome.Success) {
+                settingsRepository.commitPendingSession(outcome.response.applyTo(session.copy(deviceId = deviceId)))
+                pendingSession.value = false
+                logger.d("Pending session committed")
+            }
+            outcome
+        }
+    }
+
+    suspend fun <T> withExclusiveSession(block: suspend (AuthSession) -> T): ExclusiveSessionResult<T> =
+        refreshMutex.withLock {
+            if (isPending()) return@withLock ExclusiveSessionResult.SessionPending
+            val expiresAt = settingsRepository.getTokenExpiresAt()
+            if (expiresAt != null && expiresAt - nowSeconds() < EXCLUSIVE_SESSION_MIN_TTL_SECONDS) {
+                if (refreshStoredSession() == TokenRefreshOutcome.Rejected) {
+                    return@withLock ExclusiveSessionResult.SessionRejected
+                }
+            }
+            ExclusiveSessionResult.Completed(block(settingsRepository.getSession()))
+        }
+
+    private suspend fun isPending(): Boolean =
+        pendingSession.value ?: settingsRepository.hasPendingSession().also { pendingSession.value = it }
+
+    private suspend fun doRefresh(): String? =
+        (refreshStoredSession() as? TokenRefreshOutcome.Success)?.response?.accessToken
+
+    private suspend fun refreshStoredSession(): TokenRefreshOutcome {
+        val storedRefreshToken = settingsRepository.getRefreshToken()
+        if (storedRefreshToken.isNullOrEmpty()) return TokenRefreshOutcome.Rejected
+
+        val deviceId = settingsRepository.getOrCreateDeviceId()
+        return withContext(NonCancellable) {
+            val outcome = refreshRequest(storedRefreshToken, deviceId)
+            val newAccessToken = (outcome as? TokenRefreshOutcome.Success)?.response?.accessToken
+                ?: return@withContext outcome
+            val response = outcome.response
+            settingsRepository.putAccessToken(newAccessToken)
+            response.refreshToken?.let { settingsRepository.putRefreshToken(it) }
+
+            val expiresIn = response.expiresIn
+            if (expiresIn != null && expiresIn > 0) {
+                settingsRepository.putTokenExpiresAt(nowSeconds() + expiresIn)
+            }
+
+            logger.d("Token refreshed successfully")
+            outcome
+        }
+    }
+
+    private fun TokenRefreshResponse.applyTo(session: AuthSession): AuthSession = session.copy(
+        accessToken = accessToken,
+        refreshToken = refreshToken ?: session.refreshToken,
+        expiresAt = expiresIn?.takeIf { it > 0 }?.let { nowSeconds() + it } ?: session.expiresAt,
+    )
+
+    private companion object {
+        const val EXCLUSIVE_SESSION_MIN_TTL_SECONDS = 15 * 60L
+    }
+}
+
+internal fun buildBoostyRefreshHttpClient(debugLog: Boolean, json: Json): HttpClient =
+    HttpClient(HttpEngineFactory().createEngine(debugLog)) {
+        expectSuccess = true
+        install(ContentNegotiation) { json(json) }
+        install(UserAgent) { agent = DESKTOP_USER_AGENT }
+        install(HttpTimeout) {
+            connectTimeoutMillis = 15000
+            requestTimeoutMillis = 30000
+        }
+        defaultRequest {
+            url {
+                protocol = URLProtocol.HTTPS
+                host = "api.boosty.to"
+            }
+            header("X-App", "web")
+            header("X-Locale", "ru_RU")
+            header(HttpHeaders.Referrer, "https://boosty.to/")
+            header(HttpHeaders.Origin, "https://boosty.to")
+            header(HttpHeaders.Accept, "application/json, text/plain, */*")
+            headers.remove(HttpHeaders.AcceptCharset)
+        }
+    }
+
+internal fun buildBoostyHttpClient(
+    debugLog: Boolean,
+    settingsRepository: SettingsRepository,
+    tokenRefresher: BoostyTokenRefresher,
+    json: Json
+): HttpClient {
     val tokenRefreshPlugin = createClientPlugin("BoostyTokenRefresh") {
         on(Send) { request ->
-            val token = ensureValidToken()
+            val skipRefresh = request.attributes.contains(SkipTokenRefresh)
+            val token = if (skipRefresh) {
+                settingsRepository.getAccessToken()
+            } else {
+                tokenRefresher.ensureValidToken()
+            }
             if (!token.isNullOrEmpty()) {
                 request.headers[HttpHeaders.Authorization] = "Bearer $token"
             }
 
             val originalCall = proceed(request)
 
-            if (originalCall.response.status == HttpStatusCode.Unauthorized) {
-                val newToken = forceRefresh()
+            if (!skipRefresh && originalCall.response.status == HttpStatusCode.Unauthorized) {
+                val newToken = tokenRefresher.forceRefresh()
                 if (newToken != null) {
                     request.headers[HttpHeaders.Authorization] = "Bearer $newToken"
                     proceed(request)
@@ -225,15 +334,23 @@ internal fun buildHttpClient(
         install(Logging) {
             logger = object : Logger {
                 override fun log(message: String) {
-                    ru.slartus.boostbuddy.data.log.logger.d(
-                        message.replace(
-                            Regex("Bearer\\s+[^\\s-]+", RegexOption.IGNORE_CASE),
-                            "Bearer secret"
-                        )
-                    )
+                    ru.slartus.boostbuddy.data.log.logger.d(maskSecrets(message))
                 }
             }
             level = if (isDebug) LogLevel.ALL else LogLevel.NONE
+            sanitizeHeader { header ->
+                listOf(HttpHeaders.Authorization, HttpHeaders.Cookie, HttpHeaders.SetCookie)
+                    .any { it.equals(header, ignoreCase = true) }
+            }
         }
         block(this)
     }
+
+private val secretLogPatterns = listOf(
+    Regex("Bearer\\s+\\S+", RegexOption.IGNORE_CASE) to "Bearer ***",
+    Regex("((?:refresh_token|access_token)=)[^&\\s]+") to "\$1***",
+    Regex("(\"(?:accessToken|refreshToken|access_token|refresh_token)\"\\s*:\\s*)\"[^\"]*\"") to "\$1\"***\"",
+)
+
+private fun maskSecrets(message: String): String =
+    secretLogPatterns.fold(message) { acc, (regex, replacement) -> regex.replace(acc, replacement) }
