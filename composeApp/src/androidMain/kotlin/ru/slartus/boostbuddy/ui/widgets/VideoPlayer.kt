@@ -21,12 +21,12 @@ import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.DataSource
 import androidx.media3.datasource.DataSpec
+import androidx.media3.datasource.DefaultHttpDataSource
 import androidx.media3.datasource.HttpDataSource
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.analytics.AnalyticsListener
 import androidx.media3.exoplayer.dash.DashMediaSource
 import androidx.media3.exoplayer.hls.HlsMediaSource
-import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.exoplayer.source.LoadEventInfo
 import androidx.media3.exoplayer.source.MediaLoadData
 import androidx.media3.common.PlaybackException
@@ -37,7 +37,6 @@ import ru.slartus.boostbuddy.components.video.VideoState
 import ru.slartus.boostbuddy.data.repositories.models.PlayerUrl
 import ru.slartus.boostbuddy.data.repositories.models.VideoQuality
 import ru.slartus.boostbuddy.data.repositories.models.VideoScaleMode
-import ru.slartus.boostbuddy.utils.browserHeadersHttpDataSourceFactory
 import java.io.IOException
 
 private const val SEEK_UPDATE_INTERVAL_MS = 1000L
@@ -204,7 +203,7 @@ private fun rememberPlayer(
 ): ExoPlayer {
     val context = LocalContext.current
     return remember {
-        ExoPlayer.Builder(context, DefaultMediaSourceFactory(loggingHttpFactory()))
+        ExoPlayer.Builder(context)
             .build().apply {
                 addListener(object : Player.Listener {
                     override fun onEvents(player: Player, events: Player.Events) {
@@ -272,7 +271,7 @@ private object LoadDiagnosticsListener : AnalyticsListener {
 
 @OptIn(UnstableApi::class)
 private fun loggingHttpFactory(): DataSource.Factory {
-    val delegate = browserHeadersHttpDataSourceFactory()
+    val delegate = DefaultHttpDataSource.Factory()
     return DataSource.Factory {
         val source = delegate.createDataSource()
         LoggingHttpDataSource(source)
