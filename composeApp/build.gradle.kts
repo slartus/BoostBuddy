@@ -106,8 +106,8 @@ android {
         targetSdk = 34
 
         applicationId = "ru.slartus.boostbuddy"
-        versionCode = 92
-        versionName = "1.18.1"
+        versionCode = 93
+        versionName = "1.19.0"
     }
 
     signingConfigs {
