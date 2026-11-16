@@ -48,6 +48,10 @@
             </intent-filter>
         </activity>
 
+        <receiver
+            android:name=".utils.DownloadCancelReceiver"
+            android:exported="false" />
+
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="ru.slartus.boostbuddy.provider"

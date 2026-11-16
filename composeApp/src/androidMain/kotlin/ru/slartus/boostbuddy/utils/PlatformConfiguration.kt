@@ -4,6 +4,7 @@ import android.app.DownloadManager
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.app.PendingIntent
 import android.content.ActivityNotFoundException
 import android.content.ContentValues
 import android.content.Context
@@ -19,6 +20,7 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.FileProvider
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.io.files.Path
@@ -96,8 +98,18 @@ actual class PlatformConfiguration(var androidContext: Context, actual val platf
         mimeType: String?,
         onError: (() -> Unit)?
     ) {
-        CoroutineScope(Dispatchers.IO).launch {
+        lateinit var job: Job
+        var connection: HttpURLConnection? = null
+        var uri: Uri? = null
+        job = CoroutineScope(Dispatchers.IO).launch {
             val notificationId = System.currentTimeMillis().toInt()
+            ActiveDownloads.register(notificationId) { ctx ->
+                connection?.disconnect()
+                job.cancel()
+                uri?.let { u -> runCatching { ctx.contentResolver.delete(u, null, null) } }
+                NotificationManagerCompat.from(ctx).cancel(notificationId)
+                Toast.makeText(ctx, "Загрузка отменена", Toast.LENGTH_SHORT).show()
+            }
             val notificationManager = NotificationManagerCompat.from(androidContext)
             createDownloadChannel()
             val notificationsEnabled = notificationManager.areNotificationsEnabled()
@@ -110,7 +122,7 @@ actual class PlatformConfiguration(var androidContext: Context, actual val platf
                 Toast.makeText(androidContext, "Загрузка началась", Toast.LENGTH_SHORT).show()
             }
             if (notificationsEnabled) {
-                showNotification(buildProgressNotification(fileName, 0, indeterminate = true))
+                showNotification(buildProgressNotification(notificationId, fileName, 0, indeterminate = true))
             }
             val values = ContentValues().apply {
                 put(MediaStore.Downloads.DISPLAY_NAME, fileName)
@@ -120,33 +132,33 @@ actual class PlatformConfiguration(var androidContext: Context, actual val platf
                 put(MediaStore.Downloads.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS)
                 put(MediaStore.Downloads.IS_PENDING, 1)
             }
-            var uri: Uri? = null
             try {
                 val targetUri = androidContext.contentResolver.insert(
                     MediaStore.Downloads.EXTERNAL_CONTENT_URI,
                     values
                 ) ?: throw IOException("Failed to create MediaStore entry")
                 uri = targetUri
-                val connection = URL(url).openConnection() as HttpURLConnection
+                val httpConnection = URL(url).openConnection() as HttpURLConnection
+                connection = httpConnection
                 try {
-                    connection.requestMethod = "GET"
-                    connection.connectTimeout = CONNECT_TIMEOUT_MS
-                    connection.readTimeout = READ_TIMEOUT_MS
-                    connection.setRequestProperty("User-Agent", BROWSER_USER_AGENT)
-                    connection.setRequestProperty("Accept", "*/*")
-                    connection.setRequestProperty("Range", "bytes=0-")
-                    connection.setRequestProperty("Accept-Encoding", "identity")
-                    val responseCode = connection.responseCode
+                    httpConnection.requestMethod = "GET"
+                    httpConnection.connectTimeout = CONNECT_TIMEOUT_MS
+                    httpConnection.readTimeout = READ_TIMEOUT_MS
+                    httpConnection.setRequestProperty("User-Agent", BROWSER_USER_AGENT)
+                    httpConnection.setRequestProperty("Accept", "*/*")
+                    httpConnection.setRequestProperty("Range", "bytes=0-")
+                    httpConnection.setRequestProperty("Accept-Encoding", "identity")
+                    val responseCode = httpConnection.responseCode
                     if (responseCode !in 200..299) {
                         throw IOException("HTTP $responseCode for $url")
                     }
-                    logger.d("downloadFile started code=$responseCode length=${connection.contentLength} url=$url")
-                    val totalBytes = connection.contentLength.toLong()
+                    logger.d("downloadFile started code=$responseCode length=${httpConnection.contentLength} url=$url")
+                    val totalBytes = httpConnection.contentLength.toLong()
                     var downloadedBytes = 0L
                     var lastNotificationUpdate = 0L
                     val startTime = SystemClock.elapsedRealtime()
                     var lastLogTime = 0L
-                    BufferedInputStream(connection.inputStream, BUFFER_SIZE).use { input ->
+                    BufferedInputStream(httpConnection.inputStream, BUFFER_SIZE).use { input ->
                         androidContext.contentResolver.openOutputStream(targetUri).use { output ->
                             requireNotNull(output)
                             val buffer = ByteArray(BUFFER_SIZE)
@@ -163,7 +175,12 @@ actual class PlatformConfiguration(var androidContext: Context, actual val platf
                                         if (indeterminate) 0
                                         else (downloadedBytes * 100 / totalBytes).toInt()
                                     showNotification(
-                                        buildProgressNotification(fileName, percent, indeterminate)
+                                        buildProgressNotification(
+                                            notificationId,
+                                            fileName,
+                                            percent,
+                                            indeterminate
+                                        )
                                     )
                                 }
                                 if (now - lastLogTime >= LOG_INTERVAL_MS) {
@@ -185,11 +202,12 @@ actual class PlatformConfiguration(var androidContext: Context, actual val platf
                             "avgSpeed=${formatSpeed(downloadedBytes, elapsed)}MB/s"
                     )
                 } finally {
-                    connection.disconnect()
+                    httpConnection.disconnect()
                 }
                 values.clear()
                 values.put(MediaStore.Downloads.IS_PENDING, 0)
                 androidContext.contentResolver.update(targetUri, values, null, null)
+                ActiveDownloads.done(notificationId)
                 withContext(Dispatchers.Main) {
                     Toast.makeText(
                         androidContext,
@@ -201,6 +219,7 @@ actual class PlatformConfiguration(var androidContext: Context, actual val platf
                     showNotification(buildCompletedNotification(fileName))
                 }
             } catch (error: Exception) {
+                ActiveDownloads.done(notificationId)
                 uri?.let { targetUri ->
                     runCatching { androidContext.contentResolver.delete(targetUri, null, null) }
                 }
@@ -235,18 +254,30 @@ actual class PlatformConfiguration(var androidContext: Context, actual val platf
     }
 
     private fun buildProgressNotification(
+        notificationId: Int,
         fileName: String,
         percent: Int,
         indeterminate: Boolean
-    ): Notification =
-        NotificationCompat.Builder(androidContext, DOWNLOAD_CHANNEL_ID)
+    ): Notification {
+        val cancelIntent = Intent(androidContext, DownloadCancelReceiver::class.java).apply {
+            putExtra(EXTRA_DOWNLOAD_ID, notificationId)
+        }
+        val cancelPendingIntent = PendingIntent.getBroadcast(
+            androidContext,
+            notificationId,
+            cancelIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
+        return NotificationCompat.Builder(androidContext, DOWNLOAD_CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_launcher)
             .setContentTitle(fileName)
             .setContentText(if (indeterminate) "Загрузка…" else "Загрузка: $percent%")
             .setProgress(100, percent, indeterminate)
             .setOngoing(true)
             .setOnlyAlertOnce(true)
+            .addAction(0, "Отмена", cancelPendingIntent)
             .build()
+    }
 
     private fun buildCompletedNotification(fileName: String): Notification =
         NotificationCompat.Builder(androidContext, DOWNLOAD_CHANNEL_ID)
