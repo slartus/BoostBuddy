@@ -21,6 +21,8 @@ import androidx.core.content.FileProvider
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.io.files.Path
@@ -30,6 +32,8 @@ import ru.slartus.boostbuddy.data.log.logger
 import java.io.BufferedInputStream
 import java.io.File
 import java.io.IOException
+import java.io.InputStream
+import java.io.OutputStream
 import java.net.HttpURLConnection
 import java.net.URL
 import java.util.Locale
@@ -138,61 +142,117 @@ actual class PlatformConfiguration(var androidContext: Context, actual val platf
                     values
                 ) ?: throw IOException("Failed to create MediaStore entry")
                 uri = targetUri
-                val httpConnection = URL(url).openConnection() as HttpURLConnection
-                connection = httpConnection
-                try {
-                    httpConnection.requestMethod = "GET"
-                    httpConnection.connectTimeout = CONNECT_TIMEOUT_MS
-                    httpConnection.readTimeout = READ_TIMEOUT_MS
-                    httpConnection.setRequestProperty("User-Agent", BROWSER_USER_AGENT)
-                    httpConnection.setRequestProperty("Accept", "*/*")
-                    httpConnection.setRequestProperty("Range", "bytes=0-")
-                    httpConnection.setRequestProperty("Accept-Encoding", "identity")
-                    val responseCode = httpConnection.responseCode
-                    if (responseCode !in 200..299) {
-                        throw IOException("HTTP $responseCode for $url")
+                val resolvedTotalBytes = resolveTotalBytes(url)
+                val totalBytes = resolvedTotalBytes ?: 0L
+                var downloadedBytes = 0L
+                var lastNotificationUpdate = 0L
+                val startTime = SystemClock.elapsedRealtime()
+                var lastLogTime = 0L
+
+                fun updateProgress() {
+                    val now = SystemClock.elapsedRealtime()
+                    if (now - lastNotificationUpdate >= NOTIFICATION_UPDATE_INTERVAL_MS) {
+                        lastNotificationUpdate = now
+                        val indeterminate = totalBytes <= 0
+                        val percent =
+                            if (indeterminate) 0
+                            else (downloadedBytes * 100 / totalBytes).toInt()
+                        showNotification(
+                            buildProgressNotification(
+                                notificationId,
+                                fileName,
+                                percent,
+                                indeterminate
+                            )
+                        )
                     }
-                    logger.d("downloadFile started code=$responseCode length=${httpConnection.contentLength} url=$url")
-                    val totalBytes = httpConnection.contentLength.toLong()
-                    var downloadedBytes = 0L
-                    var lastNotificationUpdate = 0L
-                    val startTime = SystemClock.elapsedRealtime()
-                    var lastLogTime = 0L
-                    BufferedInputStream(httpConnection.inputStream, BUFFER_SIZE).use { input ->
-                        androidContext.contentResolver.openOutputStream(targetUri).use { output ->
-                            requireNotNull(output)
-                            val buffer = ByteArray(BUFFER_SIZE)
-                            while (true) {
-                                val read = input.read(buffer)
-                                if (read == -1) break
-                                output.write(buffer, 0, read)
-                                downloadedBytes += read
-                                val now = SystemClock.elapsedRealtime()
-                                if (now - lastNotificationUpdate >= NOTIFICATION_UPDATE_INTERVAL_MS) {
-                                    lastNotificationUpdate = now
-                                    val indeterminate = totalBytes <= 0
-                                    val percent =
-                                        if (indeterminate) 0
-                                        else (downloadedBytes * 100 / totalBytes).toInt()
-                                    showNotification(
-                                        buildProgressNotification(
-                                            notificationId,
-                                            fileName,
-                                            percent,
-                                            indeterminate
+                    if (now - lastLogTime >= LOG_INTERVAL_MS) {
+                        lastLogTime = now
+                        val percent =
+                            if (totalBytes > 0) downloadedBytes * 100 / totalBytes else 0
+                        logger.d(
+                            "downloadFile progress downloaded=$downloadedBytes " +
+                                "total=$totalBytes percent=$percent " +
+                                "speed=${formatSpeed(downloadedBytes, now - startTime)}MB/s"
+                        )
+                    }
+                }
+
+                fun copyStream(input: InputStream, output: OutputStream) {
+                    val buffer = ByteArray(BUFFER_SIZE)
+                    while (true) {
+                        val read = input.read(buffer)
+                        if (read == -1) break
+                        output.write(buffer, 0, read)
+                        downloadedBytes += read
+                        updateProgress()
+                    }
+                }
+
+                val output = androidContext.contentResolver.openOutputStream(targetUri)
+                    ?: throw IOException("Failed to open MediaStore output")
+                try {
+                    if (resolvedTotalBytes == null) {
+                        logger.d("downloadFile total size unknown, single GET url=$url")
+                        val singleConnection = openMediaConnection(url, range = null)
+                        connection = singleConnection
+                        try {
+                            val responseCode = singleConnection.responseCode
+                            if (responseCode !in 200..299) {
+                                throw IOException("HTTP $responseCode for $url")
+                            }
+                            logger.d("downloadFile started code=$responseCode length=${singleConnection.contentLength} url=$url")
+                            BufferedInputStream(singleConnection.inputStream, BUFFER_SIZE).use { input ->
+                                copyStream(input, output)
+                            }
+                        } finally {
+                            singleConnection.disconnect()
+                            connection = null
+                        }
+                    } else {
+                        logger.d("downloadFile chunked total=$totalBytes chunk=$CHUNK_SIZE url=$url")
+                        var attempts = 0
+                        while (downloadedBytes < totalBytes) {
+                            coroutineContext.ensureActive()
+                            val end = minOf(downloadedBytes + CHUNK_SIZE - 1, totalBytes - 1)
+                            try {
+                                val chunkConnection = openMediaConnection(
+                                    url,
+                                    range = "bytes=$downloadedBytes-$end"
+                                )
+                                connection = chunkConnection
+                                try {
+                                    when (chunkConnection.responseCode) {
+                                        HttpURLConnection.HTTP_PARTIAL ->
+                                            BufferedInputStream(
+                                                chunkConnection.inputStream,
+                                                BUFFER_SIZE
+                                            ).use { input -> copyStream(input, output) }
+
+                                        HttpURLConnection.HTTP_OK ->
+                                            BufferedInputStream(
+                                                chunkConnection.inputStream,
+                                                BUFFER_SIZE
+                                            ).use { input ->
+                                                skipBytes(input, downloadedBytes)
+                                                copyStream(input, output)
+                                            }
+
+                                        else -> throw IOException(
+                                            "HTTP ${chunkConnection.responseCode} for $url"
                                         )
-                                    )
+                                    }
+                                } finally {
+                                    chunkConnection.disconnect()
+                                    connection = null
                                 }
-                                if (now - lastLogTime >= LOG_INTERVAL_MS) {
-                                    lastLogTime = now
-                                    val percent =
-                                        if (totalBytes > 0) downloadedBytes * 100 / totalBytes else 0
-                                    logger.d(
-                                        "downloadFile progress downloaded=$downloadedBytes " +
-                                            "total=$totalBytes percent=$percent " +
-                                            "speed=${formatSpeed(downloadedBytes, now - startTime)}MB/s"
-                                    )
-                                }
+                                attempts = 0
+                            } catch (error: IOException) {
+                                if (!job.isActive) throw error
+                                attempts++
+                                if (attempts >= MAX_ATTEMPTS) throw error
+                                logger.w(error, "downloadFile chunk retry attempt=$attempts")
+                                delay(RETRY_DELAY_MS)
                             }
                         }
                     }
@@ -202,7 +262,8 @@ actual class PlatformConfiguration(var androidContext: Context, actual val platf
                             "avgSpeed=${formatSpeed(downloadedBytes, elapsed)}MB/s"
                     )
                 } finally {
-                    httpConnection.disconnect()
+                    output.close()
+                    connection = null
                 }
                 values.clear()
                 values.put(MediaStore.Downloads.IS_PENDING, 0)
@@ -289,6 +350,48 @@ actual class PlatformConfiguration(var androidContext: Context, actual val platf
             .setAutoCancel(true)
             .build()
 
+    private fun resolveTotalBytes(url: String): Long? {
+        val probe = openMediaConnection(url, range = "bytes=0-0")
+        try {
+            if (probe.responseCode !in 200..299) return null
+            val fromContentRange = probe.getHeaderField("Content-Range")
+                ?.substringAfterLast('/')
+                ?.toLongOrNull()
+            if (fromContentRange != null && fromContentRange > 0) return fromContentRange
+            val contentLength = probe.contentLength.toLong()
+            return contentLength.takeIf { it > 0 }
+        } catch (error: Exception) {
+            logger.e(error, "downloadFile probe")
+            return null
+        } finally {
+            probe.disconnect()
+        }
+    }
+
+    private fun openMediaConnection(url: String, range: String?): HttpURLConnection {
+        val connection = URL(url).openConnection() as HttpURLConnection
+        connection.requestMethod = "GET"
+        connection.connectTimeout = CONNECT_TIMEOUT_MS
+        connection.readTimeout = READ_TIMEOUT_MS
+        connection.setRequestProperty("User-Agent", BROWSER_USER_AGENT)
+        connection.setRequestProperty("Accept", "*/*")
+        connection.setRequestProperty("Accept-Encoding", "identity")
+        if (range != null) {
+            connection.setRequestProperty("Range", range)
+        }
+        return connection
+    }
+
+    private fun skipBytes(input: InputStream, count: Long) {
+        var remaining = count
+        val buffer = ByteArray(BUFFER_SIZE)
+        while (remaining > 0) {
+            val read = input.read(buffer, 0, minOf(buffer.size.toLong(), remaining).toInt())
+            if (read == -1) throw IOException("Unexpected end of stream")
+            remaining -= read
+        }
+    }
+
     private fun formatSpeed(bytes: Long, elapsedMs: Long): String {
         val elapsedSeconds = elapsedMs / 1000.0
         val speed = if (elapsedSeconds > 0) bytes / elapsedSeconds / 1024 / 1024 else 0.0
@@ -337,6 +440,9 @@ actual class PlatformConfiguration(var androidContext: Context, actual val platf
         private const val CONNECT_TIMEOUT_MS = 15_000
         private const val READ_TIMEOUT_MS = 60_000
         private const val BUFFER_SIZE = 64 * 1024
+        private const val CHUNK_SIZE = 2 * 1024 * 1024L
+        private const val MAX_ATTEMPTS = 3
+        private const val RETRY_DELAY_MS = 1000L
         private const val NOTIFICATION_UPDATE_INTERVAL_MS = 500L
         private const val LOG_INTERVAL_MS = 3000L
         private const val DOWNLOAD_CHANNEL_ID = "downloads"
