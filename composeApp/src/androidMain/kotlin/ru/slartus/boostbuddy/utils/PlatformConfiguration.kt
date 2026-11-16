@@ -30,6 +30,7 @@ import java.io.File
 import java.io.IOException
 import java.net.HttpURLConnection
 import java.net.URL
+import java.util.Locale
 
 actual class PlatformConfiguration(var androidContext: Context, actual val platform: Platform) {
     actual val appVersion: String = BuildConfig.VERSION_NAME
@@ -143,6 +144,8 @@ actual class PlatformConfiguration(var androidContext: Context, actual val platf
                     val totalBytes = connection.contentLength.toLong()
                     var downloadedBytes = 0L
                     var lastNotificationUpdate = 0L
+                    val startTime = SystemClock.elapsedRealtime()
+                    var lastLogTime = 0L
                     BufferedInputStream(connection.inputStream, BUFFER_SIZE).use { input ->
                         androidContext.contentResolver.openOutputStream(targetUri).use { output ->
                             requireNotNull(output)
@@ -163,9 +166,24 @@ actual class PlatformConfiguration(var androidContext: Context, actual val platf
                                         buildProgressNotification(fileName, percent, indeterminate)
                                     )
                                 }
+                                if (now - lastLogTime >= LOG_INTERVAL_MS) {
+                                    lastLogTime = now
+                                    val percent =
+                                        if (totalBytes > 0) downloadedBytes * 100 / totalBytes else 0
+                                    logger.d(
+                                        "downloadFile progress downloaded=$downloadedBytes " +
+                                            "total=$totalBytes percent=$percent " +
+                                            "speed=${formatSpeed(downloadedBytes, now - startTime)}MB/s"
+                                    )
+                                }
                             }
                         }
                     }
+                    val elapsed = SystemClock.elapsedRealtime() - startTime
+                    logger.d(
+                        "downloadFile completed bytes=$downloadedBytes elapsed=${elapsed}ms " +
+                            "avgSpeed=${formatSpeed(downloadedBytes, elapsed)}MB/s"
+                    )
                 } finally {
                     connection.disconnect()
                 }
@@ -240,6 +258,12 @@ actual class PlatformConfiguration(var androidContext: Context, actual val platf
             .setAutoCancel(true)
             .build()
 
+    private fun formatSpeed(bytes: Long, elapsedMs: Long): String {
+        val elapsedSeconds = elapsedMs / 1000.0
+        val speed = if (elapsedSeconds > 0) bytes / elapsedSeconds / 1024 / 1024 else 0.0
+        return String.format(Locale.US, "%.2f", speed)
+    }
+
     private fun downloadWithDownloadManager(
         url: String,
         fileName: String,
@@ -283,6 +307,7 @@ actual class PlatformConfiguration(var androidContext: Context, actual val platf
         private const val READ_TIMEOUT_MS = 60_000
         private const val BUFFER_SIZE = 64 * 1024
         private const val NOTIFICATION_UPDATE_INTERVAL_MS = 500L
+        private const val LOG_INTERVAL_MS = 3000L
         private const val DOWNLOAD_CHANNEL_ID = "downloads"
         private const val BROWSER_USER_AGENT =
             "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Mobile Safari/537.36"
