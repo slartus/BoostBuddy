@@ -88,6 +88,9 @@ actual class PlatformConfiguration(var androidContext: Context, actual val platf
         onError: (() -> Unit)?
     ) {
         CoroutineScope(Dispatchers.IO).launch {
+            withContext(Dispatchers.Main) {
+                Toast.makeText(androidContext, "Загрузка началась", Toast.LENGTH_SHORT).show()
+            }
             val values = ContentValues().apply {
                 put(MediaStore.Downloads.DISPLAY_NAME, fileName)
                 if (mimeType != null) {
@@ -110,6 +113,11 @@ actual class PlatformConfiguration(var androidContext: Context, actual val platf
                     connection.readTimeout = READ_TIMEOUT_MS
                     connection.setRequestProperty("User-Agent", BROWSER_USER_AGENT)
                     connection.setRequestProperty("Accept", "*/*")
+                    val responseCode = connection.responseCode
+                    if (responseCode !in 200..299) {
+                        throw IOException("HTTP $responseCode for $url")
+                    }
+                    logger.d("downloadFile started code=$responseCode length=${connection.contentLength} url=$url")
                     connection.inputStream.use { input ->
                         androidContext.contentResolver.openOutputStream(targetUri).use { output ->
                             requireNotNull(output)
@@ -122,6 +130,13 @@ actual class PlatformConfiguration(var androidContext: Context, actual val platf
                 values.clear()
                 values.put(MediaStore.Downloads.IS_PENDING, 0)
                 androidContext.contentResolver.update(targetUri, values, null, null)
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(
+                        androidContext,
+                        "Файл сохранён в Downloads",
+                        Toast.LENGTH_LONG,
+                    ).show()
+                }
             } catch (error: Exception) {
                 uri?.let { targetUri ->
                     runCatching { androidContext.contentResolver.delete(targetUri, null, null) }
