@@ -175,9 +175,12 @@ private fun buildAudioFileName(postData: Content.AudioFile): String {
     val safeTitle = postData.title
         .replace(Regex("[\\\\/:*?\"<>|\\r\\n\\t]"), "_")
         .trim()
+        .trim('.')
         .ifEmpty { "audio" }
         .take(80)
     val extension = postData.url
+        .substringBefore('?')
+        .substringBefore('#')
         .substringAfterLast('/')
         .substringAfterLast('.', "")
         .lowercase()

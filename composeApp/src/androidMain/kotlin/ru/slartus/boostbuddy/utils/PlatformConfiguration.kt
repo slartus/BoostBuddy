@@ -67,6 +67,7 @@ actual class PlatformConfiguration(var androidContext: Context, actual val platf
         mimeType: String?,
         onError: (() -> Unit)?
     ) {
+        var mediaStoreUri: Uri? = null
         runCatching {
             val request = DownloadManager.Request(Uri.parse(url))
                 .setTitle(fileName)
@@ -91,6 +92,7 @@ actual class PlatformConfiguration(var androidContext: Context, actual val platf
                     values
                 )
                 if (uri != null) {
+                    mediaStoreUri = uri
                     request.setDestinationUri(uri)
                 } else {
                     request.setDestinationInExternalFilesDir(
@@ -110,6 +112,9 @@ actual class PlatformConfiguration(var androidContext: Context, actual val platf
                 androidContext.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
             manager.enqueue(request)
         }.onFailure { error ->
+            mediaStoreUri?.let { uri ->
+                runCatching { androidContext.contentResolver.delete(uri, null, null) }
+            }
             logger.e(error, "downloadFile")
             if (onError != null) {
                 onError.invoke()
