@@ -105,12 +105,11 @@ actual class PlatformConfiguration(var androidContext: Context, actual val platf
                     runCatching { notificationManager.notify(notificationId, notification) }
                 }
             }
+            withContext(Dispatchers.Main) {
+                Toast.makeText(androidContext, "Загрузка началась", Toast.LENGTH_SHORT).show()
+            }
             if (notificationsEnabled) {
                 showNotification(buildProgressNotification(fileName, 0, indeterminate = true))
-            } else {
-                withContext(Dispatchers.Main) {
-                    Toast.makeText(androidContext, "Загрузка началась", Toast.LENGTH_SHORT).show()
-                }
             }
             val values = ContentValues().apply {
                 put(MediaStore.Downloads.DISPLAY_NAME, fileName)
@@ -173,16 +172,15 @@ actual class PlatformConfiguration(var androidContext: Context, actual val platf
                 values.clear()
                 values.put(MediaStore.Downloads.IS_PENDING, 0)
                 androidContext.contentResolver.update(targetUri, values, null, null)
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(
+                        androidContext,
+                        "Файл сохранён в Downloads",
+                        Toast.LENGTH_LONG,
+                    ).show()
+                }
                 if (notificationsEnabled) {
                     showNotification(buildCompletedNotification(fileName))
-                } else {
-                    withContext(Dispatchers.Main) {
-                        Toast.makeText(
-                            androidContext,
-                            "Файл сохранён в Downloads",
-                            Toast.LENGTH_LONG,
-                        ).show()
-                    }
                 }
             } catch (error: Exception) {
                 uri?.let { targetUri ->
