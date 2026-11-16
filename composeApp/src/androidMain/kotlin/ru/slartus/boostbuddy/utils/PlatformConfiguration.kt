@@ -2,10 +2,13 @@ package ru.slartus.boostbuddy.utils
 
 import android.app.DownloadManager
 import android.content.ActivityNotFoundException
+import android.content.ContentValues
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.os.Build
 import android.os.Environment
+import android.provider.MediaStore
 import android.widget.Toast
 import androidx.core.content.FileProvider
 import kotlinx.io.files.Path
@@ -58,20 +61,56 @@ actual class PlatformConfiguration(var androidContext: Context, actual val platf
         androidContext.tryStartActivity(shareIntent, null)
     }
 
-    actual fun downloadVideo(url: String, fileName: String, onError: (() -> Unit)?) {
+    actual fun downloadFile(
+        url: String,
+        fileName: String,
+        mimeType: String?,
+        onError: (() -> Unit)?
+    ) {
         runCatching {
             val request = DownloadManager.Request(Uri.parse(url))
                 .setTitle(fileName)
                 .setDescription("BoostBuddy")
                 .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
-                .setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, fileName)
                 .setAllowedOverMetered(true)
                 .setAllowedOverRoaming(true)
+            if (mimeType != null) {
+                request.setMimeType(mimeType)
+            }
+            // Scoped storage: with targetSdk 29+ the public Downloads dir is only reachable via MediaStore
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                val values = ContentValues().apply {
+                    put(MediaStore.Downloads.DISPLAY_NAME, fileName)
+                    if (mimeType != null) {
+                        put(MediaStore.Downloads.MIME_TYPE, mimeType)
+                    }
+                    put(MediaStore.Downloads.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS)
+                }
+                val uri = androidContext.contentResolver.insert(
+                    MediaStore.Downloads.EXTERNAL_CONTENT_URI,
+                    values
+                )
+                if (uri != null) {
+                    request.setDestinationUri(uri)
+                } else {
+                    request.setDestinationInExternalFilesDir(
+                        androidContext,
+                        Environment.DIRECTORY_DOWNLOADS,
+                        fileName
+                    )
+                }
+            } else {
+                request.setDestinationInExternalFilesDir(
+                    androidContext,
+                    Environment.DIRECTORY_DOWNLOADS,
+                    fileName
+                )
+            }
             val manager =
                 androidContext.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
             manager.enqueue(request)
         }.onFailure { error ->
-            logger.e(error, "downloadVideo")
+            logger.e(error, "downloadFile")
             if (onError != null) {
                 onError.invoke()
             } else {

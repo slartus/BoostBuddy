@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Audiotrack
+import androidx.compose.material.icons.filled.FileDownload
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.CircularProgressIndicator
@@ -34,6 +35,7 @@ import ru.slartus.boostbuddy.data.log.logger
 import ru.slartus.boostbuddy.data.repositories.models.Content
 import ru.slartus.boostbuddy.data.repositories.models.linkColor
 import ru.slartus.boostbuddy.ui.common.HorizontalSpacer
+import ru.slartus.boostbuddy.ui.common.LocalPlatformConfiguration
 import ru.slartus.boostbuddy.ui.common.VerticalSpacer
 import ru.slartus.boostbuddy.utils.AudioPlayerHolder
 import ru.slartus.boostbuddy.utils.AudioPlayerState
@@ -45,6 +47,7 @@ internal fun PostDataAudioFileView(
     postData: Content.AudioFile
 ) {
     val holder = Inject.instance<AudioPlayerHolder>()
+    val platformConfiguration = LocalPlatformConfiguration.current
     val trackKey = postData.url
     val playbackState by holder.state.collectAsState()
     val isCurrentTrack = playbackState.trackKey == trackKey
@@ -78,10 +81,26 @@ internal fun PostDataAudioFileView(
             )
             HorizontalSpacer(4.dp)
             Text(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.weight(1f),
                 text = postData.title,
                 color = MaterialTheme.colorScheme.primary,
                 style = MaterialTheme.typography.labelMedium
+            )
+            HorizontalSpacer(4.dp)
+            Icon(
+                modifier = Modifier
+                    .size(28.dp)
+                    .clickable {
+                        platformConfiguration.downloadFile(
+                            url = postData.url + signedQuery,
+                            fileName = buildAudioFileName(postData),
+                            mimeType = "audio/mpeg",
+                            onError = null,
+                        )
+                    },
+                tint = linkColor,
+                imageVector = Icons.Filled.FileDownload,
+                contentDescription = "Скачать аудио"
             )
         }
         VerticalSpacer(4.dp)
@@ -150,6 +169,20 @@ internal fun PostDataAudioFileView(
             )
         }
     }
+}
+
+private fun buildAudioFileName(postData: Content.AudioFile): String {
+    val safeTitle = postData.title
+        .replace(Regex("[\\\\/:*?\"<>|\\r\\n\\t]"), "_")
+        .trim()
+        .ifEmpty { "audio" }
+        .take(80)
+    val extension = postData.url
+        .substringAfterLast('/')
+        .substringAfterLast('.', "")
+        .lowercase()
+        .ifEmpty { "mp3" }
+    return "$safeTitle.$extension"
 }
 
 private fun formatDuration(duration: Int): String {
