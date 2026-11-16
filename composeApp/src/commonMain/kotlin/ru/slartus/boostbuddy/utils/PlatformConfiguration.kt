@@ -10,7 +10,7 @@ expect class PlatformConfiguration {
     fun installApp(path: Path)
     fun shareText(text: String, onError: (() -> Unit)?)
     fun shareFile(path: Path)
-    fun downloadVideo(url: String, fileName: String, onError: (() -> Unit)?)
+    fun downloadFile(url: String, fileName: String, mimeType: String?, onError: (() -> Unit)?)
 }
 
 sealed class Platform(val name: String) {
