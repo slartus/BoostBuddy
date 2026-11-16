@@ -277,7 +277,9 @@ actual class PlatformConfiguration(var androidContext: Context, actual val platf
                     ).show()
                 }
                 if (notificationsEnabled) {
-                    showNotification(buildCompletedNotification(fileName))
+                    showNotification(
+                        buildCompletedNotification(notificationId, fileName, targetUri, mimeType)
+                    )
                 }
             } catch (error: Exception) {
                 ActiveDownloads.done(notificationId)
@@ -340,15 +342,33 @@ actual class PlatformConfiguration(var androidContext: Context, actual val platf
             .build()
     }
 
-    private fun buildCompletedNotification(fileName: String): Notification =
-        NotificationCompat.Builder(androidContext, DOWNLOAD_CHANNEL_ID)
+    private fun buildCompletedNotification(
+        notificationId: Int,
+        fileName: String,
+        targetUri: Uri,
+        mimeType: String?
+    ): Notification {
+        val type = mimeType ?: androidContext.contentResolver.getType(targetUri) ?: "*/*"
+        val openIntent = Intent(Intent.ACTION_VIEW).apply {
+            setDataAndType(targetUri, type)
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        }
+        val openPendingIntent = PendingIntent.getActivity(
+            androidContext,
+            notificationId,
+            openIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
+        return NotificationCompat.Builder(androidContext, DOWNLOAD_CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_launcher)
             .setContentTitle(fileName)
             .setContentText("Файл сохранён в Downloads")
             .setProgress(0, 0, false)
             .setOngoing(false)
             .setAutoCancel(true)
+            .setContentIntent(openPendingIntent)
             .build()
+    }
 
     private fun resolveTotalBytes(url: String): Long? {
         val probe = openMediaConnection(url, range = "bytes=0-0")
