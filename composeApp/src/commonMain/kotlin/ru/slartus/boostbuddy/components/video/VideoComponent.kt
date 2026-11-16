@@ -297,9 +297,10 @@ internal class VideoComponentImpl(
     override fun onDownloadQualitySelected(playerUrl: PlayerUrl) {
         val title = viewState.postData?.title.orEmpty()
         val fileName = buildDownloadFileName(title, playerUrl)
-        platformConfiguration.downloadVideo(
+        platformConfiguration.downloadFile(
             url = playerUrl.url,
             fileName = fileName,
+            mimeType = "video/mp4",
             onError = null,
         )
         viewState = viewState.copy(settingsSheetVisible = false)

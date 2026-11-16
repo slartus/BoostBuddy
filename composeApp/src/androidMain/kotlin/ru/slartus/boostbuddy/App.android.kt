@@ -1,8 +1,10 @@
 package ru.slartus.boostbuddy
 
+import android.Manifest
 import android.app.Application
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import android.os.SystemClock
 import androidx.activity.ComponentActivity
@@ -12,6 +14,8 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.LifecycleOwner
 import com.arkivanov.decompose.defaultComponentContext
@@ -34,6 +38,8 @@ import ru.slartus.boostbuddy.utils.Platform
 import ru.slartus.boostbuddy.utils.PlatformConfiguration
 import ru.slartus.boostbuddy.utils.PlatformDataConfiguration
 import ru.slartus.boostbuddy.utils.UnauthorizedException
+
+private const val POST_NOTIFICATIONS_REQUEST_CODE = 1001
 
 class AndroidApp : Application() {
     companion object {
@@ -83,6 +89,8 @@ open class BaseComponentActivity : ComponentActivity() {
         installSplashScreen()
         super.onCreate(savedInstanceState)
 
+        requestNotificationPermission()
+
         val root = RootComponentImpl(componentContext = defaultComponentContext())
         this.root = root
 
@@ -118,6 +126,21 @@ open class BaseComponentActivity : ComponentActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         consumeDeepLink(intent, handle = true)
+    }
+
+    private fun requestNotificationPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.POST_NOTIFICATIONS
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            ActivityCompat.requestPermissions(
+                this,
+                arrayOf(Manifest.permission.POST_NOTIFICATIONS),
+                POST_NOTIFICATIONS_REQUEST_CODE
+            )
+        }
     }
 
     private fun consumeDeepLink(intent: Intent, handle: Boolean) {

@@ -45,7 +45,7 @@ actual open class PlatformConfiguration private constructor() {
         TODO()
     }
 
-    actual fun downloadVideo(url: String, fileName: String, onError: (() -> Unit)?) {
+    actual fun downloadFile(url: String, fileName: String, mimeType: String?, onError: (() -> Unit)?) {
         openBrowser(url, onError)
     }
 }
