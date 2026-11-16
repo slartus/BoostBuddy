@@ -25,6 +25,7 @@ import kotlinx.io.files.Path
 import ru.slartus.boostbuddy.BuildConfig
 import ru.slartus.boostbuddy.R
 import ru.slartus.boostbuddy.data.log.logger
+import java.io.BufferedInputStream
 import java.io.File
 import java.io.IOException
 import java.net.HttpURLConnection
@@ -133,6 +134,8 @@ actual class PlatformConfiguration(var androidContext: Context, actual val platf
                     connection.readTimeout = READ_TIMEOUT_MS
                     connection.setRequestProperty("User-Agent", BROWSER_USER_AGENT)
                     connection.setRequestProperty("Accept", "*/*")
+                    connection.setRequestProperty("Range", "bytes=0-")
+                    connection.setRequestProperty("Accept-Encoding", "identity")
                     val responseCode = connection.responseCode
                     if (responseCode !in 200..299) {
                         throw IOException("HTTP $responseCode for $url")
@@ -141,7 +144,7 @@ actual class PlatformConfiguration(var androidContext: Context, actual val platf
                     val totalBytes = connection.contentLength.toLong()
                     var downloadedBytes = 0L
                     var lastNotificationUpdate = 0L
-                    connection.inputStream.use { input ->
+                    BufferedInputStream(connection.inputStream, BUFFER_SIZE).use { input ->
                         androidContext.contentResolver.openOutputStream(targetUri).use { output ->
                             requireNotNull(output)
                             val buffer = ByteArray(BUFFER_SIZE)
@@ -279,8 +282,8 @@ actual class PlatformConfiguration(var androidContext: Context, actual val platf
 
     companion object {
         private const val CONNECT_TIMEOUT_MS = 15_000
-        private const val READ_TIMEOUT_MS = 30_000
-        private const val BUFFER_SIZE = 8192
+        private const val READ_TIMEOUT_MS = 60_000
+        private const val BUFFER_SIZE = 64 * 1024
         private const val NOTIFICATION_UPDATE_INTERVAL_MS = 500L
         private const val DOWNLOAD_CHANNEL_ID = "downloads"
         private const val BROWSER_USER_AGENT =
