@@ -11,10 +11,17 @@ import android.os.Environment
 import android.provider.MediaStore
 import android.widget.Toast
 import androidx.core.content.FileProvider
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlinx.io.files.Path
 import ru.slartus.boostbuddy.BuildConfig
 import ru.slartus.boostbuddy.data.log.logger
 import java.io.File
+import java.io.IOException
+import java.net.HttpURLConnection
+import java.net.URL
 
 actual class PlatformConfiguration(var androidContext: Context, actual val platform: Platform) {
     actual val appVersion: String = BuildConfig.VERSION_NAME
@@ -67,54 +74,99 @@ actual class PlatformConfiguration(var androidContext: Context, actual val platf
         mimeType: String?,
         onError: (() -> Unit)?
     ) {
-        var mediaStoreUri: Uri? = null
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            downloadToMediaStore(url, fileName, mimeType, onError)
+        } else {
+            downloadWithDownloadManager(url, fileName, mimeType, onError)
+        }
+    }
+
+    private fun downloadToMediaStore(
+        url: String,
+        fileName: String,
+        mimeType: String?,
+        onError: (() -> Unit)?
+    ) {
+        CoroutineScope(Dispatchers.IO).launch {
+            val values = ContentValues().apply {
+                put(MediaStore.Downloads.DISPLAY_NAME, fileName)
+                if (mimeType != null) {
+                    put(MediaStore.Downloads.MIME_TYPE, mimeType)
+                }
+                put(MediaStore.Downloads.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS)
+                put(MediaStore.Downloads.IS_PENDING, 1)
+            }
+            var uri: Uri? = null
+            try {
+                val targetUri = androidContext.contentResolver.insert(
+                    MediaStore.Downloads.EXTERNAL_CONTENT_URI,
+                    values
+                ) ?: throw IOException("Failed to create MediaStore entry")
+                uri = targetUri
+                val connection = URL(url).openConnection() as HttpURLConnection
+                try {
+                    connection.requestMethod = "GET"
+                    connection.connectTimeout = CONNECT_TIMEOUT_MS
+                    connection.readTimeout = READ_TIMEOUT_MS
+                    connection.setRequestProperty("User-Agent", BROWSER_USER_AGENT)
+                    connection.setRequestProperty("Accept", "*/*")
+                    connection.inputStream.use { input ->
+                        androidContext.contentResolver.openOutputStream(targetUri).use { output ->
+                            requireNotNull(output)
+                            input.copyTo(output)
+                        }
+                    }
+                } finally {
+                    connection.disconnect()
+                }
+                values.clear()
+                values.put(MediaStore.Downloads.IS_PENDING, 0)
+                androidContext.contentResolver.update(targetUri, values, null, null)
+            } catch (error: Exception) {
+                uri?.let { targetUri ->
+                    runCatching { androidContext.contentResolver.delete(targetUri, null, null) }
+                }
+                logger.e(error, "downloadFile")
+                withContext(Dispatchers.Main) {
+                    if (onError != null) {
+                        onError.invoke()
+                    } else {
+                        Toast.makeText(
+                            androidContext,
+                            "Не удалось запустить загрузку",
+                            Toast.LENGTH_LONG,
+                        ).show()
+                    }
+                }
+            }
+        }
+    }
+
+    private fun downloadWithDownloadManager(
+        url: String,
+        fileName: String,
+        mimeType: String?,
+        onError: (() -> Unit)?
+    ) {
         runCatching {
             val request = DownloadManager.Request(Uri.parse(url))
                 .setTitle(fileName)
                 .setDescription("BoostBuddy")
                 .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
+                .setDestinationInExternalFilesDir(
+                    androidContext,
+                    Environment.DIRECTORY_DOWNLOADS,
+                    fileName
+                )
                 .setAllowedOverMetered(true)
                 .setAllowedOverRoaming(true)
             if (mimeType != null) {
                 request.setMimeType(mimeType)
             }
-            // Scoped storage: with targetSdk 29+ the public Downloads dir is only reachable via MediaStore
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                val values = ContentValues().apply {
-                    put(MediaStore.Downloads.DISPLAY_NAME, fileName)
-                    if (mimeType != null) {
-                        put(MediaStore.Downloads.MIME_TYPE, mimeType)
-                    }
-                    put(MediaStore.Downloads.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS)
-                }
-                val uri = androidContext.contentResolver.insert(
-                    MediaStore.Downloads.EXTERNAL_CONTENT_URI,
-                    values
-                )
-                if (uri != null) {
-                    mediaStoreUri = uri
-                    request.setDestinationUri(uri)
-                } else {
-                    request.setDestinationInExternalFilesDir(
-                        androidContext,
-                        Environment.DIRECTORY_DOWNLOADS,
-                        fileName
-                    )
-                }
-            } else {
-                request.setDestinationInExternalFilesDir(
-                    androidContext,
-                    Environment.DIRECTORY_DOWNLOADS,
-                    fileName
-                )
-            }
             val manager =
                 androidContext.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
             manager.enqueue(request)
         }.onFailure { error ->
-            mediaStoreUri?.let { uri ->
-                runCatching { androidContext.contentResolver.delete(uri, null, null) }
-            }
             logger.e(error, "downloadFile")
             if (onError != null) {
                 onError.invoke()
@@ -129,6 +181,11 @@ actual class PlatformConfiguration(var androidContext: Context, actual val platf
     }
 
     companion object {
+        private const val CONNECT_TIMEOUT_MS = 15_000
+        private const val READ_TIMEOUT_MS = 30_000
+        private const val BROWSER_USER_AGENT =
+            "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Mobile Safari/537.36"
+
         fun uriFromFile(context: Context, file: File): Uri {
             return FileProvider.getUriForFile(
                 context, BuildConfig.APPLICATION_ID + ".provider",
